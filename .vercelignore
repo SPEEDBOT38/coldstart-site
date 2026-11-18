@@ -10,3 +10,5 @@ workspace-shell.html
 .env
 .env.*
 /workers/
+/docs/
+/scripts/
