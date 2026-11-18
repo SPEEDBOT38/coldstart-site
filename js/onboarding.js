@@ -188,7 +188,7 @@
     el.innerHTML = '<ol>' + QUESTS.map((q, i) => {
       const idx = i + 1, cls = idx < S.step ? 'is-done' : idx === S.step ? 'is-now' : '';
       const locked = idx > S.max;
-      return `<li><button type="button" class="node ${cls}" data-goto="${idx}" ${locked ? 'disabled' : ''} ${idx === S.step ? 'aria-current="step"' : ''}><span class="node__dot">${idx < S.step ? '✓' : idx}</span><span class="node__txt"><b>${q[1]}</b><span>Quest ${idx}</span></span></button></li>`;
+      return `<li><button type="button" class="node ${cls}" aria-label="Quest ${idx}: ${q[1]}${idx < S.step ? ', done' : idx === S.step ? ', current' : ''}" data-goto="${idx}" ${locked ? 'disabled' : ''} ${idx === S.step ? 'aria-current="step"' : ''}><span class="node__dot">${idx < S.step ? '✓' : idx}</span><span class="node__txt"><b>${q[1]}</b><span>Quest ${idx}</span></span></button></li>`;
     }).join('') + '</ol>';
   }
   let typeTimer = 0;
@@ -263,9 +263,9 @@
 
   R.intro = () => `<div class="panel intro">
     <header class="panel__head"><p class="label"><span>Coldstart · early access</span></p><h1 class="display" id="h1" tabindex="-1">Wake up Coldie<span class="blink">_</span></h1>
-    <p class="sub">Eight quick quests. Tell Coldie what you sell, send it to read your site and Instagram, and walk away with a product list, your ICPs and a brand book.</p></header>
+    <p class="sub">Eight quick quests. Tell Coldie what you sell, send it to read your website and catalogue, and walk away with a product list, your ICPs and a brand book.</p></header>
     <div class="teasers">
-      <div class="teaser"><p class="label">Read</p><p>Your website and Instagram, scanned for every product you sell.</p></div>
+      <div class="teaser"><p class="label">Read</p><p>Your website and store catalogue, scanned for every product you sell, with photos and prices.</p></div>
       <div class="teaser"><p class="label">Know</p><p>Who actually buys from you, written up as ICP cards you can edit.</p></div>
       <div class="teaser"><p class="label">Launch</p><p>A brand book and a first Meta ad preview, ready for your Pixel.</p></div>
     </div>

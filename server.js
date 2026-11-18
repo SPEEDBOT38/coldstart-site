@@ -18,7 +18,7 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://local');
   if (url.pathname.startsWith('/api/')) return api(req, res);
   let p = decodeURIComponent(url.pathname);
-  if (p === '/') p = '/index.html';
+  if (p === '/') { res.statusCode = 307; res.setHeader('location', '/v2.html'); return res.end(); }
   const file = path.join(ROOT, p);
   if (PRIVATE.test(p) || !file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.statusCode = 404; return res.end('not found'); }
   res.setHeader('content-type', TYPES[path.extname(file)] || 'application/octet-stream');
