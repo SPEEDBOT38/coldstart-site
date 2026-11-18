@@ -307,10 +307,13 @@
     <div class="stages" id="stages">${names.map((n, i) => `<div class="stg ${done ? 'is-done' : ''}" data-i="${i}"><span class="stg__ic">${done ? '✓' : i + 1}</span><div class="stg__main"><b>${esc(n)}</b><div class="stg__bar"><i style="width:${done ? 100 : 0}%"></i></div></div><span class="stg__pct">${done ? '100%' : '0%'}</span></div>`).join('')}</div>
     <div class="bag" id="bag"><div><b data-c="pages">${done ? info.pages : 0}</b><span>pages read</span></div><div><b data-c="posts">${done ? info.posts : 0}</b><span>posts read</span></div><div><b data-c="products">${done ? info.products : 0}</b><span>products</span></div><div><b data-c="signals">${done ? info.signals : 0}</b><span>audience signals</span></div></div>
     ${done ? '' : '<div class="log" id="log" aria-hidden="true"></div>'}
+    ${done && S.products.some((p) => p.image) ? `<div class="found"><p class="label">Found on your site</p><div class="found__row">${S.products.filter((p) => p.image).slice(0, 12).map((p) => `<span class="found__item" title="${esc(p.name)}"><img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" referrerpolicy="no-referrer"></span>`).join('')}</div></div>` : ''}
     <div class="result" id="result" ${done ? '' : 'hidden'}><b id="rscore">${S.scanScore}</b><p>MetaCroc score. Coldie banked <b style="font-size:inherit;display:inline;color:var(--accent)">${clamp(Math.round(S.scanScore / 2), 30, 150)} XP</b> from it.</p></div>
     ${actions({ next: 'See what Coldie found', cls: 'btn--yellow' })}</div>`;
   };
 
+  const grow = (t) => { if (!t) return; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; };
+  document.addEventListener('error', (e) => { const im = e.target; if (!im || im.tagName !== 'IMG') return; const box = im.closest('.prod__img, .ad__media, .shot, .found__item, .icp__shelf i, .ad__car figure'); if (box) { box.classList.remove('has-photo'); box.classList.add('no-photo'); im.remove(); } }, true);
   const initials = (s) => s.split(/\s+/).slice(0, 2).map((w) => (w[0] || '').toUpperCase()).join('') || '?';
   const srcTag = { site: '<span class="src">site</span>', ig: '<span class="src src--ig">instagram</span>', both: '<span class="src">site</span><span class="src src--ig">instagram</span>', brief: '<span class="src">your brief</span>', you: '<span class="src">added by you</span>' };
   let shelfFilter = 'all';
@@ -320,7 +323,7 @@
     return `<div class="panel">${head(5, 'Your product shelf', S.real ? (S.sources && S.sources.shopify && S.sources.shopify.status === 'ok' ? 'Straight from your store’s catalogue. Untick anything you don’t want Coldie to market.' : 'What Coldie could read from your site. Rename, untick or add anything so the list matches what you really sell.') : 'Coldie’s sample list from your site and Instagram. Rename, untick or add anything so the list matches what you really sell.', tagNow())}
     <div class="shelf-top"><p class="hint"><b>${S.products.length}</b> products · <b>${nSite}</b> from site · <b>${nIG}</b> from Instagram · <b>${S.products.filter((p) => p.on).length}</b> included</p>
       <div class="seg" role="radiogroup" aria-label="Filter by source">${[['all', 'All'], ['site', 'Site'], ['ig', 'Instagram']].map((f) => `<button type="button" role="radio" aria-checked="${shelfFilter === f[0]}" data-filter="${f[0]}" data-key="f-${f[0]}">${f[1]}</button>`).join('')}</div></div>
-    <div class="grid-p" id="grid">${list.map((p) => `<div class="prod ${p.on ? '' : 'is-off'} ${p.isNew ? 'is-new' : ''}" data-id="${p.id}"><div class="prod__img ${p.image ? 'has-photo' : ''}" style="background:${hsl(p.hue || 220, 55, 42)}">${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span>${esc(initials(p.name))}</span>`}</div><div class="prod__body"><input class="prod__name" value="${esc(p.name)}" aria-label="Product name" maxlength="48" data-name="${p.id}"><div class="prod__meta">${p.price ? `<span>$${p.price}</span>` : ''}${srcTag[p.src] || ''}${p.posts ? `<span>${p.posts} posts</span>` : ''}</div><label class="check"><input type="checkbox" data-on="${p.id}" ${p.on ? 'checked' : ''}> Include</label></div></div>`).join('')}</div>
+    <div class="grid-p" id="grid">${list.map((p) => `<div class="prod ${p.on ? '' : 'is-off'} ${p.isNew ? 'is-new' : ''}" data-id="${p.id}"><div class="prod__img ${p.image ? 'has-photo' : ''}" style="background:${hsl(p.hue || 220, 55, 42)}">${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" referrerpolicy="no-referrer" data-main="${p.id}">` : ''}<span class="prod__ini">${esc(initials(p.name))}</span></div>${(p.images || []).length > 1 ? `<div class="prod__thumbs" role="group" aria-label="More photos of ${esc(p.name)}">${p.images.slice(0, 4).map((u, k) => `<button type="button" class="prod__thumb ${u === p.image ? 'is-on' : ''}" data-thumb="${p.id}" data-src="${esc(u)}" aria-label="Photo ${k + 1}" aria-pressed="${u === p.image}"><img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>` : ''}<div class="prod__body"><textarea class="prod__name" rows="2" aria-label="Product name" maxlength="48" data-name="${p.id}" placeholder="Product name">${esc(p.name)}</textarea><div class="prod__meta">${p.price ? `<span>$${p.price}</span>` : ''}${srcTag[p.src] || ''}${p.posts ? `<span>${p.posts} posts</span>` : ''}</div><label class="check prod__inc"><input type="checkbox" data-on="${p.id}" ${p.on ? 'checked' : ''}> Include</label></div></div>`).join('')}</div>
     <div><button class="btn btn--ghost btn--small" type="button" id="addprod">+ Add a product</button></div>
     ${actions({ reward: 50 })}</div>`;
   };
@@ -338,6 +341,7 @@
       const idx = S.picks.indexOf(p.id);
       return `<article class="icp ${idx > -1 ? 'is-picked' : ''}" data-card="${p.id}">${idx > -1 ? `<span class="badge">${idx === 0 ? '★ Main ICP' : 'Backup'}</span>` : ''}
       <div class="icp__top">${avatar(p.id + p.name + seedBase())}<div><h3>${esc(p.name)}</h3><p class="who">${esc(p.who)}</p></div></div>
+      ${(() => { const ph = S.products.filter((x) => x.on && x.image); if (!ph.length) return ''; const k = S.icps.indexOf(p), pick = [0, 1, 2].map((j) => ph[(k * 3 + j) % ph.length]).filter((x, j, a) => a.indexOf(x) === j); return `<div class="icp__shelf" aria-label="Products Coldie would feature for ${esc(p.name)}">${pick.map((x) => `<i><img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy" referrerpolicy="no-referrer"></i>`).join('')}<span class="label">Lead products</span></div>`; })()}
       <dl><div><dt>Pain</dt><dd>${esc(p.pain)}</dd></div><div><dt>Scrolls</dt><dd>${p.scroll.map(esc).join(' · ')}</dd></div>${p.overlap ? `<div><dt>Overlaps with</dt><dd>${esc(p.overlap)} followers</dd></div>` : ''}<div><dt>Meta format</dt><dd>${esc(p.fmt)}</dd></div><div><dt>Hook</dt><dd>${editing === p.id ? `<input class="icp__hook" data-key="hook-${p.id}" data-hook="${p.id}" value="${esc(p.hook)}" maxlength="80" aria-label="Ad hook">` : `“${esc(p.hook)}”`}</dd></div>${p.evidence ? `<div><dt>Evidence</dt><dd class="evidence">${esc(p.evidence)}</dd></div>` : ''}<div><dt>Signal</dt><dd>${esc(p.level)}${p.mine || p.real ? '' : ' · ' + p.signals + ' sample signals'}</dd></div></dl>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn--small ${idx > -1 ? '' : 'btn--ghost'}" data-pick="${p.id}" data-key="pick-${p.id}" aria-pressed="${idx > -1}">${idx === 0 ? 'Main ICP ✓' : idx === 1 ? 'Backup ✓' : 'Pick this ICP'}</button><button type="button" class="btn btn--ghost btn--small" data-edit="${p.id}" data-key="edit-${p.id}">${editing === p.id ? 'Done' : 'Edit hook'}</button></div></article>`;
     }).join('')}
@@ -347,9 +351,13 @@
 
   const bookAd = (b, brand, colors, icp, prod) => {
     const closers = b.tones.slice(0, 2).map((t) => TONES[t]).join(' ');
-    return `<div class="ad"><div class="ad__head"><span class="ad__av" style="background:${colors[0]}">${esc(initials(brand))}</span><div><b>${esc(brand)}</b><small>Sponsored · preview</small></div></div>
-      <div class="ad__media" style="background:${colors[0]}"><b>${esc(prod)}</b></div>
-      <p class="ad__text">${esc(b.headline || (icp ? icp.hook : ''))} ${esc(closers)}</p>
+    const photos = S.products.filter((p) => p.on && p.image), car = icp && /carousel/i.test(icp.fmt || '') && photos.length > 1;
+    const media = car ? `<div class="ad__car">${photos.slice(0, 4).map((p) => `<figure><img src="${esc(p.image)}" alt="${esc(p.name)}" referrerpolicy="no-referrer"><figcaption>${esc(p.name)}</figcaption></figure>`).join('')}</div>`
+      : photos.length ? `<div class="ad__media has-photo"><img src="${esc(photos[0].image)}" alt="${esc(photos[0].name)}" referrerpolicy="no-referrer"></div><p class="ad__prod">${esc(photos[0].name)}</p>`
+      : `<div class="ad__media" style="background:${colors[0]}"><b>${esc(prod)}</b></div>`;
+    return `<div class="ad"><div class="ad__head"><span class="ad__av" style="background:${colors[0]}">${esc(initials(brand))}</span><div><b>${esc(brand)}</b><small>Sponsored · preview${car ? ' · carousel' : ''}</small></div></div>
+      ${media}
+      <p class="ad__text">${(() => { const h = String(b.headline || (icp ? icp.hook : '')).trim(); return esc(h + (h && !/[.!?…”"']$/.test(h) ? '.' : '')); })()} ${esc(closers)}</p>
       <div class="ad__cta"><span>${esc(parseSite(S.site) || 'yourbrand.com')}</span><b style="background:${colors[2]};color:#111">Shop now</b></div></div>`;
   };
   R.brand = () => {
@@ -364,7 +372,7 @@
       <div class="sect"><p class="label"><span>Type</span></p><div class="type-spec"><p class="big ${style(f[2])}">${esc(f[0])}</p><small>Headings · ${g.fromSite ? 'from your site' : 'suggested pairing'}, shown here in a stand-in face</small><p class="big ${style(f[3])}" style="font-size:1.2rem">${esc(f[1])}</p><small>Body</small></div></div>
       <div class="sect"><p class="label"><span>Voice · pick three</span></p><div class="chips">${Object.keys(TONES).map((t) => `<button type="button" class="chip" aria-pressed="${b.tones.includes(t)}" data-tone="${t}" data-key="tone-${t}">${t}</button>`).join('')}</div>
         <div class="say"><p class="yes"><span class="label">Say</span>${esc((S.real && S.realBrand && S.realBrand.say) || TONES[b.tones[0]] || '')}</p><p class="no"><span class="label">Don’t say</span>${S.real && S.realBrand && S.realBrand.dont && S.realBrand.dont.length ? S.realBrand.dont.map((w) => '“' + esc(w) + '”').join(', ') : '“Revolutionary”, “game-changing”, “best ever”.'}</p></div></div>
-    </div><div class="book__col"><div class="field"><label for="headline">Ad headline</label><input class="input" id="headline" maxlength="90" value="${esc(b.headline)}"></div>
+    </div><div class="book__col"><div class="field"><label for="headline">Ad headline</label><textarea class="input input--area" id="headline" rows="2" maxlength="90">${esc(b.headline)}</textarea></div>
       <div id="adprev">${bookAd(b, brand, g.colors, main, prod)}</div><p class="hint">First Meta ad preview, written from your main ICP and voice. Sample copy, not live.</p></div></div>
     ${S.brandLocked ? '<p class="ok">Brand book locked. You can still go back and edit.</p>' : ''}
     ${actions({ next: S.brandLocked ? 'Continue' : 'Lock brand book', reward: 100, cls: 'btn--yellow' })}</div>`;
@@ -374,6 +382,7 @@
     const l = levelFor(S.xp), main = S.icps.find((x) => x.id === S.picks[0]);
     return `<div class="panel final">${head(8, 'Level ' + (l + 1) + ': ' + LEVELS[l].n, 'Coldie knows your brand. Here’s what you built.')}
     <div class="final__top"><ul class="sum"><li>${S.products.filter((p) => p.on).length} products on your shelf</li><li>${S.picks.length} ICP${S.picks.length > 1 ? 's' : ''} picked${main ? ': ' + esc(main.name) : ''}</li><li>Brand book locked</li><li>${S.xp} XP earned</li></ul><img src="assets/mascot/celebrate.anim.webp" alt="Coldie celebrating" width="220" height="220"></div>
+    ${S.products.some((p) => p.on && p.image) ? `<div class="wall"><p class="label">Your shelf, ready for ads</p><div class="wall__grid">${S.products.filter((p) => p.on && p.image).slice(0, 8).map((p) => `<span class="shot"><img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" referrerpolicy="no-referrer"></span>`).join('')}</div></div>` : ''}
     <div class="next"><img src="assets/mascot/pixel_setup.anim.webp" alt="Coldie setting up a tracking pixel" width="120" height="120"><div><p class="label">Next quest</p><h2 class="display">Install your Meta Pixel</h2><p class="hint" style="color:var(--paper)">Coldie’s first real job: set up the Pixel and Conversions API, then check them before any ad runs.</p></div></div>
     <form class="signup" id="signup" novalidate><div class="field"><label for="email">Save your progress and get early access</label><input class="input" id="email" type="email" autocomplete="email" placeholder="you@brand.com" value="${esc(S.email)}"></div><button class="btn btn--yellow" type="submit" style="align-self:end">Get early access</button><p class="err" id="e-email" role="alert"></p><p class="ok" id="ok-email" role="status">${S.emailDone ? 'You’re on the list.' : ''}</p></form>
     <div class="actions"><button class="btn btn--ghost" type="button" id="back">Back</button><div class="actions__right"><a class="btn btn--ghost" href="v2.html">Back to the site</a><button class="btn btn--yellow" type="button" id="toapp">Open my workspace →</button></div></div></div>`;
@@ -585,17 +594,21 @@
   B.shelf = () => {
     const onClick = (e) => {
       const f = e.target.closest('[data-filter]'); if (f) { shelfFilter = f.dataset.filter; return rerender(f.dataset.key); }
+      const th = e.target.closest('[data-thumb]');
+      if (th) { const p = S.products.find((x) => x.id === th.dataset.thumb); if (p) { p.image = th.dataset.src; save(); const card = th.closest('.prod'), im = $('img[data-main]', card); if (im) { im.src = p.image; } else { const box = $('.prod__img', card); box.classList.add('has-photo'); box.insertAdjacentHTML('afterbegin', `<img src="${esc(p.image)}" alt="${esc(p.name)}" referrerpolicy="no-referrer" data-main="${p.id}">`); } $$('[data-thumb]', card).forEach((b) => { const on = b === th; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on); }); } return; }
       if (e.target.closest('#addprod')) { S.products.unshift({ id: 'u' + Date.now(), name: '', price: 0, src: 'you', posts: 0, on: true, hue: 220, isNew: true }); shelfFilter = 'all'; save(); rerender(); const ni = $('.prod__name'); if (ni) ni.focus(); }
     };
     const onInput = (e) => {
-      const n = e.target.closest('[data-name]'); if (n) { const p = S.products.find((x) => x.id === n.dataset.name); if (p) { p.name = n.value; save(); } }
+      const n = e.target.closest('[data-name]'); if (n) { if (/\n/.test(n.value)) n.value = n.value.replace(/\n/g, ' '); grow(n); const p = S.products.find((x) => x.id === n.dataset.name); if (p) { p.name = n.value; save(); } }
     };
     const onChange = (e) => {
       const o = e.target.closest('[data-on]'); if (!o) return;
       const p = S.products.find((x) => x.id === o.dataset.on); if (p) { p.on = o.checked; save(); o.closest('.prod').classList.toggle('is-off', !p.on); $('.shelf-top .hint').innerHTML = $('.shelf-top .hint').innerHTML.replace(/<b>\d+<\/b> included/, '<b>' + S.products.filter((x) => x.on).length + '</b> included'); refreshNext(); }
     };
-    stage.addEventListener('click', onClick); stage.addEventListener('input', onInput); stage.addEventListener('change', onChange);
-    return () => { stage.removeEventListener('click', onClick); stage.removeEventListener('input', onInput); stage.removeEventListener('change', onChange); };
+    const onKey = (e) => { if (e.key === 'Enter' && e.target.closest('[data-name]')) e.preventDefault(); };
+    stage.addEventListener('click', onClick); stage.addEventListener('input', onInput); stage.addEventListener('change', onChange); stage.addEventListener('keydown', onKey);
+    $$('.prod__name').forEach(grow); requestAnimationFrame(() => $$('.prod__name').forEach(grow));
+    return () => { stage.removeEventListener('keydown', onKey); stage.removeEventListener('click', onClick); stage.removeEventListener('input', onInput); stage.removeEventListener('change', onChange); };
   };
 
   /* ---- ICP ---- */
@@ -630,7 +643,8 @@
       if (t) { const b = S.brand, k = t.dataset.tone, i = b.tones.indexOf(k); if (i > -1) { if (b.tones.length > 1) b.tones.splice(i, 1); } else { b.tones.push(k); if (b.tones.length > 3) b.tones.shift(); } save(); return rerender(t.dataset.key); }
       const s = e.target.closest('[data-copy]'); if (s) { try { navigator.clipboard.writeText(s.dataset.copy); } catch (er) { /* clipboard may be blocked */ } toast('Copied ' + s.dataset.copy); }
     };
-    const onInput = (e) => { if (e.target.id === 'headline') { S.brand.headline = e.target.value; save(); refreshAd(); } };
+    const onInput = (e) => { if (e.target.id === 'headline') { if (/\n/.test(e.target.value)) e.target.value = e.target.value.replace(/\n/g, ' '); grow(e.target); S.brand.headline = e.target.value; save(); refreshAd(); } };
+    grow($('#headline'));
     stage.addEventListener('click', onClick); stage.addEventListener('input', onInput);
     const nx = $('#next'); const lock = (e) => { if (!S.brandLocked) { e.stopImmediatePropagation(); S.brandLocked = true; save(); addXP('brand', 100); say(LINES.brand()); setTimeout(() => go(S.step + 1), 900); } };
     nx.disabled = false; nx.addEventListener('click', lock, true);
@@ -660,8 +674,8 @@
       v: 1, at: new Date().toISOString(), real: !!S.real,
       brand: { name: brandName(), url: parseSite(S.site) ? 'https://' + parseSite(S.site) : '', ig: parseIG(S.ig), line: (S.real && S.realBrand && S.realBrand.line) || S.product.trim(), category: cat().label, revenue: revLabel(),
         voice: (b.tones || []).join(', '), avoid: (S.real && S.realBrand && S.realBrand.dont ? S.realBrand.dont : ['revolutionary', 'game-changing', 'best ever']).join(', ') },
-      book: { colors: g.colors, names: g.names, fonts: g.fonts, tones: b.tones || [], headline: b.headline || '', say: (S.real && S.realBrand && S.realBrand.say) || '', fromSite: !!g.fromSite, logo: (S.real && S.realBrand && S.realBrand.logo) || null },
-      products: S.products.filter((p) => p.on).map((p) => ({ name: p.name, price: p.price, image: p.image || null, url: p.url || null, src: p.src })),
+      book: { colors: g.colors, names: g.names, fonts: g.fonts, tones: b.tones || [], headline: b.headline || '', say: (S.real && S.realBrand && S.realBrand.say) || '', fromSite: !!g.fromSite, logo: (S.real && S.realBrand && S.realBrand.logo) || null, hero: (S.real && S.realBrand && S.realBrand.hero) || null },
+      products: S.products.filter((p) => p.on).map((p) => ({ name: p.name, price: p.price, image: p.image || null, images: (p.images || []).slice(0, 4), url: p.url || null, src: p.src })),
       icps: [main, backup].filter(Boolean).map((p, i) => ({ role: i ? 'backup' : 'main', name: p.name, who: p.who, pain: p.pain, scroll: p.scroll, hook: p.hook, fmt: p.fmt, evidence: p.evidence || '' })),
       competitors: S.rivals.slice(), sources: S.sources || null
     };
