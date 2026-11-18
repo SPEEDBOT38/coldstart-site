@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coldstart app</title>
+  <meta name="theme-color" content="#0000F2">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230000F2'/%3E%3Cpath d='M17 9h-5a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4h5' fill='none' stroke='%23F2F2F2' stroke-width='3.4'/%3E%3Cpath d='M19 23h6' stroke='%23ECEA36' stroke-width='3.4'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens-v2.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body data-theme="paper">
+  <!-- the same framed viewport as the landing page -->
+  <div class="frame" aria-hidden="true"></div>
+
+  <div class="app">
+    <!-- one blue bar: logo, the run's four stages as navigation, demo controls -->
+    <header class="topbar" data-theme="blue">
+      <a class="logo" href="v2.html" aria-label="Coldstart, back to the site">cold start<span class="blink">_</span></a>
+      <nav class="pipe" id="nav" aria-label="Run stages"></nav>
+      <div class="topbar__right">
+        <span class="chip label" id="runChip"></span>
+        <details class="demo">
+          <summary class="label"><span id="dataLabel">sample data</span><i aria-hidden="true">▾</i></summary>
+          <div class="demo__pop" data-theme="paper">
+            <p class="label">Local prototype. Nothing is published, tracked or charged.</p>
+            <div class="seg label" role="group" aria-label="Demo state">
+              <button type="button" data-act="mode" data-mode="empty">new workspace</button>
+              <button type="button" data-act="mode" data-mode="running">sample run</button>
+            </div>
+            <button class="btn btn--ghost" type="button" data-act="reset">reset demo</button>
+            <a class="label" href="v2.html">back to the site ↗</a>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <div class="work">
+      <div class="main">
+        <header class="viewhead">
+          <p class="label viewhead__crumb" id="crumb"></p>
+          <h1 class="display" id="title"></h1>
+          <nav class="steps label" id="subnav" aria-label="Install steps" hidden></nav>
+        </header>
+        <main class="view" id="view" tabindex="-1"></main>
+      </div>
+
+      <!-- Coldie's console: he performs the job that is on screen, the log says what he has done -->
+      <aside class="dock" data-theme="blue" aria-label="Coldie">
+        <div class="dock__edge" aria-hidden="true"><i class="dz-25"></i><i class="dz-50"></i><i class="dz-75"></i></div>
+        <div class="duo dock__art" id="coldieDuo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.06">
+          <video muted playsinline preload="auto" aria-hidden="true"></video>
+          <canvas aria-hidden="true"></canvas>
+          <span class="label dock__tag" id="coldieTag"></span>
+        </div>
+        <div class="dock__say" aria-live="polite">
+          <span class="label" id="coldieState"></span>
+          <p id="coldieLine"></p>
+        </div>
+        <div class="dock__log">
+          <p class="label">run log</p>
+          <ol class="log" id="dockLog"></ol>
+        </div>
+        <div class="dock__foot">
+          <button class="btn btn--ghost" type="button" id="pauseBtn" data-act="pause"></button>
+          <p class="label">local prototype · nothing is published or charged</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <nav class="tabs label" id="tabs" aria-label="App sections"></nav>
+  <div class="toast label" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/dither.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

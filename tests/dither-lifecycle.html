@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Dither lifecycle regression</title><body><pre id="result">RUNNING</pre><script>
+window.observers=[];
+for(const name of ['ResizeObserver','IntersectionObserver']){
+ const Native=window[name]; window[name]=class extends Native{
+ constructor(cb,opts){super(cb,opts);this.testDisconnected=false;observers.push(this)}
+ disconnect(){this.testDisconnected=true;return super.disconnect()}
+ };
+}
+</script><script src="../js/dither.js"></script><script>
+const fixture=document.createElement('div');fixture.dataset.ditherVideo='';fixture.style.cssText='width:200px;height:200px';fixture.innerHTML='<video muted loop><source src="../assets/mascot/loading_screen.webm"></video><canvas></canvas>';document.body.append(fixture);Dither.videos();const duo=fixture._duo;fixture.remove();Dither.videos();
+const checks=[['removed renderers disconnect both observers',observers.length===2&&observers.every(o=>o.testDisconnected)],['removed renderers release their instance',!fixture._duo],['active media is paused on cleanup',fixture.querySelector('video').paused]];
+window.testResults={pass:checks.every(x=>x[1]),checks};document.querySelector('#result').textContent=JSON.stringify(testResults,null,2);
+</script></body></html>

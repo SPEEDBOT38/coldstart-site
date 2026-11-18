@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coldstart app (first version)</title>
+  <meta name="theme-color" content="#0000F2">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230000F2'/%3E%3Cpath d='M17 9h-5a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4h5' fill='none' stroke='%23F2F2F2' stroke-width='3.4'/%3E%3Cpath d='M19 23h6' stroke='%23ECEA36' stroke-width='3.4'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens-v2.css">
+  <link rel="stylesheet" href="css/app-v1.css">
+</head>
+<body data-theme="paper">
+  <div class="app">
+
+    <aside class="rail" data-theme="blue">
+      <a class="logo" href="v2.html" aria-label="Coldstart, back to the site">cold start<span class="blink">_</span></a>
+      <div class="ws" id="ws"></div>
+      <nav class="navlist label" id="nav" aria-label="App sections"></nav>
+      <div class="coldie" aria-live="polite">
+        <div class="duo" id="coldieDuo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.25">
+          <video muted loop playsinline preload="auto" aria-hidden="true"></video>
+          <canvas aria-hidden="true"></canvas>
+        </div>
+        <span class="label" id="coldieState"></span>
+        <p id="coldieLine"></p>
+      </div>
+      <div class="rail__foot label">
+        <a href="v2.html">site ↗</a>
+        <button type="button" data-act="reset">reset demo</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <p class="label topbar__crumb" id="crumb"></p>
+          <h1 class="display" id="title"></h1>
+        </div>
+        <div class="topbar__right">
+          <span class="chip label" id="runChip"></span>
+          <span class="tag label" id="dataLabel">sample data</span>
+          <div class="seg label" role="group" aria-label="Demo state">
+            <button type="button" data-act="mode" data-mode="empty">new workspace</button>
+            <button type="button" data-act="mode" data-mode="running">sample run</button>
+          </div>
+        </div>
+      </header>
+      <p class="demo-notice label">Local prototype · no publishing, tracking or charges</p>
+      <main class="view" id="view" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <nav class="tabs label" id="tabs" aria-label="App sections"></nav>
+  <div class="toast label" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/dither.js"></script>
+  <script src="js/app-v1.js"></script>
+</body>
+</html>

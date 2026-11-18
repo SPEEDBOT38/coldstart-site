@@ -1,0 +1,128 @@
+{
+ "ok": {
+  "checks": 30,
+  "failures": [],
+  "details": [
+   {
+    "name": "evidence bookmark toggles and persists",
+    "pass": true
+   },
+   {
+    "name": "evidence creates destination draft",
+    "pass": true
+   },
+   {
+    "name": "draft opens studio",
+    "pass": true
+   },
+   {
+    "name": "per-post approval persists",
+    "pass": true
+   },
+   {
+    "name": "approved post schedules",
+    "pass": true
+   },
+   {
+    "name": "pause holds scheduled content",
+    "pass": true
+   },
+   {
+    "name": "resume restores eligible content",
+    "pass": true
+   },
+   {
+    "name": "timezone setting persists",
+    "pass": true
+   },
+   {
+    "name": "editing invalidates approval",
+    "pass": true
+   },
+   {
+    "name": "editing clears scheduled timestamp",
+    "pass": true
+   },
+   {
+    "name": "cannot schedule unapproved edited copy",
+    "pass": true
+   },
+   {
+    "name": "batch policy saved from ribbon",
+    "pass": true
+   },
+   {
+    "name": "batch review dialog displays content",
+    "pass": true
+   },
+   {
+    "name": "batch applies approval",
+    "pass": true
+   },
+   {
+    "name": "auto policy saved from ribbon",
+    "pass": true
+   },
+   {
+    "name": "automatic rule controls available",
+    "pass": true
+   },
+   {
+    "name": "automatic rule evaluation responds",
+    "pass": true
+   },
+   {
+    "name": "destination disconnects",
+    "pass": true
+   },
+   {
+    "name": "connecting explicitly labelled simulation",
+    "pass": true
+   },
+   {
+    "name": "destination connects in local state",
+    "pass": true
+   },
+   {
+    "name": "install requires acknowledgment",
+    "pass": true
+   },
+   {
+    "name": "sample installation state saved",
+    "pass": true
+   },
+   {
+    "name": "sample diagnostics run",
+    "pass": true
+   },
+   {
+    "name": "missing purchase remains explicit",
+    "pass": true
+   },
+   {
+    "name": "ad pause independent of organic queue",
+    "pass": true
+   },
+   {
+    "name": "paid draft created locally",
+    "pass": true
+   },
+   {
+    "name": "global search finds content",
+    "pass": true
+   },
+   {
+    "name": "crawl animation is activated by preview job",
+    "pass": true
+   },
+   {
+    "name": "crawl cancel stops animation",
+    "pass": true
+   },
+   {
+    "name": "crawl restart runs step 1",
+    "pass": true
+   }
+  ]
+ }
+}

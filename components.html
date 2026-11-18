@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coldstart workspace · components</title>
+<meta name="theme-color" content="#0000F2">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230000F2'/%3E%3Ctext x='6' y='23' fill='%23F2F2F2' font-family='sans-serif' font-size='24'%3Ec%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/fonts.css"><link rel="stylesheet" href="css/tokens-v2.css"><link rel="stylesheet" href="css/workspace.css?v=3">
+<style>
+  .shelf{display:grid;gap:26px;padding:26px 32px 60px;max-width:1240px;margin:0 auto}
+  .shelf-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:20px}
+  .shelf-head p{margin-top:8px;font-size:12px;color:var(--muted);max-width:60ch}
+  .bin{display:grid;gap:10px}
+  .bin>.eyebrow{margin-bottom:4px}
+  .tray{border:1px solid var(--rule);border-radius:4px;background:#ffffff4d;padding:18px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .tray.col{display:grid;gap:8px;align-items:stretch}
+  .where{font:9px var(--font-mono);color:var(--muted);letter-spacing:.03em}
+  .demo-wrap{border:4px solid var(--blue);border-radius:4px;padding:10px;min-width:170px}
+  .map{width:100%;border-collapse:collapse;font-size:11px}
+  .map th{text-align:left;font:9px var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--rule)}
+  .map td{padding:11px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+  .map td:first-child{font-family:var(--font-mono);font-size:10px;white-space:nowrap}
+  .toast{position:static;transform:none;opacity:1}
+  .crawl-viz{min-height:120px}
+  .mini-art{width:90px;height:90px}
+</style>
+</head>
+<body data-theme="paper">
+<div class="frame" aria-hidden="true"></div>
+<main class="shelf">
+  <header class="shelf-head">
+    <div>
+      <span class="eyebrow">Workspace / component shelf</span>
+      <h1>One home per component<span aria-hidden="true">_</span></h1>
+      <p>Every repeating piece of the workspace UI lives in exactly one place: a CSS block in <b>css/workspace.css</b> and, where markup repeats, a factory in the <b>C</b> layer of <b>js/workspace.js</b>. Views compose; they don't hand-roll. This page is the reference — if a view needs something not here, it gets added here first.</p>
+    </div>
+    <div class="row" style="gap:8px"><a class="btn secondary" href="app.html#/overview">Open workspace</a><span class="badge sample-badge">Fictional sample</span></div>
+  </header>
+
+  <section class="bin">
+    <span class="eyebrow">01 · Actions</span>
+    <div class="tray">
+      <button class="btn" type="button">Primary action</button>
+      <button class="btn secondary" type="button">Secondary</button>
+      <button class="btn yellow" type="button">From the blue hero</button>
+      <button class="btn danger" type="button">Destructive</button>
+      <button class="btn secondary" type="button">With icon <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Open"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button>
+      <button class="line-button" type="button">Inline text link →</button>
+      <button class="command-chip" type="button">scan reddit</button>
+    </div>
+    <p class="where">HOME btn / icon-btn / line-button / command-chip in workspace.css · USED every view · RULE one primary action per screen region; danger only for irreversible local actions.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">02 · Status</span>
+    <div class="tray">
+      <span class="badge needs_approval">Needs approval</span>
+      <span class="badge approved">Approved</span>
+      <span class="badge scheduled">Scheduled</span>
+      <span class="badge held">Held</span>
+      <span class="badge failed">Failed</span>
+      <span class="badge published">Published · sample</span>
+      <span class="badge draft">Draft</span>
+      <span class="badge sample-badge">Fictional sample</span>
+      <span class="platform"><span class="platform-symbol">r</span>Reddit</span>
+      <span class="platform"><span class="platform-symbol">𝕏</span>X</span>
+      <span class="platform"><span class="platform-symbol"><svg viewBox="0 0 20 20" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="2" width="16" height="16" rx="4"/><circle cx="10" cy="10" r="4"/></svg></span>Instagram</span>
+      <span class="platform"><span class="platform-symbol">f</span>Facebook</span>
+      <span class="platform"><span class="platform-symbol">s</span>Shopify blog</span>
+      <span class="relevance-pill">94% match</span>
+    </div>
+    <p class="where">HOME badge / platform / relevance-pill · USED studio, calendar, research, overview · RULE status badges come from state, never hand-typed; yellow = needs a human, blue-tint = on track, outlined = informational, dashed = sample-only.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">03 · Containers</span>
+    <div class="tray col">
+      <section class="panel"><div class="panel-head"><h2>Panel — the default container</h2><span class="caption">head caption</span></div><div class="panel-body">Body slot. Panels stack; heads carry the label and one caption or control.</div></section>
+      <div class="blue-note"><div class="grow"><span class="eyebrow">Blue note — brand voice inside work</span><h3>A statement with Coldie beside it.</h3><p>Used sparingly: one per view, where the brand earns a word.</p></div></div>
+      <div class="attention"><span class="caption">Attention — the one thing that needs you</span><strong class="large">3 decisions</strong><p>Yellow block, reserved for human review counts.</p></div>
+      <div class="insight"><strong>INSIGHT — interpretation, kept separate from evidence</strong>Proposed angle text. Never presented as a finding.</div>
+      <div class="tray" style="padding:0;gap:0">
+        <p class="notice" style="margin:0">Notice — neutral information.</p>
+        <p class="notice warn" style="margin:0">Warn — something needs attention before continuing.</p>
+        <p class="notice error" style="margin:0">Error — the action failed and why.</p>
+      </div>
+    </div>
+    <p class="where">HOME panel / blue-note / attention / insight / notice · USED all views · RULE paper panels for work; one blue note max per view; insight blocks always carry their ALL-CAPS disclaimer.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">04 · Rows — the list family</span>
+    <div class="tray col">
+      <div class="panel" style="border:0">
+        <div class="list-row"><span class="dot"></span><div class="grow"><strong>C.row — activity line</strong><small>lead dot, title, timestamp</small></div></div>
+        <div class="list-row"><span class="platform"><span class="platform-symbol">𝕏</span></span><div class="grow"><strong>C.row — work line</strong><small>lead platform chip, title, context</small></div><span class="badge scheduled">Scheduled</span><button class="icon-btn" type="button" aria-label="Open"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button></div>
+        <div class="mini-stat"><span class="small">C.stat — key/value</span><strong>42</strong></div>
+        <button class="sibling-row" type="button"><span class="platform"><span class="platform-symbol">r</span></span><span class="grow" style="text-align:left">Sibling — same-campaign sibling post</span><span class="badge draft">Draft</span></button>
+      </div>
+    </div>
+    <p class="where">HOME C.row / C.stat / sibling-row · USED overview, connections, research saved, calendar inspector, dialogs · RULE anything that reads as "a line in a list" is C.row — cards below are for content you inspect, rows are for things you scan.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">05 · Cards — content you inspect</span>
+    <div class="tray" style="align-items:stretch">
+      <button class="signal-item" type="button" style="max-width:240px"><div class="signal-meta"><span class="platform"><span class="platform-symbol">r</span></span><span>r/houseplants</span><span class="relevance-pill">94%</span></div><h3>signal-item — a conversation worth reading</h3><p>Meta line, title, excerpt, intent badge.</p><div class="signal-bottom"><span class="badge">Customer pain</span><span class="caption">Sample</span></div></button>
+      <button class="draft-row" type="button" style="max-width:200px" aria-selected="true"><span class="platform"><span class="platform-symbol">𝕏</span>X</span><strong>draft-row — studio list item, selected state shown</strong><span class="badge draft">Draft</span></button>
+      <button class="calendar-post" type="button" style="max-width:170px"><div class="post-time">14:30</div><span class="platform"><span class="platform-symbol">f</span></span><strong>calendar-post — one slot in the week</strong><span class="badge scheduled">Scheduled</span></button>
+      <article class="teardown-card" style="max-width:280px"><div class="teardown-head"><span>Moss House</span><span class="badge sample-badge">Meta Ad Library · Paid</span></div><div class="teardown-frame"><strong>“Your leaves still look tired?”</strong><span>9:16 Reel · 28s</span></div><div class="teardown-body"><div class="teardown-meta"><span>Observed 38d</span><span>Shop Now</span></div><p><b>Observed:</b> room-tour open, bundle flatlay, offer headline.</p><p><b>Gap:</b> no routine shown.</p></div></article>
+    </div>
+    <p class="where">HOME signal-item / draft-row / calendar-post / teardown-card · USED research, studio, calendar · RULE cards are clickable and carry their own status; teardown keeps observed-fact and gap visually apart.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">06 · Filters &amp; navigation</span>
+    <div class="tray col">
+      <div class="tray" style="padding:0;gap:0">
+        <div class="subtabs"><button type="button" aria-pressed="true">Conversations</button><button type="button">Product category</button><button type="button">Brand competitors</button></div>
+      </div>
+      <div class="tray" style="padding:12px">
+        <div class="segmented"><button type="button" aria-pressed="true">Week</button><button type="button">List</button></div>
+        <button class="intent-btn" type="button" aria-pressed="true">Customer pain <span class="mono">2</span></button>
+        <button class="intent-btn" type="button">Buying intent <span class="mono">1</span></button>
+        <button class="topic-btn" type="button" aria-pressed="true">watering</button>
+        <button class="pipeline-step" type="button" aria-pressed="true"><span>Approve</span><strong class="mono">3</strong></button>
+        <button class="pipeline-step" type="button"><span>Queued</span><strong class="mono">5</strong></button>
+        <div class="policy-modes" role="group" aria-label="Approval mode"><label><input type="radio" name="d-policy" checked><span>Each post</span></label><label><input type="radio" name="d-policy"><span>Batch</span></label><label><input type="radio" name="d-policy"><span>Guarded auto</span></label></div>
+      </div>
+    </div>
+    <p class="where">HOME subtabs / C.seg / intent-btn / topic-btn / pipeline-step / policy-modes · USED research, calendar, studio · RULE subtabs switch data sets; segmented (C.seg) switches layout or channel inside one set; pills with counts are filters; the policy radios are the only segmented control that changes state on click.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">07 · Forms</span>
+    <div class="tray" style="align-items:flex-start">
+      <label class="field"><span>Field label</span><input type="text" value="Fern &amp; Form"></label>
+      <label class="field"><span>Select</span><select><option>X</option><option>Reddit</option></select></label>
+      <label class="field"><span>Publish time</span><input type="datetime-local" value="2026-11-17T10:00"></label>
+      <label class="check"><input type="checkbox" checked>Check — an explicit acknowledgement</label>
+      <div style="min-width:180px"><span class="caption">Char meter</span><div class="char-meter"><i style="width:62%"></i></div><span class="caption">174 / 280 characters</span></div>
+    </div>
+    <p class="where">HOME field / check / char-meter · USED studio, tracking, brand, dialogs · RULE every input lives in a .field with a mono label; prerequisites are checkboxes you own, never pre-ticked.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">08 · Feedback &amp; honesty</span>
+    <div class="tray col">
+      <div class="empty"><h3>Empty — a dead end with a way out</h3><p>Empty states name the next action, not an illustration.</p><button class="btn secondary" type="button">Open studio</button></div>
+      <div class="tray" style="padding:0"><div id="toast" class="toast visible" role="status">Toast — confirms local sample actions.</div></div>
+      <ol class="trace-box"><li><span class="t-ok">&gt;</span><span>Agent trace — what Coldie actually did, newest first.</span></li><li><span class="t-dim">[ok]</span><span>Simulation: approved a sample post.</span></li></ol>
+      <div class="crawl-telemetry"><div><b>&gt;</b> GET sample://r/houseplants/new · 200 · 4 pages</div><div><b>&gt;</b> grouped 5 sample signals — nothing live was fetched</div></div>
+    </div>
+    <p class="where">HOME C.empty / toast / trace-box / crawl-telemetry · USED all views · RULE toasts are the only confirmation for simulated actions; telemetry and trace lines are logs, never progress theater.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">09 · Data display</span>
+    <div class="tray col">
+      <div class="tray" style="padding:14px;gap:26px">
+        <div style="flex:1;min-width:160px"><span class="caption">Loop bar</span><div class="loop-bar"><i style="width:72%"></i></div></div>
+        <div style="flex:1;min-width:160px"><span class="caption">Result bar</span><div class="result-bar"><i style="width:64%"></i></div></div>
+        <div style="flex:1;min-width:160px"><span class="caption">Char meter (over)</span><div class="char-meter is-over"><i style="width:100%"></i></div></div>
+      </div>
+      <div class="table-wrap"><table class="dedup-table"><thead><tr><th>Event</th><th>Browser pixel</th><th>Server CAPI</th><th>Deduplication</th></tr></thead><tbody><tr><td><strong>PageView</strong></td><td>Sample received</td><td>Sample received</td><td>Matched · ev_pv_104</td></tr><tr><td><strong>Purchase</strong></td><td>Not observed</td><td>Not observed</td><td>Missing pair · investigate</td></tr></tbody></table></div>
+      <pre class="payload-box">{ "event_name": "PageView", "event_id": "ev_pv_104", "action_source": "website" }</pre>
+    </div>
+    <p class="where">HOME loop-bar / result-bar / dedup-table / payload-box / chart · USED overview, results, tracking · RULE dithered edges (not solid fills) mark sample data; unavailable measures are labelled, never zero-filled.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">10 · Direction 02 palette — playful precision</span>
+    <div class="tray">
+      <div class="demo-wrap" style="background:#F5F3EB;color:#111C4A;min-width:120px"><b>Canvas</b><br>#F5F3EB</div>
+      <div class="demo-wrap" style="background:#111C4A;color:#F5F3EB;min-width:120px"><b>Ink</b><br>#111C4A</div>
+      <div class="demo-wrap" style="background:#0000F2;color:#F2F2F2;min-width:120px"><b>Blue — accent only</b><br>#0000F2</div>
+      <div class="demo-wrap" style="background:#ECEA36;color:#111C4A;min-width:120px"><b>Acid</b><br>#ECEA36</div>
+      <div class="demo-wrap" style="background:#B3BFFF;color:#111C4A;min-width:120px"><b>Lavender</b><br>#B3BFFF</div>
+    </div>
+    <p class="where">RULE blue marks actions, selection and feature moments — never the whole chrome. The sidebar is ink; the canvas is warm paper; acid means "needs a human"; lavender is the quiet secondary. Zen Dots (.display) appears only at feature moments; working headings are quiet Sora.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">11 · The signature — Coldie agent dock</span>
+    <div class="tray" style="display:block;padding:0;position:relative;min-height:150px">
+      <aside class="dock" style="position:relative;right:auto;bottom:auto;width:100%;max-width:320px;margin:14px"><button class="dock-bar" type="button"><span class="dock-art"><img src="assets/mascot/idle_stand.poster.webp" alt=""></span><span class="dock-status"><b>All clear</b><small>nothing running</small></span><span class="dock-count">3</span></button></aside>
+    </div>
+    <p class="where">HOME .dock in workspace.css + dockUpdate() in workspace.js · USED every page (fixed, bottom-right) · RULE Coldie's one persistent presence: current state, live trace of what he actually did, and the jump into approvals. He grows into bigger appearances only when he has something to show.</p>
+  </section>
+
+  <section class="bin">
+    <span class="eyebrow">12 · Placement map</span>
+    <div class="table-wrap"><table class="map">
+      <thead><tr><th>Component</th><th>Home</th><th>Used in</th><th>Placement rule</th></tr></thead>
+      <tbody>
+        <tr><td>btn family</td><td>workspace.css / btn(), link()</td><td>all views</td><td>One primary per region; yellow only inside blue surfaces; danger asks first.</td></tr>
+        <tr><td>badge / platform</td><td>workspace.css / badge(), platform()</td><td>all views</td><td>Generated from state; sample data always wears the dashed badge.</td></tr>
+        <tr><td>panel</td><td>workspace.css / C.panel()</td><td>all views</td><td>Default container for work on paper; head holds label + one control.</td></tr>
+        <tr><td>C.row / C.stat</td><td>js C layer</td><td>overview, connections, saved evidence, inspectors</td><td>Anything scannable is a row; inspectable content is a card.</td></tr>
+        <tr><td>signal-item / teardown-card</td><td>workspace.css</td><td>research</td><td>Evidence cards keep quote vs interpretation visually separated.</td></tr>
+        <tr><td>draft-row / calendar-post</td><td>workspace.css</td><td>studio, calendar</td><td>Selection state is the strong blue; cards carry their own status.</td></tr>
+        <tr><td>subtabs / C.seg / pills</td><td>workspace.css / C.seg()</td><td>research, calendar, studio</td><td>Subtabs = data set; segmented = layout/channel; counted pills = filters.</td></tr>
+        <tr><td>policy-modes</td><td>workspace.css</td><td>studio ribbon</td><td>The only immediate-effect control; everything else saves explicitly.</td></tr>
+        <tr><td>field / check</td><td>workspace.css</td><td>forms everywhere</td><td>Mono labels; prerequisites are never pre-ticked.</td></tr>
+        <tr><td>notice / insight / attention</td><td>workspace.css / C.insight()</td><td>all views</td><td>Neutral info, interpretation, and human-review urgency stay distinct.</td></tr>
+        <tr><td>trace / telemetry / toast</td><td>workspace.css</td><td>overview, research, actions</td><td>Logs of what really happened locally; no fake progress.</td></tr>
+        <tr><td>bars &amp; tables</td><td>workspace.css</td><td>overview, results, tracking</td><td>Dithered edge = sample; missing data is labelled, not zero.</td></tr>
+        <tr><td>dialog</td><td>app.html #dialog / showDialog()</td><td>actions needing intent</td><td>Destructive, configuration and picker flows; never for reading.</td></tr>
+        <tr><td>frame / sidebar / topbar</td><td>app.html shell</td><td>every screen</td><td>Chrome is identical everywhere; only #workspace re-renders.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <footer style="display:flex;justify-content:space-between;gap:14px;font:9px var(--font-mono);color:var(--muted);padding-top:18px;border-top:1px solid var(--rule);flex-wrap:wrap">
+    <span>COLDSTART WORKSPACE COMPONENTS · FICTIONAL SAMPLE DATA</span>
+    <span>css/workspace.css · js/workspace.js C layer</span>
+  </footer>
+</main>
+</body>
+</html>

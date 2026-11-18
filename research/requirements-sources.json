@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": 1,
+      "url": "https://support.reddithelp.com/hc/en-us/articles/16471395473812-Moderation-Bots-Tooling",
+      "title": "",
+      "accessed": "2026-11-15"
+    },
+    {
+      "id": 2,
+      "url": "https://docs.x.com/x-api/posts/search/introduction",
+      "title": "",
+      "accessed": "2026-11-15"
+    },
+    {
+      "id": 3,
+      "url": "https://docs.x.com/x-api/getting-started/pricing",
+      "title": "",
+      "accessed": "2026-11-15"
+    },
+    {
+      "id": 4,
+      "url": "https://br-fr.facebook.com/ads/library/api/?source=archive-landing-page",
+      "title": "",
+      "accessed": "2026-11-15"
+    },
+    {
+      "id": 5,
+      "url": "https://developers.facebook.com/documentation/instagram-platform/content-publishing",
+      "title": "",
+      "accessed": "2026-11-15"
+    },
+    {
+      "id": 6,
+      "url": "https://help.shopify.com/en/manual/promoting-marketing/analyze-marketing/meta-pixel",
+      "title": "",
+      "accessed": "2026-11-15"
+    },
+    {
+      "id": 7,
+      "url": "https://woocommerce.com/document/facebook-for-woocommerce",
+      "title": "",
+      "accessed": "2026-11-15"
+    },
+    {
+      "id": 8,
+      "url": "https://parsestream.com/gummysearch-review",
+      "title": "",
+      "accessed": "2026-11-16"
+    },
+    {
+      "id": 9,
+      "url": "https://admanage.ai/blog/foreplay-vs-magicbrief",
+      "title": "",
+      "accessed": "2026-11-16"
+    },
+    {
+      "id": 10,
+      "url": "https://help.planable.io/hc/en-us/articles/21715325828380-How-to-set-up-your-agency-in-Planable",
+      "title": "",
+      "accessed": "2026-11-16"
+    },
+    {
+      "id": 11,
+      "url": "https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters/server-event",
+      "title": "",
+      "accessed": "2026-11-16"
+    },
+    {
+      "id": 12,
+      "url": "https://attribuly.com/blogs/diagnose-shopify-meta-pixel-capi-purchase-undercounting",
+      "title": "",
+      "accessed": "2026-11-16"
+    },
+    {
+      "id": 13,
+      "url": "https://shopify.dev/docs/api/admin-graphql/latest/mutations/articleCreate",
+      "title": "",
+      "accessed": "2026-11-16"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+/* Run inside the local app page. Uses real DOM events and actual localStorage. */
+(() => {
+  const failures = [], checked = [];
+  const check = (ok, message) => { checked.push(message); if (!ok) failures.push(message); };
+  const state = () => JSON.parse(localStorage.getItem('coldstart-app'));
+  const item = id => state().queue.find(q => q.id === id);
+  const click = selector => { const el = document.querySelector(selector); if (!el) throw Error('Missing control: ' + selector); el.click(); };
+  const route = name => { location.hash = '#/' + name; dispatchEvent(new Event('hashchange')); };
+  const input = (id, value) => { const el = document.getElementById(id); el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); };
+  click('[data-act="reset"]'); route('queue');
+  click('[data-act="filter"][data-key="chan"][data-val="reddit"]');
+  check(document.querySelectorAll('.q li').length === 1, 'channel filter narrows to Reddit');
+  click('[data-act="select"][data-id="q2"]');
+  input('draft', 'Regression edit: held until channel is ready.');
+  click('[data-act="approve"][data-id="q2"]');
+  check(item('q2').status === 'held', 'approval on disconnected channel is held');
+  check(!document.querySelector('.queue').classList.contains('is-open'), 'empty filtered mobile inspector returns to list');
+  route('channels'); click('[data-act="connect"][data-id="reddit"]');
+  check(item('q2').status === 'approved', 'simulated connection releases held item');
+  click('[data-act="toggle"][data-id="reddit"]');
+  check(item('q2').status === 'held', 'pause holds approved item');
+  route('run'); check(document.querySelector('.next').textContent.includes('Reddit paused'), 'run displays accurate hold reason');
+  route('queue'); click('[data-act="filter"][data-key="show"][data-val="done"]');
+  click('[data-act="select"][data-id="q2"]');
+  check(document.querySelector('.note--hold').textContent.includes('Reddit paused'), 'inspector displays accurate hold reason');
+  click('[data-act="undo"][data-id="q2"]');
+  check(item('q2').status === 'draft', 'undo returns item to drafts');
+  click('[data-act="drop"][data-id="q2"]');
+  check(item('q2').status === 'rejected', 'drop removes draft from needs review');
+  route('channels'); click('[data-act="toggle"][data-id="reddit"]');
+  check(item('q2').status === 'rejected', 'resume does not resurrect dropped work');
+  click('[data-act="mode"][data-mode="empty"]'); route('pixel');
+  input('site', 'https://sprout.example'); click('[data-act="savesite"]');
+  check(document.getElementById('site').value === 'https://sprout.example', 'saved local site remains visible');
+  check(!document.querySelector('[data-act="verify"]').disabled, 'saved site enables illustrative check');
+  route('brand'); input('b-name', 'Sprout'); input('b-line', 'Care for balcony plants');
+  document.querySelector('#brandForm').requestSubmit();
+  route('channels'); click('[data-act="connect"][data-id="web"]');
+  check(document.querySelector('[data-act="toggle"][data-id="web"]').getAttribute('aria-checked') === 'true', 'local channel choice is actionable');
+  route('run'); check(document.getElementById('view').textContent.includes('3 of 3'), 'setup advances to three completed steps');
+  click('#view [data-act="mode"][data-mode="running"]');
+  check(state().brand.name === 'Fernbook', 'sample remains distinct from local setup');
+  check(item('q2').body === 'Regression edit: held until channel is ready.', 'sample edits survive workspace switching');
+  click('[data-act="mode"][data-mode="empty"]');
+  check(document.getElementById('view').textContent.includes('3 of 3'), 'setup survives workspace switching');
+  return { checks: checked.length, failures, persisted: state() };
+})()

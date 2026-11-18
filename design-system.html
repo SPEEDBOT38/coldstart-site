@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coldstart — design system</title>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/site.css">
+  <style>
+    .ds section { padding: clamp(56px, 7vw, 104px) 0; --edge: 0px; }
+    .ds .first { padding-top: clamp(110px, 14vw, 180px); }
+    .ds h2 { color: var(--fg); margin: 10px 0 clamp(24px, 3vw, 44px); }
+    .ds .mono.k { color: var(--muted); }
+    .grid { display: grid; gap: clamp(12px, 1.6vw, 22px); }
+    .swatches { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .sw { border: var(--line) solid var(--ink); border-radius: var(--r-m); overflow: hidden; background: var(--cream); color: var(--ink); }
+    .sw i { display: block; height: 92px; border-bottom: var(--line) solid var(--ink); }
+    .sw p { padding: 10px 12px 12px; display: grid; gap: 2px; }
+    .sw b { font: 600 .9rem var(--font-body); }
+    .spec { display: grid; grid-template-columns: minmax(120px, 190px) minmax(0, 1fr); gap: 10px 28px; align-items: baseline; padding: 20px 0; border-top: var(--line) dashed rgba(58, 68, 180, .35); }
+    .spec > .mono { color: var(--muted); }
+    .ramp { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ramp div, .demo { position: relative; height: 110px; overflow: hidden; border: var(--line) solid var(--ink); border-radius: var(--r-s); }
+    .ramp canvas, .demo canvas { position: absolute; left: 0; top: 0; }
+    .ramp p { margin-top: 8px; text-align: center; }
+    .demos { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .demo { height: 220px; }
+    .demo-wrap p { margin-top: 10px; }
+    .row { display: flex; flex-wrap: wrap; gap: 26px 34px; align-items: center; }
+    .cur { display: grid; gap: 10px; justify-items: center; }
+    .cur i { display: grid; place-items: center; width: 110px; height: 110px; background: var(--yellow); border: var(--line) solid var(--ink); border-radius: var(--r-m); }
+    .cur i b { display: block; position: relative; --c: linear-gradient(var(--blue) 0 0); background: var(--c) left top / 12px 2px, var(--c) left top / 2px 12px, var(--c) right top / 12px 2px, var(--c) right top / 2px 12px, var(--c) left bottom / 12px 2px, var(--c) left bottom / 2px 12px, var(--c) right bottom / 12px 2px, var(--c) right bottom / 2px 12px; background-repeat: no-repeat; }
+    .cur i b::after { content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; background: var(--blue); }
+    .cur .dot b { width: 38px; height: 38px; }
+    .cur .lnk b { width: 66px; height: 66px; }
+    .cur .lnk b::after { width: 12px; height: 12px; margin: -6px; color: var(--blue); background: var(--checker) 0 0 / 4px 4px; }
+    .cur .txt b { width: 3px; height: 30px; background: var(--blue); }
+    .cur .txt b::after { display: none; }
+    .clips { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .clips figure { background: var(--blue); border: var(--line) solid var(--ink); border-radius: var(--r-m); overflow: hidden; color: var(--cream); }
+    .clips figcaption { padding: 8px 12px 10px; border-top: var(--line) dashed rgba(252, 249, 237, .35); }
+    .clips .clip { width: 100%; aspect-ratio: 1; object-fit: contain; }
+    ul.rules { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; max-width: 70ch; }
+  </style>
+</head>
+<body class="ds" data-theme="yellow">
+  <header class="nav">
+    <a class="wordmark" href="index.html" aria-label="Coldstart home">cold start<span class="blink">_</span></a>
+    <nav class="nav__links" aria-label="Sections"><a href="#colour">colour</a><a href="#type">type</a><a href="#dither">dither</a><a href="#parts">components</a></nav>
+    <a class="nav__cta" href="index.html">landing page</a>
+  </header>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main>
+    <section class="first" data-theme="yellow">
+      <div class="wrap">
+        <p class="mono k">coldstart / design system v0.1</p>
+        <h1 class="display d1" style="color:var(--fg)">Yellow,<br>cobalt,<br>dither<span class="blink">_</span></h1>
+        <p class="lede" style="max-width:52ch;margin-top:24px">Three ideas carry the brand: an acid yellow and cobalt pair, a wide slanted techno face for anything loud, and ordered dithering wherever a gradient, shadow or transition would normally go. Everything is defined in <code>css/tokens.css</code>.</p>
+      </div>
+    </section>
+
+    <section id="colour" data-theme="cream">
+      <div class="wrap">
+        <p class="mono k">01 / colour</p>
+        <h2 class="display d2">Palette</h2>
+        <div class="grid swatches">
+          <div class="sw"><i style="background:var(--yellow)"></i><p><b>Yellow</b><span class="mono">#ECEA36 · page, labels</span></p></div>
+          <div class="sw"><i style="background:var(--blue)"></i><p><b>Cobalt</b><span class="mono">#3A44B4 · type, panels</span></p></div>
+          <div class="sw"><i style="background:var(--blue-deep)"></i><p><b>Deep cobalt</b><span class="mono">#242A8C · body on yellow</span></p></div>
+          <div class="sw"><i style="background:var(--night)"></i><p><b>Night</b><span class="mono">#12125E · dark sections</span></p></div>
+          <div class="sw"><i style="background:var(--ink)"></i><p><b>Ink</b><span class="mono">#0D0F3A · outlines</span></p></div>
+          <div class="sw"><i style="background:var(--cream)"></i><p><b>Cream</b><span class="mono">#FCF9ED · quiet sections</span></p></div>
+          <div class="sw"><i style="background:var(--blue-hi)"></i><p><b>Cobalt light</b><span class="mono">#5F6CE6 · dither on night</span></p></div>
+          <div class="sw"><i style="background:var(--peri)"></i><p><b>Periwinkle</b><span class="mono">#A9C4FB · muted on night</span></p></div>
+          <div class="sw"><i style="background:var(--yellow-shade)"></i><p><b>Yellow shade</b><span class="mono">#D6CF22 · dither on yellow</span></p></div>
+          <div class="sw"><i style="background:var(--pink)"></i><p><b>Pink</b><span class="mono">#EA2A72 · focus, selection only</span></p></div>
+        </div>
+        <ul class="rules" style="margin-top:28px">
+          <li>Sections take one of four themes with <code>data-theme</code>: yellow, blue, night, cream. Each sets background, display colour, body colour and button colours.</li>
+          <li>Yellow and cobalt always appear together. Pink is reserved for focus rings and text selection.</li>
+          <li>Outlines are 2.5px ink, matching the thick line on Coldie.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="type" data-theme="cream" style="padding-top:0">
+      <div class="wrap">
+        <p class="mono k">02 / type</p>
+        <h2 class="display d2">Three faces</h2>
+        <div class="spec"><p class="mono">display · Zen Dots<br>italic, uppercase</p><p class="display d1" style="color:var(--fg)">Ctrl+Z</p></div>
+        <div class="spec"><p class="mono">d2 · section titles</p><p class="display d2" style="color:var(--fg)">Five jobs. One mascot.</p></div>
+        <div class="spec"><p class="mono">d3 · labels, ticker</p><p class="display d3" style="color:var(--fg)">Generating campaigns</p></div>
+        <div class="spec"><p class="mono">lede · Sora 400</p><p class="lede">Coldstart takes a brand nobody has heard of and gets people through the door.</p></div>
+        <div class="spec"><p class="mono">body · Sora 400, 16px</p><p>Sentence case, short lines, no more than about 36 characters wide beside a headline.</p></div>
+        <div class="spec"><p class="mono">mono · DM Mono, 13px</p><p class="mono">01 / what coldie does · installing pixel_ · state 03</p></div>
+        <ul class="rules" style="margin-top:20px">
+          <li>Zen Dots has one weight and no italic; the slant is synthesised with <code>font-style: italic</code>. Keep display lines short, the face is wide.</li>
+          <li>Mono is lowercase and carries the interface voice: counters, statuses, captions. A trailing underscore marks anything live.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="dither" data-theme="blue">
+      <div class="wrap">
+        <p class="mono k">03 / dither</p>
+        <h2 class="display d2">Dots, not gradients</h2>
+        <div class="grid ramp">
+          <div><canvas class="c-yellow" data-dither="flat" data-amount=".06"></canvas></div><div><canvas class="c-yellow" data-dither="flat" data-amount=".14"></canvas></div>
+          <div><canvas class="c-yellow" data-dither="flat" data-amount=".27"></canvas></div><div><canvas class="c-yellow" data-dither="flat" data-amount=".4"></canvas></div>
+          <div><canvas class="c-yellow" data-dither="flat" data-amount=".52"></canvas></div><div><canvas class="c-yellow" data-dither="flat" data-amount=".65"></canvas></div>
+          <div><canvas class="c-yellow" data-dither="flat" data-amount=".82"></canvas></div><div><canvas class="c-yellow" data-dither="flat" data-amount="1"></canvas></div>
+        </div>
+        <p class="mono" style="margin:10px 0 36px;color:var(--muted)">density ramp · 8×8 bayer matrix · 4px cells</p>
+        <div class="grid demos">
+          <div class="demo-wrap"><div class="demo"><canvas class="c-yellow" data-dither="rise"></canvas></div><p class="mono">edge · data-dither="rise"<br>joins two section colours</p></div>
+          <div class="demo-wrap"><div class="demo" style="background:var(--night)"><canvas class="c-bluehi" data-dither="blobs vignette" data-amount=".7" data-seed="4"></canvas></div><p class="mono">field · "blobs vignette"<br>slow drifting shade</p></div>
+          <div class="demo-wrap"><div class="demo" data-cursor="move"><canvas class="c-yellow" data-dither="cursor" data-cursor-radius="110" data-cursor-amp=".8"></canvas></div><p class="mono">cursor · data-dither="cursor"<br>move the pointer over it</p></div>
+          <div class="demo-wrap"><div class="demo" data-dither-img data-cell="4" data-dark="#12125E" data-light="#ECEA36" style="height:220px"><img src="assets/img/room.webp" alt="" style="width:100%;height:100%;object-fit:cover"><canvas></canvas></div><p class="mono">image · data-dither-img<br>1-bit, resolves on scroll</p></div>
+        </div>
+        <ul class="rules" style="margin-top:30px">
+          <li>All four come from <code>js/dither.js</code>. Canvases are drawn at one pixel per cell and scaled up with <code>image-rendering: pixelated</code>; the dot colour is the canvas's CSS <code>color</code>.</li>
+          <li>Small parts use a CSS checker instead (<code>var(--checker)</code>): button shadows, the footer wordmark, the hover cursor.</li>
+          <li>With reduced motion on, fields are drawn once and images show undithered.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="parts" data-theme="yellow">
+      <div class="wrap">
+        <p class="mono k">04 / components</p>
+        <h2 class="display d2">Parts</h2>
+        <div class="spec"><p class="mono">button<br>dither shadow collapses on press</p><div class="row"><a class="btn" href="#parts" data-cursor="go">Get early access</a><a class="link" href="#parts">text link ↓</a><span class="mono chip">chip</span></div></div>
+        <div class="spec"><p class="mono">field</p><div class="signup" style="max-width:420px"><div class="signup__row"><input type="email" placeholder="you@yourapp.com" aria-label="Example email field"></div></div></div>
+        <div class="spec"><p class="mono">cursor<br>arrow, link, text</p><div class="row">
+          <div class="cur dot"><i><b></b></i><span class="mono">default</span></div>
+          <div class="cur lnk"><i><b></b></i><span class="mono">over a link</span></div>
+          <div class="cur txt"><i><b></b></i><span class="mono">in a field</span></div>
+        </div></div>
+        <div class="spec"><p class="mono">motion</p><ul class="rules">
+          <li>State changes use stepped timing (<code>steps(4)</code>, 120–250ms) so they snap instead of glide.</li>
+          <li>Content entering on scroll fades up 22px over 500ms, once.</li>
+          <li>Big transitions are dither dissolves: the preloader exit and the image reveal.</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section id="mascot" data-theme="night">
+      <div class="wrap">
+        <p class="mono k">05 / coldie</p>
+        <h2 class="display d2">Clip library</h2>
+        <div class="grid clips">
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/idle_sit.poster.webp" data-fallback="assets/mascot/idle_sit.anim.webp"><source src="assets/mascot/idle_sit.webm" type="video/webm"></video><figcaption class="mono">idle_sit</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/run_loop.poster.webp" data-fallback="assets/mascot/run_loop.anim.webp"><source src="assets/mascot/run_loop.webm" type="video/webm"></video><figcaption class="mono">run_loop</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/loading_screen.poster.webp" data-fallback="assets/mascot/loading_screen.anim.webp"><source src="assets/mascot/loading_screen.webm" type="video/webm"></video><figcaption class="mono">loading_screen</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/cool_shades.poster.webp" data-fallback="assets/mascot/cool_shades.anim.webp"><source src="assets/mascot/cool_shades.webm" type="video/webm"></video><figcaption class="mono">cool_shades</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/laugh_tablet.poster.webp" data-fallback="assets/mascot/laugh_tablet.anim.webp"><source src="assets/mascot/laugh_tablet.webm" type="video/webm"></video><figcaption class="mono">laugh_tablet</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/cry_flail.poster.webp" data-fallback="assets/mascot/cry_flail.anim.webp"><source src="assets/mascot/cry_flail.webm" type="video/webm"></video><figcaption class="mono">cry_flail</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/angry_swear.poster.webp" data-fallback="assets/mascot/angry_swear.anim.webp"><source src="assets/mascot/angry_swear.webm" type="video/webm"></video><figcaption class="mono">angry_swear</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/bomb_panic.poster.webp" data-fallback="assets/mascot/bomb_panic.anim.webp"><source src="assets/mascot/bomb_panic.webm" type="video/webm"></video><figcaption class="mono">bomb_panic</figcaption></figure>
+          <figure><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/faceplant.poster.webp" data-fallback="assets/mascot/faceplant.anim.webp"><source src="assets/mascot/faceplant.webm" type="video/webm"></video><figcaption class="mono">faceplant</figcaption></figure>
+        </div>
+        <p class="mono" style="margin-top:22px;color:var(--muted)">transparent vp9 webm, 720×720 · animated webp fallback for safari · source: cold-start-mascot/renders/anims</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="cursor" aria-hidden="true"><i class="cursor__dot"></i><i class="cursor__box"><span class="cursor__label mono"></span></i></div>
+  <script src="js/dither.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

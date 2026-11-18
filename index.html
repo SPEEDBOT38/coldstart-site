@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coldstart — vibe marketing for day-zero brands</title>
+  <meta name="description" content="Coldstart takes a brand from zero to traffic: Meta Pixel setup, first Instagram ads, and posts on Reddit, X and your own site.">
+  <meta name="theme-color" content="#ECEA36">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233A44B4'/%3E%3Cpath d='M17 9h-5a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4h5' fill='none' stroke='%23ECEA36' stroke-width='3.4'/%3E%3Cpath d='M19 23h6' stroke='%23ECEA36' stroke-width='3.4'/%3E%3C/svg%3E">
+  <script>
+    document.documentElement.classList.add('js', 'is-loading');
+    // safety net: if the page script never runs, unlock the page anyway
+    setTimeout(function () { var d = document.documentElement, p = document.getElementById('preloader'); if (d.classList.contains('is-loading')) { d.classList.remove('is-loading'); d.classList.add('is-ready'); if (p) p.remove(); } }, 10000);
+  </script>
+  <link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/Sora-300-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body data-theme="yellow">
+
+  <!-- preloader -->
+  <div class="preloader" id="preloader" role="status" aria-label="Loading Coldstart">
+    <canvas class="preloader__wipe" aria-hidden="true"></canvas>
+    <div class="preloader__inner">
+      <video class="preloader__coldie" muted loop playsinline autoplay preload="auto" poster="assets/mascot/loading_screen.poster.webp" data-fallback="assets/mascot/loading_screen.anim.webp" aria-hidden="true">
+        <source src="assets/mascot/loading_screen.webm" type="video/webm">
+      </video>
+      <div class="preloader__count display" aria-hidden="true"><span id="preCount">000</span><i>%</i></div>
+      <div class="preloader__bar" aria-hidden="true"></div>
+      <p class="preloader__status mono" id="preStatus">booting coldie_</p>
+    </div>
+  </div>
+
+  <!-- chrome -->
+  <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+  <header class="nav">
+    <a class="wordmark" href="#top" aria-label="Coldstart, back to top">cold start<span class="blink">_</span></a>
+    <nav class="nav__links" aria-label="Sections">
+      <a href="#jobs">what it does</a>
+      <a href="#how">how it works</a>
+      <a href="#coldie">meet coldie</a>
+    </nav>
+    <a class="nav__cta" href="#start" data-cursor="go">get early access</a>
+  </header>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main id="top">
+
+    <!-- 1. hero -->
+    <section class="hero" data-theme="yellow">
+      <div class="dither-layer" aria-hidden="true">
+        <canvas class="c-shade" data-dither="blobs" data-blobs="4" data-blob-amp=".42" data-blob-radius=".34" data-speed="1.2" data-seed="3"></canvas>
+        <canvas class="c-cream" data-dither="cursor" data-cursor-radius="170" data-cursor-amp=".7"></canvas>
+      </div>
+      <div class="edge edge--bottom" aria-hidden="true"><canvas class="c-blue" data-dither="rise" data-gamma="1.7"></canvas></div>
+
+      <div class="wrap hero__grid">
+        <p class="hero__eyebrow mono">vibe marketing for day-zero brands</p>
+        <h1 class="hero__title display" aria-label="From zero to traffic">
+          <span class="line" data-scramble aria-hidden="true">From zero</span>
+          <span class="line" aria-hidden="true"><span data-scramble>to traffic</span><span class="blink">_</span></span>
+        </h1>
+        <div class="hero__copy">
+          <p class="lede">Coldstart takes a brand nobody has heard of and gets people through the door. Coldie sets up your Meta Pixel, runs your first Instagram ads, and posts to Reddit, X and your own site.</p>
+          <div class="hero__actions">
+            <a class="btn" href="#start" data-cursor="go">Get early access</a>
+            <a class="link" href="#jobs">see what coldie does <span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+        <div class="hero__stage">
+          <video class="clip" muted loop playsinline preload="auto" data-autoplay poster="assets/mascot/hero.poster.webp" data-fallback="assets/mascot/hero.anim.webp" aria-label="Coldie, the Coldstart mascot, looking up at each channel in turn">
+            <source src="assets/mascot/hero.webm" type="video/webm">
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <!-- ticker -->
+    <div class="band" data-theme="blue" aria-hidden="true">
+      <div class="band__track display">
+        <span>Meta Pixel</span><b>✳</b><span>Instagram ads</span><b>✳</b><span>Reddit</span><b>✳</b><span>X</span><b>✳</b><span>Web posts</span><b>✳</b>
+      </div>
+    </div>
+
+    <!-- 2. jobs -->
+    <section class="jobs" id="jobs" data-theme="blue">
+      <div class="wrap">
+        <header class="section-head" data-reveal>
+          <p class="mono">01 / what coldie does</p>
+          <h2 class="display d2">Five jobs.<br>One mascot.</h2>
+        </header>
+
+        <div class="jobs__grid">
+          <div class="stage" id="stage">
+            <div class="dither-layer" aria-hidden="true">
+              <canvas class="c-bluehi" data-dither="blobs vignette" data-blobs="3" data-blob-amp=".5" data-blob-radius=".42" data-amount=".7" data-seed="7"></canvas>
+            </div>
+            <p class="stage__hud stage__hud--top mono"><span>coldie.exe</span><span id="stageIndex">01 / 05</span></p>
+            <div class="stage__clips">
+              <video class="clip is-active" muted loop playsinline preload="metadata" poster="assets/mascot/loading_screen.poster.webp" data-fallback="assets/mascot/loading_screen.anim.webp" aria-hidden="true"><source src="assets/mascot/loading_screen.webm" type="video/webm"></video>
+              <video class="clip" muted loop playsinline preload="metadata" poster="assets/mascot/cool_shades.poster.webp" data-fallback="assets/mascot/cool_shades.anim.webp" aria-hidden="true"><source src="assets/mascot/cool_shades.webm" type="video/webm"></video>
+              <video class="clip" muted loop playsinline preload="metadata" poster="assets/mascot/laugh_tablet.poster.webp" data-fallback="assets/mascot/laugh_tablet.anim.webp" aria-hidden="true"><source src="assets/mascot/laugh_tablet.webm" type="video/webm"></video>
+              <video class="clip" muted loop playsinline preload="metadata" poster="assets/mascot/run_loop.poster.webp" data-fallback="assets/mascot/run_loop.anim.webp" aria-hidden="true"><source src="assets/mascot/run_loop.webm" type="video/webm"></video>
+              <video class="clip" muted loop playsinline preload="metadata" poster="assets/mascot/idle_sit.poster.webp" data-fallback="assets/mascot/idle_sit.anim.webp" aria-hidden="true"><source src="assets/mascot/idle_sit.webm" type="video/webm"></video>
+            </div>
+            <p class="stage__hud stage__hud--bottom mono"><span id="stageStatus">installing pixel</span><span class="blink">_</span></p>
+          </div>
+
+          <ol class="jobs__list">
+            <li class="job is-active" data-status="installing pixel">
+              <p class="job__meta mono"><span>01</span><span class="chip">tracking</span></p>
+              <h3 class="display d2">Meta Pixel</h3>
+              <p class="lede">Coldie sets up your Meta Pixel first, so every visit after that is counted.</p>
+            </li>
+            <li class="job" data-status="running ads">
+              <p class="job__meta mono"><span>02</span><span class="chip">paid</span></p>
+              <h3 class="display d2">Instagram ads</h3>
+              <p class="lede">Your first Instagram campaigns, kept small, to put the brand in front of people who have never seen it.</p>
+            </li>
+            <li class="job" data-status="posting to reddit">
+              <p class="job__meta mono"><span>03</span><span class="chip">organic</span></p>
+              <h3 class="display d2">Reddit reach</h3>
+              <p class="lede">Organic posts in the communities where your users already spend their time.</p>
+            </li>
+            <li class="job" data-status="posting to x">
+              <p class="job__meta mono"><span>04</span><span class="chip">organic</span></p>
+              <h3 class="display d2">Posts on X</h3>
+              <p class="lede">A steady voice on X while you get on with shipping.</p>
+            </li>
+            <li class="job" data-status="writing web posts">
+              <p class="job__meta mono"><span>05</span><span class="chip">content</span></p>
+              <h3 class="display d2">Web posts</h3>
+              <p class="lede">Posts on your own site, so there is something to find when people search for you.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <div class="edge edge--bottom" aria-hidden="true"><canvas class="c-cream" data-dither="rise" data-gamma="1.7"></canvas></div>
+    </section>
+
+    <!-- 3. how -->
+    <section class="how" id="how" data-theme="cream">
+      <div class="wrap">
+        <header class="section-head section-head--split" data-reveal>
+          <div>
+            <p class="mono">02 / how it works</p>
+            <h2 class="display d2">From setup<br>to scale<span class="blink">_</span></h2>
+          </div>
+          <p class="lede">You bring the app. Coldie works through four stages, and the dots fill in as it goes.</p>
+        </header>
+
+        <ol class="steps">
+          <li class="step" style="--h:84" data-reveal>
+            <div class="step__text">
+              <p class="mono">stage 01</p>
+              <h3 class="display d3">Installing</h3>
+              <p>Meta Pixel goes onto your app.</p>
+            </div>
+            <div class="step__bar" aria-hidden="true"><canvas class="c-blue" data-dither="flat" data-amount=".22"></canvas></div>
+          </li>
+          <li class="step" style="--h:150" data-reveal>
+            <div class="step__text">
+              <p class="mono">stage 02</p>
+              <h3 class="display d3">Scanning competitors</h3>
+              <p>A look at who is already in your space.</p>
+            </div>
+            <div class="step__bar" aria-hidden="true"><canvas class="c-blue" data-dither="flat" data-amount=".46"></canvas></div>
+          </li>
+          <li class="step" style="--h:216" data-reveal>
+            <div class="step__text">
+              <p class="mono">stage 03</p>
+              <h3 class="display d3">Generating campaigns</h3>
+              <p>Ads and posts, written to your brand's vibe.</p>
+            </div>
+            <div class="step__bar" aria-hidden="true"><canvas class="c-blue" data-dither="flat" data-amount=".72"></canvas></div>
+          </li>
+          <li class="step" style="--h:282" data-reveal>
+            <div class="step__text">
+              <p class="mono">stage 04</p>
+              <h3 class="display d3">Analyzing results</h3>
+              <p>What brought people in, and what to run next.</p>
+            </div>
+            <div class="step__bar" aria-hidden="true"><canvas class="c-blue" data-dither="flat" data-amount="1"></canvas></div>
+          </li>
+        </ol>
+      </div>
+      <div class="edge edge--bottom" aria-hidden="true"><canvas class="c-night" data-dither="rise" data-gamma="1.7"></canvas></div>
+    </section>
+
+    <!-- 4. room -->
+    <section class="room" data-theme="night">
+      <div class="dither-layer" aria-hidden="true">
+        <canvas class="c-blue" data-dither="blobs" data-blobs="3" data-blob-amp=".3" data-blob-radius=".4" data-seed="11"></canvas>
+      </div>
+      <div class="wrap room__grid">
+        <div class="room__copy" data-reveal>
+          <p class="mono">03 / the point</p>
+          <h2 class="display d2">You build.<br>Coldie<br>shouts.</h2>
+          <p class="lede">Marketing a brand-new product is a second full-time job. Coldstart is for founders who would rather spend that time on the product.</p>
+        </div>
+        <figure class="room__fig">
+          <div class="room__frame" data-dither-img data-cell="5" data-dark="#12125E" data-light="#ECEA36">
+            <img src="assets/img/room.webp" width="1448" height="1086" alt="Coldie leaning back in an armchair in a night-lit room, next to a desk with an old monitor" decoding="async">
+            <canvas aria-hidden="true"></canvas>
+          </div>
+          <figcaption class="mono"><span>fig. 01 — coldie, off the clock</span><span class="room__hint">scroll to resolve</span></figcaption>
+        </figure>
+      </div>
+      <div class="edge edge--bottom" aria-hidden="true"><canvas class="c-yellow" data-dither="rise" data-gamma="1.7"></canvas></div>
+    </section>
+
+    <!-- 5. moods -->
+    <section class="moods" id="coldie" data-theme="yellow">
+      <div class="dither-layer" aria-hidden="true">
+        <canvas class="c-shade" data-dither="blobs" data-blobs="3" data-blob-amp=".4" data-blob-radius=".36" data-seed="5"></canvas>
+      </div>
+      <div class="wrap">
+        <header class="section-head section-head--split" data-reveal>
+          <div>
+            <p class="mono">04 / meet coldie</p>
+            <h2 class="display d2">Marketing<br>has moods.</h2>
+          </div>
+          <p class="lede">Coldie is the face of Coldstart, and reacts to whatever your launch is doing.</p>
+        </header>
+      </div>
+      <div class="strip" id="strip" data-cursor="drag" tabindex="0" aria-label="Coldie's moods, scroll sideways">
+        <figure class="tile"><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/cry_flail.poster.webp" data-fallback="assets/mascot/cry_flail.anim.webp" aria-hidden="true"><source src="assets/mascot/cry_flail.webm" type="video/webm"></video><figcaption><span class="mono">state 01</span><span class="display d3">No traffic yet</span></figcaption></figure>
+        <figure class="tile"><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/angry_swear.poster.webp" data-fallback="assets/mascot/angry_swear.anim.webp" aria-hidden="true"><source src="assets/mascot/angry_swear.webm" type="video/webm"></video><figcaption><span class="mono">state 02</span><span class="display d3">Ad rejected</span></figcaption></figure>
+        <figure class="tile"><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/bomb_panic.poster.webp" data-fallback="assets/mascot/bomb_panic.anim.webp" aria-hidden="true"><source src="assets/mascot/bomb_panic.webm" type="video/webm"></video><figcaption><span class="mono">state 03</span><span class="display d3">Launch day</span></figcaption></figure>
+        <figure class="tile"><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/faceplant.poster.webp" data-fallback="assets/mascot/faceplant.anim.webp" aria-hidden="true"><source src="assets/mascot/faceplant.webm" type="video/webm"></video><figcaption><span class="mono">state 04</span><span class="display d3">Campaign flopped</span></figcaption></figure>
+        <figure class="tile"><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/laugh_tablet.poster.webp" data-fallback="assets/mascot/laugh_tablet.anim.webp" aria-hidden="true"><source src="assets/mascot/laugh_tablet.webm" type="video/webm"></video><figcaption><span class="mono">state 05</span><span class="display d3">Post landed</span></figcaption></figure>
+        <figure class="tile"><video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/cool_shades.poster.webp" data-fallback="assets/mascot/cool_shades.anim.webp" aria-hidden="true"><source src="assets/mascot/cool_shades.webm" type="video/webm"></video><figcaption><span class="mono">state 06</span><span class="display d3">It's working</span></figcaption></figure>
+      </div>
+      <div class="edge edge--bottom" aria-hidden="true"><canvas class="c-blue" data-dither="rise" data-gamma="1.7"></canvas></div>
+    </section>
+
+    <!-- 6. start -->
+    <section class="start" id="start" data-theme="blue">
+      <div class="dither-layer" aria-hidden="true">
+        <canvas class="c-night" data-dither="blobs cursor" data-blobs="3" data-blob-amp=".42" data-blob-radius=".4" data-cursor-radius="170" data-cursor-amp=".5" data-seed="2"></canvas>
+      </div>
+      <div class="wrap start__grid">
+        <div class="start__copy" data-reveal>
+          <p class="mono">05 / early access</p>
+          <h2 class="display d1">Start<br>cold<span class="blink">_</span></h2>
+          <!-- TODO: not wired to a backend. main.js only validates and shows the confirmation. -->
+          <form class="signup" id="signup" novalidate>
+            <label class="mono" for="email">your email</label>
+            <div class="signup__row">
+              <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@yourapp.com" required>
+              <button class="btn" type="submit" data-cursor="go">Get early access</button>
+            </div>
+            <p class="signup__msg mono" id="signupMsg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+        <div class="start__coldie" aria-hidden="true">
+          <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/run_loop.poster.webp" data-fallback="assets/mascot/run_loop.anim.webp"><source src="assets/mascot/run_loop.webm" type="video/webm"></video>
+        </div>
+      </div>
+      <div class="edge edge--bottom" aria-hidden="true"><canvas class="c-night" data-dither="rise" data-gamma="1.7"></canvas></div>
+    </section>
+  </main>
+
+  <footer class="foot" data-theme="night">
+    <div class="wrap">
+      <p class="foot__mark display" aria-hidden="true">cold start<span class="blink">_</span></p>
+      <div class="foot__row mono">
+        <span>© 2026 Coldstart</span>
+        <nav aria-label="Footer">
+          <a href="#jobs">what it does</a>
+          <a href="#how">how it works</a>
+          <a href="#coldie">meet coldie</a>
+          <a href="design-system.html">design system</a>
+        </nav>
+        <a href="#top">back to top ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- custom cursor -->
+  <div class="cursor" aria-hidden="true"><i class="cursor__dot"></i><i class="cursor__box"><span class="cursor__label mono"></span></i></div>
+
+  <script src="js/dither.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

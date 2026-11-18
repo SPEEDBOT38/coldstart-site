@@ -1,0 +1,30 @@
+/* Coldstart design tokens, version 2 (blue + paper). Shared by v2.html and app.html. */
+:root {
+  --blue: #0000F2;
+  --blue-deep: #0000C2;
+  --blue-lift: #2A2AFF;
+  --ink: #000091;
+  --paper: #F2F2F2;
+  --peri: #9C9CFF;
+  --accent: #ECEA36;
+  --danger: #B00040;
+
+  --font-display: 'Zen Dots', 'Arial Black', sans-serif;
+  --font-body: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --col: 1080px;
+  --pad-x: clamp(20px, 5.5vw, 80px);
+  --gap-x: clamp(20px, 2.8vw, 40px);
+  --gap-y: clamp(48px, 5.6vw, 80px);
+  --sec-s: clamp(48px, 4.2vw, 60px);
+  --sec-m: clamp(56px, 5.6vw, 80px);
+  --sec-l: clamp(88px, 12.5vw, 180px);
+  --r: 3px;
+  --frame: 4px;
+  --checker: conic-gradient(currentColor 25%, #0000 0 50%, currentColor 0 75%, #0000 0);
+  --step: steps(4, end);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+[data-theme="blue"]  { --bg: var(--blue); --fg: var(--paper); --muted: rgba(242, 242, 242, .74); --rule: rgba(242, 242, 242, .3); --panel: rgba(242, 242, 242, .07); --btn-bg: var(--paper); --btn-fg: var(--blue); --ghost-bg: rgba(242, 242, 242, .2); }
+[data-theme="paper"] { --bg: var(--paper); --fg: var(--ink); --muted: rgba(0, 0, 145, .74); --rule: rgba(0, 0, 145, .28); --panel: rgba(0, 0, 242, .06); --btn-bg: var(--blue); --btn-fg: var(--paper); --ghost-bg: rgba(0, 0, 242, .1); }

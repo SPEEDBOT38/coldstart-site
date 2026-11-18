@@ -1,0 +1,11 @@
+tests/
+preview/
+research/
+.data/
+*.md
+!README.md
+app-v1.html
+app-stage-backup.html
+workspace-shell.html
+.env
+.env.*

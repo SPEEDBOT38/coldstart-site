@@ -1,0 +1,50 @@
+/* Coldstart design tokens.
+   Palette sampled from the type reference (acid yellow + cobalt, halftone) and the Coldie renders. */
+:root {
+  /* colour */
+  --yellow: #ECEA36;
+  --yellow-hi: #F6F38C;
+  --yellow-shade: #D6CF22;
+  --gold: #EAB83A;
+  --blue: #3A44B4;
+  --blue-hi: #5F6CE6;
+  --blue-deep: #242A8C;
+  --night: #12125E;
+  --ink: #0D0F3A;
+  --cream: #FCF9ED;
+  --peri: #A9C4FB;
+  --pink: #EA2A72;
+
+  /* type */
+  --font-display: 'Zen Dots', 'Arial Black', sans-serif;
+  --font-body: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --fs-d1: clamp(2.1rem, 10vw, 10.2rem);
+  --fs-d2: clamp(1.9rem, 4.9vw, 4.75rem);
+  --fs-d3: clamp(1.15rem, 2.1vw, 1.9rem);
+  --fs-lede: clamp(1.05rem, 1.45vw, 1.3rem);
+  --fs-body: 1rem;
+  --fs-mono: .8125rem;
+
+  /* space + shape */
+  --gutter: clamp(20px, 4vw, 56px);
+  --section: clamp(88px, 13vw, 190px);
+  --line: 2.5px;
+  --r-s: 10px;
+  --r-m: 16px;
+  --r-l: 28px;
+
+  /* dither */
+  --cell: 4px;
+  --checker: conic-gradient(currentColor 25%, #0000 0 50%, currentColor 0 75%, #0000 0);
+
+  /* motion: short and stepped, so things land on a pixel grid instead of gliding */
+  --step: steps(4, end);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* section themes: --bg page colour, --fg display type, --text body, --dot dither colour */
+[data-theme="yellow"] { --bg: var(--yellow); --fg: var(--blue); --text: var(--blue-deep); --muted: #4A4FA0; --btn-face: var(--blue); --btn-label: var(--yellow); }
+[data-theme="blue"]   { --bg: var(--blue); --fg: var(--yellow); --text: var(--cream); --muted: #C9CEF5; --btn-face: var(--yellow); --btn-label: var(--blue-deep); }
+[data-theme="night"]  { --bg: var(--night); --fg: var(--yellow); --text: var(--cream); --muted: var(--peri); --btn-face: var(--yellow); --btn-label: var(--blue-deep); }
+[data-theme="cream"]  { --bg: var(--cream); --fg: var(--blue); --text: var(--ink); --muted: #4A4F86; --btn-face: var(--blue); --btn-label: var(--yellow); }

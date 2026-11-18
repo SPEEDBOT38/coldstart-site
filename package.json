@@ -1,0 +1,13 @@
+{
+  "name": "coldstart",
+  "private": true,
+  "type": "module",
+  "version": "0.2.0",
+  "description": "Coldstart: day-zero marketing workspace with plugin connectors (Meta Pixel + Conversions API first).",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.mjs tests/workspace-state.test.cjs"
+  },
+  "engines": { "node": ">=20" }
+}
