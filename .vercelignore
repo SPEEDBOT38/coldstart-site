@@ -9,3 +9,4 @@ app-stage-backup.html
 workspace-shell.html
 .env
 .env.*
+/workers/

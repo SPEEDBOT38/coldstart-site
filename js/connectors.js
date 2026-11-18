@@ -206,8 +206,22 @@
     history.replaceState(null, '', location.pathname + location.hash.split('?')[0]);
   }
 
+  /* Post images live in IndexedDB (data URLs are too big for localStorage). */
+  const media = (() => {
+    let dbp;
+    const db = () => dbp ||= new Promise((res, rej) => { const r = indexedDB.open('coldstart-media', 1); r.onupgradeneeded = () => r.result.createObjectStore('images'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+    const tx = async (mode, fn) => { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('images', mode); const q = fn(t.objectStore('images')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
+    const cache = new Map();
+    return {
+      put: (id, url) => { cache.set(id, url); return tx('readwrite', s => s.put(url, id)); },
+      get: async id => cache.get(id) || (await tx('readonly', s => s.get(id))) || null,
+      del: id => { cache.delete(id); return tx('readwrite', s => s.delete(id)); },
+      hydrate(rootEl) { rootEl.querySelectorAll('img[data-media-id]').forEach(async img => { const u = await media.get(img.dataset.mediaId); if (u) img.src = u; else img.closest('.img-frame')?.classList.add('is-missing'); }); },
+    };
+  })();
+
   root.ColdConnectors = {
-    state: C, refresh, api, steps,
+    state: C, refresh, api, steps, media,
     mount(h) { host = h; consumeHash(); refresh({ quiet: true }); addEventListener('hashchange', consumeHash); },
     views: { tracking, connections },
     action: (name, el) => actions[name] ? (actions[name](el), true) : false,
