@@ -59,4 +59,8 @@ test('web-search rows recover the community or handle from the URL', () => {
   const [x] = normalizeItems('x', { data: { web: [{ url: 'https://x.com/plant_shelf/status/123', title: 'routine > gadgets', description: '' }] } });
   assert.equal(x.where, '@plant_shelf');
   assert.equal(x.author, 'plant_shelf');
+  const [ig] = normalizeItems('instagram', { data: { web: [{ url: 'https://www.instagram.com/reel/DBx12/', title: 'standing desk myths' }] } });
+  assert.equal(ig.where, 'instagram.com', 'reel/p paths are not usernames');
+  const [ig2] = normalizeItems('instagram', { data: { web: [{ url: 'https://www.instagram.com/deskfit/reel/DBx12/', title: 'desk stretch' }] } });
+  assert.equal(ig2.where, '@deskfit');
 });

@@ -5,15 +5,16 @@ Landing page plus the Coldstart workspace (`app.html`), backed by a dependency-f
 ## App + API
 
     npm start            # http://127.0.0.1:8765 — static site + /api
-    npm test             # 39 unit/API tests (CAPI hashing, vault, plugins, end-to-end sandbox flow)
+    npm test             # 63 unit/API tests (CAPI hashing, vault, plugins, end-to-end sandbox flow)
 
 - `lib/app.js`: the API handler, used by `server.js` locally and `api/index.js` on Vercel.
 - `lib/plugins/`: connectors. `meta/` covers Pixel/dataset setup and the Conversions API (event builder, Graph client, sandbox, relay, snippets); the others are `shopify.js`, `reddit.js` and `x.js`. See `docs/PLUGINS.md`.
 - `lib/vault.js`: AES-256-GCM sealing for the connection cookie and stored tokens. `lib/store.js`: KV / file / memory store.
 - `js/connectors.js`: the frontend for Tracking (Meta Pixel + CAPI) and Connections (plugins).
+- Live research, Gemini drafting, Ad Library teardowns and publishing: `docs/CAPABILITIES.md` (keys, providers, costs).
 - Going live with Meta: `docs/META-SETUP.md`. Every plugin stays in sandbox until its env keys exist (`.env.example`).
 
-The studio, calendar, research and ads views still run on the local sample engine (`js/workspace-state.js`).
+Research and Studio drafting run live through the API. Approval, scheduling and the calendar still use the browser-local state engine (`js/workspace-state.js`), and Ads campaign creation is still a local draft.
 
 - `index.html`: the landing page, version 1 (yellow and cobalt).
 - `v2.html`: version 2. Same content, with the scroll, theming, spacing and palette of the Hermes Agent
