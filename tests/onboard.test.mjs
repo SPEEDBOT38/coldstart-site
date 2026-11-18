@@ -64,7 +64,9 @@ test('full scan: real products, real site colours/fonts, Gemini ICPs grounded in
 test('Instagram is reported honestly as not read without a data provider', async () => {
   clear(); process.env.FIRECRAWL_API_KEY = 'fc'; process.env.OPENROUTER_API_KEY = 'or';
   const r = await onboardScan(ctx(net([])), input);
-  assert.equal(r.sources.instagram.status, 'needs_setup');
+  assert.equal(r.instagram?.status, 'unavailable');
+  assert.deepEqual(r.sources.instagram, r.instagram);
+  assert.deepEqual(r.instagram.evidence, []);
   assert.equal(r.info.posts, 0);
   clear();
 });

@@ -201,7 +201,7 @@ test('Shopify webhook only accepts a valid HMAC and relays the paid order', asyn
 
 test('server plugins run actions without a user connection', async () => {
   process.env.FIRECRAWL_API_KEY = 'fc';
-  const fakeFetch = async url => new Response(JSON.stringify(String(url).includes('firecrawl') ? { data: { web: [{ url: 'https://www.reddit.com/r/a/comments/1/', title: 'Which watering can is best?', description: 'looking for one' }] } } : {}), { status: 200, headers: { 'content-type': 'application/json' } });
+  const fakeFetch = async url => new Response(JSON.stringify(String(url).includes('firecrawl') ? { data: { web: [{ url: 'https://www.reddit.com/r/gardening/comments/1abcde/', title: 'Which watering can is best?', description: 'looking for one' }] } } : {}), { status: 200, headers: { 'content-type': 'application/json' } });
   const { base } = await start({ fetch: fakeFetch });
   const c = client(base);
   const list = await (await c.get('/api/plugins')).json();

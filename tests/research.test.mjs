@@ -10,14 +10,17 @@ const json = (b, h = {}) => new Response(JSON.stringify(b), { status: 200, heade
 function fakeNet(log) {
   return async (url, init = {}) => {
     const u = String(url); log.push({ url: u, init });
-    if (u === 'https://treg.to/call/anyapi.reddit.search') return json({ result: { posts: [{ id: 'r1', title: 'How do I know when to water?', selftext: 'pots stay wet for a week', subreddit: 'houseplants', score: 64, num_comments: 29, created_utc: 1790000000 }] }, _treg: { charged_micro: 1200 } }, { 'x-treg-cost-micro': '1200' });
-    if (u === 'https://treg.to/call/treg.x.search.posts') return json({ output: { posts: [{ id: '9', text: 'too many plant gadgets, I want a routine', username: 'plant_shelf', like_count: 110 }] }, _treg: {} }, { 'x-treg-cost-micro': '750' });
-    if (u.startsWith('https://api.firecrawl.dev/v2/search')) return json({ success: true, data: { web: [{ url: 'https://www.instagram.com/p/AB1/', title: 'Sunday plant reset', description: '3 steps for busy flats' }] } });
+    if (u === 'https://treg.to/call/anyapi.reddit.search') return json({ result: { posts: [{ id: 'ab1234', title: 'When should I water my plant?', subreddit: 'houseplants' }] }, _treg: { charged_micro: 1200 } }, { 'x-treg-cost-micro': '1200' });
+    if (u.startsWith('https://arctic-shift.photon-reddit.com/api/posts/ids?ids=ab1234&')) return json({ data: [{ id: 'ab1234', title: 'When should I water my plant?', selftext: 'pots stay wet for a week', subreddit: 'houseplants', score: 64, num_comments: 29, created_utc: 1790000000 }] });
+    if (u === 'https://treg.to/call/treg.x.search.posts') return json({ output: { posts: ['123456', '123457'].map((id, i) => ({ id, text: 'Plant routine ' + i, username: 'plant_shelf', like_count: 110 })) }, _treg: {} }, { 'x-treg-cost-micro': '750' });
+    if (u.startsWith('https://publish.twitter.com/oembed?')) return json({ html: `<blockquote class="twitter-tweet"><p>Plant routine ${new URL(u).searchParams.get('url').split('/').pop()}</p></blockquote>` });
+    if (u.startsWith('https://api.firecrawl.dev/v2/search')) return json({ success: true, data: { web: [{ url: 'https://www.instagram.com/p/AB12345/', title: 'Sunday plant reset', description: '3 steps for busy flats' }] } });
     if (u === 'https://openrouter.ai/api/v1/chat/completions') {
       const prompt = JSON.parse(init.body).messages[1].content;
       const refs = [...prompt.matchAll(/"ref":\s*"([^"]+)"/g)].map(m => m[1]);
-      return json({ choices: [{ message: { content: JSON.stringify({ summary: 'People want a simple routine.', themes: [{ name: 'Watering confusion', summary: 'Unsure when to water', refs: refs.slice(0, 1) }],
-        signals: refs.map((ref, i) => ({ ref, intent: i ? 'Product feedback' : 'Customer pain', topic: 'watering', match: 90 - i, insight: 'Teach the soil check.', angle: 'A two-minute soil check' })) }) } }], usage: { cost: 0.001 } });
+      const data = prompt.includes('Tagged posts:') ? { summary: 'People want a simple routine.', themes: [{ name: 'Watering confusion', summary: 'Unsure when to water', refs: refs.slice(0, 1) }] } : {
+        signals: refs.map((ref, i) => ({ ref, intent: i ? 'Product feedback' : 'Customer pain', topic: 'watering', match: 90 - i, insight: 'Teach the soil check.', angle: 'A two-minute soil check' })) };
+      return json({ choices: [{ message: { content: JSON.stringify(data) } }], usage: { cost: 0.001 } });
     }
     throw new Error('unexpected ' + u);
   };
@@ -33,7 +36,8 @@ test('treg first: sends the token header and the routed body, records cost', asy
   assert.equal(JSON.parse(log.find(l => l.url.endsWith('treg.x.search.posts')).init.body).q, 'plant care');
   assert.equal(r.sources.reddit.provider, 'treg:anyapi.reddit.search');
   assert.equal(r.sources.reddit.count, 1);
-  assert.ok(Math.abs(r.cost.usd - (0.0012 + 0.00075 + 0.001)) < 1e-9);
+  assert.equal(r.sources.x.verified, 2);
+  assert.ok(Math.abs(r.cost.usd - (0.0012 + 0.00075 + 0.001 + 0.001)) < 1e-9);
   clear();
 });
 
@@ -46,9 +50,10 @@ test('enriched signals match the workspace signal shape', async () => {
   assert.equal(s.intent, 'Customer pain');
   assert.match(s.score, /^\d+% match$/);
   assert.match(s.up, /64 upvotes · 29 comments/);
-  assert.match(s.evidence, /^Live/);
+  assert.match(s.evidence, /^Live.*verified by Arctic Shift/);
   assert.equal(r.summary, 'People want a simple routine.');
   assert.equal(r.themes[0].name, 'Watering confusion');
+  assert.deepEqual(r.themes[0].refs, [s.id]);
   clear();
 });
 
@@ -57,10 +62,11 @@ test('falls back to Firecrawl when treg is not configured, and says so', async (
   const log = [];
   const r = await scan({ store: createStore({ STORE: 'memory' }), fetch: fakeNet(log), ip: '1.1.1.3' }, { query: 'plant care', sources: ['instagram'] });
   const fc = log.find(l => l.url.startsWith('https://api.firecrawl.dev'));
-  assert.match(JSON.parse(fc.init.body).query, /^site:instagram\.com /);
+  assert.equal(JSON.parse(fc.init.body).query, 'site:instagram.com/p plant care');
   assert.equal(r.sources.instagram.provider, 'firecrawl');
   assert.equal(r.signals.length, 1);
-  assert.equal(r.ai, 'heuristic', 'no AI key → heuristic tagging, labelled');
+  assert.equal(r.ai, 'keywords', 'no AI key → keyword tagging, labelled');
+  assert.equal(r.signals[0].verified, false);
   assert.equal(r.signals[0].up, 'Found via web search · no engagement data');
   clear();
 });
