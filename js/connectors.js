@@ -148,17 +148,19 @@
       <section class="panel"><div class="panel-body"><span class="eyebrow">Before you trust the numbers</span><p class="small muted">Remove any older hard-coded <code>fbq</code> snippet or a second Meta app on the store, or events double-count. Place one real test order and check it shows as both Browser and Server in Events Manager.</p><a class="line-button" style="display:inline-block;margin-top:14px" href="https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events" target="_blank" rel="noopener noreferrer">Meta dedup docs ↗</a></div></section></aside></div>`;
   }
 
-  const mark = id => `<span class="plug-mark plug-${esc(id)}" aria-hidden="true">${{ meta: '∞', shopify: 'S', reddit: 'r/', x: 'X' }[id] || id[0].toUpperCase()}</span>`;
+  const mark = id => `<span class="plug-mark plug-${esc(id)}" aria-hidden="true">${{ meta: '∞', shopify: 'S', reddit: 'r/', x: 'X', research: '◎', studio: '✦', treg: 't' }[id] || id[0].toUpperCase()}</span>`;
   function connections(head, simulator) {
     if (!C.ready && !C.loading) refresh({ quiet: true });
     const cards = C.plugins.map(p => {
       const c = p.connection;
-      const act = c ? `<button class="btn secondary" data-action="plugin-disconnect" data-plugin="${p.id}">Disconnect</button>`
+      const server = p.auth.type === 'server';
+      const act = server ? `<span class="caption">${p.mode === 'live' ? 'Server keys set' : 'Set ' + p.missingEnv.map(esc).join(', ')}</span>`
+        : c ? `<button class="btn secondary" data-action="plugin-disconnect" data-plugin="${p.id}">Disconnect</button>`
         : p.auth.needsShop ? `<form class="inline plug-shop" id="shop-connect-form"><input name="shop" placeholder="store.myshopify.com" aria-label="Shopify store domain" required><button class="btn" type="submit">Connect</button></form>`
         : `<a class="btn" href="/api/plugins/${p.id}/connect">Connect</a>`;
       return `<article class="plug-card ${c ? 'is-on' : ''}" data-plugin-card="${p.id}"><header>${mark(p.id)}<div><span class="caption">${esc(p.category)} plugin</span><h3>${esc(p.name)}</h3></div>${modeBadge(p.mode)}</header>
         <p>${esc(p.description)}</p><ul class="plug-caps">${p.capabilities.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-        <footer><span class="small ${c ? '' : 'muted'}">${c ? 'Connected as <strong>' + esc(c.account.name) + '</strong>' : p.mode === 'sandbox' ? 'Needs ' + p.missingEnv.map(esc).join(', ') + ' for live' : 'Not connected'}</span>${act}</footer></article>`;
+        <footer><span class="small ${c ? '' : 'muted'}">${server ? (p.mode === 'live' ? 'Runs on the server: ' + (p.missingEnv.length ? 'fallbacks active, add ' + p.missingEnv.map(esc).join(', ') + ' for full coverage' : 'all keys present') : 'Not configured') : c ? 'Connected as <strong>' + esc(c.account.name) + '</strong>' : p.mode === 'sandbox' ? 'Needs ' + p.missingEnv.map(esc).join(', ') + ' for live' : 'Not connected'}</span>${act}</footer></article>`;
     }).join('');
     return head('Connections / plugins', 'Each integration is a swappable plugin on the server. Connect only what you need.') +
       (C.offline ? offlineNote() : '') +

@@ -70,11 +70,11 @@
     await click('[data-action="search"]');fill('#global-search','soil check');
     check('global search finds content',!!document.querySelector('[data-search-post]'));
     await click('[data-action="close-dialog"]');
-    await go('research');await click('[data-research="signals"]');await click('[data-action="scan"]');
-    check('crawl animation is activated by preview job',document.querySelector('.crawl-viz').classList.contains('is-running'));
-    await click('[data-action="cancel-scan"]');check('crawl cancel stops animation',!document.querySelector('.crawl-viz').classList.contains('is-running'));
-    await click('[data-action="scan"]');
-    check('crawl restart runs step 1',document.querySelector('.crawl-viz').classList.contains('is-running'));
+    await go('research');await click('[data-research="signals"]');
+    check('live scan form offers Reddit, X and Instagram',document.querySelectorAll('#live-scan-form [name="src"]').length===3);
+    check('live scan needs a question',document.querySelector('#live-scan-form [name="query"]').required);
+    await click('[data-research="competitors"]');
+    check('competitors can pull the live Meta Ad Library',!!document.querySelector('#live-ads-form'));
   } catch(e) {report.push({name:'Flow exception: '+e.message,pass:false});}
   return {checks:report.length,failures:report.filter(r=>!r.pass),details:report};
 })()

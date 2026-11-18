@@ -196,3 +196,15 @@ dialog{color:var(--ink);border:1px solid var(--blue);border-radius:5px;padding:0
 .plug-shop input{width:190px;padding:7px 9px;font-size:12px;border:1px solid var(--rule)}
 @media(max-width:1000px){.plug-grid{grid-template-columns:1fr}.ev-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.ev-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.plug-shop{width:100%}.plug-shop input{flex:1;width:auto}}
+
+/* == v8 · live research + Gemini ========================================== */
+.src-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--rule);border-radius:3px;font:10px var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--blue);background:#fff;cursor:pointer}
+.chip input{accent-color:var(--blue);margin:0}
+.chip:has(input:checked){background:var(--blue);color:var(--paper);border-color:var(--blue)}
+#live-scan-form{margin-top:10px;gap:10px}
+.theme-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.theme-chip{font:10px var(--font-mono);letter-spacing:.04em;padding:4px 8px;border-radius:2px;background:var(--accent);color:var(--ink)}
+.live-ads-bar{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:16px 0}
+.live-ads-bar .field.grow{flex:1;min-width:220px}
+.plug-mark.plug-research,.plug-mark.plug-studio,.plug-mark.plug-treg{background:var(--blue-deep)}
