@@ -20,7 +20,8 @@ const AI_OUT = { products: [], icps: [
 function net(log, { shopify = true, firecrawl = true, aiBody = AI_OUT } = {}) {
   return async (url, init = {}) => {
     const u = String(url); log.push({ url: u, init });
-    if (u.endsWith('/products.json?limit=60')) return shopify ? J(SHOP) : new Response('<html>', { status: 404 });
+    if (/\/products\.json\?limit=\d+$/.test(u)) return shopify ? J(SHOP) : new Response('<html>', { status: 404 });
+    if (u.endsWith('/cart.js')) return shopify ? J({ currency: 'USD' }) : new Response('<html>', { status: 404 });
     if (u === 'https://api.firecrawl.dev/v2/scrape') return firecrawl ? J({ success: true, data: { markdown: '# Allbirds\nThe world’s most comfortable shoes, made with natural materials like merino wool. Free returns.', metadata: { title: 'Allbirds', description: 'Comfortable shoes' }, branding: BRANDING } }) : J({ success: false, error: 'blocked' }, 500);
     if (u === 'https://openrouter.ai/api/v1/chat/completions') return J({ choices: [{ message: { content: JSON.stringify(aiBody) } }], usage: { cost: 0.002 } });
     throw new Error('unexpected ' + u);
@@ -105,4 +106,19 @@ test('validates the brief and caps scans per day', async () => {
   await onboardScan(c, { ...input, noSite: true, site: '' });
   await assert.rejects(() => onboardScan(c, { ...input, noSite: true, site: '' }), e => e.status === 429);
   clear();
+});
+
+test('catalogue: duplicates, bundle items, freebies and gift cards are dropped; in-stock first; names clip on a word', async () => {
+  const prods = [
+    { id: 1, title: 'Treat Yourself Bundle Item', handle: 'b', variants: [{ price: '100' }], images: [{ src: 'https://c/1.png' }] },
+    { id: 2, title: 'Coffee Face Scrub - 15 gm', handle: 's', variants: [{ price: '129', available: false }], images: [{ src: 'https://c/2.png' }, { src: 'https://c/2b.png' }] },
+    { id: 3, title: 'Coffee Face Scrub - 15 gm', handle: 's2', variants: [{ price: '129' }], images: [] },
+    { id: 4, title: 'Free Mini Lotion', handle: 'f', variants: [{ price: '0' }], images: [] },
+    { id: 5, title: 'Caramel Body Wash with Coffee and Shea Butter for Very Dry Skin - 250 ml Value Pack', handle: 'c', variants: [{ price: '349', available: true }], images: [{ src: 'https://c/5.png' }] }];
+  const f = async (u) => /products\.json/.test(String(u)) ? J({ products: prods }) : J({ currency: 'INR' });
+  const p = await shopifyProducts(f, 'mcaffeine.com');
+  assert.equal(p.length, 2);
+  assert.equal(p[0].price, 349, 'in-stock product first');
+  assert.ok(p[0].name.endsWith('…') && p[0].name.length <= 80 && !/\s…$/.test(p[0].name));
+  assert.deepEqual(p[1].images, ['https://c/2.png', 'https://c/2b.png']);
 });

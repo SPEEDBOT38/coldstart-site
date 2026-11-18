@@ -283,3 +283,5 @@ dialog{color:var(--ink);border:1px solid var(--blue);border-radius:5px;padding:0
 @media(max-width:1000px){.draft-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));overflow:visible;gap:8px}.draft-row{min-width:0;max-width:none}}
 @media(max-width:760px){.ov-shelf-row{grid-template-columns:repeat(auto-fill,minmax(min(100%,92px),1fr));gap:10px}}
 .short-area{min-height:0;resize:vertical;line-height:1.4}
+.preview-art.has-photo,.studio-preview .preview-art.has-photo{height:auto;width:100%}
+.preview-art.has-photo:before{display:none}
