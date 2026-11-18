@@ -1,6 +1,6 @@
-tests/
-preview/
-research/
+/tests/
+/preview/
+/research/
 .data/
 *.md
 !README.md
