@@ -39,7 +39,7 @@
       <a href="#how">how it works</a>
       <a class="logo" href="#top" aria-label="Coldstart, back to top"><b>cold</b> <b>start<span class="blink">_</span></b></a>
       <a href="#states">states</a>
-      <a class="btn" href="#start" data-cursor="go">get early access</a>
+      <a class="btn" href="onboarding.html" data-cursor="go">get early access</a>
     </div>
     <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
   </div>
@@ -50,7 +50,7 @@
       <a href="#how">how it works</a>
       <a class="logo" href="#top" aria-label="Coldstart"><b>cold</b><b>start<span class="blink">_</span></b></a>
       <a href="#states">states</a>
-      <a class="btn" href="#start" data-cursor="go">get early access</a>
+      <a class="btn" href="onboarding.html" data-cursor="go">get early access</a>
     </div>
   </header>
 
@@ -66,7 +66,7 @@
           </h1>
           <p>Coldstart takes a brand nobody has heard of and gets people through the door. Coldie sets up your Meta Pixel, runs your first Instagram ads, and posts to Reddit, X and your own site.</p>
           <div class="hero__actions">
-            <a class="btn" href="#start" data-cursor="go">Get early access</a>
+            <a class="btn" href="onboarding.html" data-cursor="go">Get early access</a>
             <a class="btn btn--ghost" href="#jobs">See what Coldie does</a>
           </div>
           <div class="log" aria-hidden="true">
@@ -228,7 +228,7 @@
             <h2 class="display">Start cold<span class="blink">_</span></h2>
             <p>Leave your email and you will hear when early access opens.</p>
           </div>
-          <!-- TODO: not wired to a backend. main.js only validates and shows the confirmation. -->
+          <!-- Posts to /api/plugins/onboard/actions/signup (main.js), then continues to onboarding.html. -->
           <form class="signup" id="signup" novalidate>
             <label class="label" for="email">your email</label>
             <div class="signup__row">

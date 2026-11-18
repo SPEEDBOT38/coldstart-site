@@ -4,7 +4,7 @@ import { listPlugins, getPlugin } from '../lib/plugins/index.js';
 
 test('registry ships meta, shopify, reddit and x as plugins', () => {
   const ids = listPlugins().map(p => p.id);
-  for (const id of ['meta', 'shopify', 'reddit', 'x', 'research', 'studio', 'images', 'treg']) assert.ok(ids.includes(id), id);
+  for (const id of ['meta', 'shopify', 'reddit', 'x', 'onboard', 'research', 'studio', 'images', 'treg']) assert.ok(ids.includes(id), id);
 });
 
 test('every plugin satisfies the connector contract', () => {

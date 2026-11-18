@@ -1,7 +1,9 @@
-/* Coldstart onboarding prototype.
+/* Coldstart onboarding.
    Eight quests: what you sell, who buys, link up, the scan (with the MetaCroc runner), product shelf,
-   ICPs, brand book, level up. Everything is simulated in the browser: no request leaves this page and the
-   "scan" builds sample results from what the visitor typed. Results are labelled as sample everywhere. */
+   ICPs, brand book, level up. When the Coldstart API is reachable the scan is real: /api/plugins/onboard
+   reads the website (Shopify catalogue, copy, colours, type) and Gemini drafts ICPs and a brand book.
+   Without the API, or if the scan fails, the original in-browser generator runs and every result says
+   "Simulated preview". The level-up step hands everything to the workspace (app.html). */
 (() => {
   'use strict';
   const $ = (s, r = document) => r.querySelector(s);
@@ -92,15 +94,26 @@
 
   /* ============================================================ state */
   const KEY = 'coldstart.onboarding.v1';
-  const fresh = () => ({ step: 0, max: 0, xp: 0, got: {}, product: '', cat: '', icpMode: 'help', icpText: '', rivals: [], noRivals: false, rev: '', site: '', ig: '', noSite: false, noIG: false, scanDone: false, scanScore: 0, scanInfo: null, products: [], icps: [], picks: [], brand: null, brandLocked: false, email: '', emailDone: false });
+  const fresh = () => ({ step: 0, max: 0, xp: 0, got: {}, product: '', cat: '', icpMode: 'help', icpText: '', rivals: [], noRivals: false, rev: '', site: '', ig: '', noSite: false, noIG: false, scanDone: false, scanScore: 0, scanInfo: null, products: [], icps: [], picks: [], brand: null, brandLocked: false, email: '', emailDone: false, real: false, realBrand: null, scanError: '', sources: null, handedOff: false });
   let S;
   try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || 'null') || {}); } catch (e) { S = fresh(); }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* storage can be blocked; the flow still works */ } };
+
+  /* ============================================================ Coldstart API (real scan, signup) */
+  let apiOk = null;   // null = unknown, true/false after /api/health
+  const apiReady = fetch('/api/health', { cache: 'no-store' }).then((r) => r.ok ? r.json() : null).then((j) => { apiOk = !!(j && j.plugins && j.plugins.onboard === 'live'); }).catch(() => { apiOk = false; }).finally(() => { if (STEPS[S.step] === 'link' || STEPS[S.step] === 'intro') rerender(); });
+  async function api(path, body) {
+    const r = await fetch('/api/' + path, { method: 'POST', headers: { 'content-type': 'application/json', 'x-coldstart': '1' }, body: JSON.stringify(body) });
+    let j = {}; try { j = await r.json(); } catch (e) { /* non-JSON error page */ }
+    if (!r.ok) throw new Error(j.error || 'Request failed (' + r.status + ')');
+    return j;
+  }
 
   /* ============================================================ helpers on inputs */
   const parseSite = (v) => { v = (v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0]; return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v) ? v : ''; };
   const parseIG = (v) => { v = (v || '').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').split(/[/?#]/)[0]; return /^[a-zA-Z0-9._]{1,30}$/.test(v) ? v : ''; };
   const brandName = () => {
+    if (S.real && S.realBrand && S.realBrand.name) return S.realBrand.name;
     const d = parseSite(S.site); if (d) return title(d.split('.')[0].replace(/-/g, ' '));
     const h = parseIG(S.ig); if (h) return title(h.replace(/[._]+/g, ' ').trim());
     return 'Your brand';
@@ -135,11 +148,12 @@
     return list;
   }
   function genBrand() {
-    const c = cat(), b = S.brand || (S.brand = { variant: 0, tones: c.tones.slice(), headline: '' });
+    const c = cat(), rb = S.real && S.realBrand, b = S.brand || (S.brand = { variant: 0, tones: (rb && rb.tones && rb.tones.length ? rb.tones : c.tones).slice(), headline: (rb && rb.headline) || '' });
+    if (rb && rb.colors && b.variant === 0) return { colors: rb.colors, names: rb.names, fonts: rb.fonts || c.fonts, fromSite: true };
     const r = rng(hash(seedBase() + 'b' + b.variant));
     const h = c.hue[0] + r() * (c.hue[1] - c.hue[0]);
     const colors = [hsl(h, 66, 38), hsl(h + 34, 52, 60), hsl(h + 178, 84, 58), hsl(h, 46, 12), hsl(h, 32, 96)];
-    return { colors, names: ['Primary', 'Support', 'Accent', 'Ink', 'Paper'], fonts: c.fonts };
+    return { colors, names: ['Primary', 'Support', 'Accent', 'Ink', 'Paper'], fonts: (rb && rb.fonts) || c.fonts, fromSite: false };
   }
 
   /* ============================================================ XP, level, toasts */
@@ -202,7 +216,9 @@
   let cleanup = null, focusKey = '';
   const head = (n, h, sub, extra = '') => `<header class="panel__head"><p class="label"><span>Quest ${n} of 8</span>${extra}</p><h1 class="display" id="h1" tabindex="-1">${h}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</header>`;
   const actions = ({ back = true, next = 'Continue', reward = 0, cls = '' } = {}) => `<div class="actions">${back ? '<button class="btn btn--ghost" type="button" id="back">Back</button>' : '<span></span>'}<div class="actions__right">${reward ? `<span class="reward">+${reward} XP</span>` : ''}<button class="btn ${cls}" type="button" id="next" disabled>${next}</button></div></div>`;
-  const SIM = '<span class="tag tag--sim">Simulated preview</span>';
+  const SIMTAG = '<span class="tag tag--sim">Simulated preview</span>';
+  const LIVETAG = '<span class="tag tag--live">Live scan</span>';
+  const tagNow = () => S.real ? LIVETAG : SIMTAG;
 
   const VALID = {
     intro: () => true,
@@ -238,7 +254,7 @@
     const id = STEPS[S.step];
     if (!VALID[id]()) return;
     if (AWARD[id]) addXP(id, AWARD[id]);
-    if (id === 'link') { S.products = genProducts(); S.icps = genIcps(); S.scanDone = false; S.scanScore = 0; }
+    if (id === 'link') { S.products = genProducts(); S.icps = genIcps(); S.scanDone = false; S.scanScore = 0; S.real = false; S.realBrand = null; S.scanError = ''; S.sources = null; S.picks = []; S.brand = null; S.brandLocked = false; }
     go(S.step + 1);
   }
 
@@ -253,7 +269,7 @@
       <div class="teaser"><p class="label">Know</p><p>Who actually buys from you, written up as ICP cards you can edit.</p></div>
       <div class="teaser"><p class="label">Launch</p><p>A brand book and a first Meta ad preview, ready for your Pixel.</p></div>
     </div>
-    <div class="actions"><span class="hint">About four minutes. Nothing leaves this page in this preview.</span><div class="actions__right"><span class="reward">Earn XP as you go</span><button class="btn btn--on-blue" type="button" id="next">Start quest</button></div></div></div>`;
+    <div class="actions"><span class="hint">${apiOk ? 'About four minutes. Coldie really reads your website.' : 'About four minutes. Preview mode: results are simulated.'}</span><div class="actions__right"><span class="reward">Earn XP as you go</span><button class="btn btn--on-blue" type="button" id="next">Start quest</button></div></div></div>`;
 
   R.what = () => `<div class="panel">${head(1, 'What do you sell?', 'One line is plenty. Coldie uses it to guess your category and what to look for.')}
     <div class="field"><label for="product">Your product</label><input class="input" id="product" type="text" maxlength="80" autocomplete="off" placeholder="e.g. hand-poured soy candles" value="${esc(S.product)}"><p class="err" id="e-product"></p></div>
@@ -277,13 +293,13 @@
       <div class="field"><label for="site">Website</label><input class="input" id="site" type="text" inputmode="url" autocomplete="off" placeholder="yourbrand.com" value="${esc(S.site)}" ${S.noSite ? 'disabled' : ''}><label class="check"><input type="checkbox" id="nosite" ${S.noSite ? 'checked' : ''}> I don’t have a website yet</label><p class="err" id="e-site"></p></div>
       <div class="field"><label for="ig">Instagram</label><div class="input-pre"><span>@</span><input class="input" id="ig" type="text" autocomplete="off" placeholder="yourbrand" value="${esc(S.ig.replace(/^@/, ''))}" ${S.noIG ? 'disabled' : ''}></div><label class="check"><input type="checkbox" id="noig" ${S.noIG ? 'checked' : ''}> I’m not on Instagram yet</label><p class="err" id="e-ig"></p></div>
     </div>
-    <div class="note note--warn"><b>This is a preview.</b> Coldie’s scan below is a simulation: it builds sample results from what you type and does not visit your site or Instagram. Real scanning arrives with early access.</div>
+    ${apiOk ? `<div class="note"><b>Coldie reads your site for real.</b> Your public product catalogue, copy, colours and fonts. Instagram reading needs a data provider on this server; until then Coldie says so instead of guessing.</div>` : `<div class="note note--warn"><b>This is a preview.</b> Coldie’s scan below is a simulation: it builds sample results from what you type and does not visit your site or Instagram.</div>`}
     ${actions({ next: 'Send Coldie in', reward: 50, cls: 'btn--yellow' })}</div>`;
 
   const STAGE_NAMES = () => [(!S.noSite && parseSite(S.site)) ? 'Crawl your website' : 'Read your description', (!S.noIG && parseIG(S.ig)) ? 'Read your Instagram' : 'Skip Instagram', 'Build the product list', 'Work out your ICP', 'Draft your brand book'];
   R.scan = () => {
     const names = STAGE_NAMES(), done = S.scanDone, info = S.scanInfo || { pages: 0, posts: 0, products: 0, signals: 0 };
-    return `<div class="panel">${head(4, done ? 'Scan complete' : 'Coldie is on the case', done ? 'Here’s what the simulated scan came back with.' : 'Jump the broken tracking and grab the yellow events while Coldie reads. Your score turns into XP.', SIM)}
+    return `<div class="panel">${head(4, done ? 'Scan complete' : 'Coldie is on the case', done ? (S.real ? 'Here’s what Coldie read from your site.' : 'Here’s what the simulated scan came back with.' + (S.scanError ? ' (Live scan failed: ' + esc(S.scanError) + ')' : '')) : 'Jump the broken tracking and grab the yellow events while Coldie reads. Your score turns into XP.', tagNow())}
     ${done ? '' : `<div class="arena" id="arena"><canvas id="cv" aria-label="MetaCroc: Coldie runs along a track. Press space, up arrow or tap to jump over duplicate pixels and rejected ads, and collect yellow events." role="img"></canvas>
       <div class="arena__hud"><span>MetaCroc</span><span>Shields <span class="pips" id="pips"><i></i><i></i><i></i></span></span><span>Score <b id="score">0</b></span></div>
       <div class="arena__msg" id="armsg"><p>Space · ↑ · tap to jump</p></div></div>
@@ -301,10 +317,10 @@
   R.shelf = () => {
     const list = S.products.filter((p) => shelfFilter === 'all' || p.src === shelfFilter || (p.src === 'both' && shelfFilter !== 'brief'));
     const nSite = S.products.filter((p) => p.src === 'site' || p.src === 'both').length, nIG = S.products.filter((p) => p.src === 'ig' || p.src === 'both').length;
-    return `<div class="panel">${head(5, 'Your product shelf', 'Coldie’s sample list from your site and Instagram. Rename, untick or add anything so the list matches what you really sell.', SIM)}
+    return `<div class="panel">${head(5, 'Your product shelf', S.real ? (S.sources && S.sources.shopify && S.sources.shopify.status === 'ok' ? 'Straight from your store’s catalogue. Untick anything you don’t want Coldie to market.' : 'What Coldie could read from your site. Rename, untick or add anything so the list matches what you really sell.') : 'Coldie’s sample list from your site and Instagram. Rename, untick or add anything so the list matches what you really sell.', tagNow())}
     <div class="shelf-top"><p class="hint"><b>${S.products.length}</b> products · <b>${nSite}</b> from site · <b>${nIG}</b> from Instagram · <b>${S.products.filter((p) => p.on).length}</b> included</p>
       <div class="seg" role="radiogroup" aria-label="Filter by source">${[['all', 'All'], ['site', 'Site'], ['ig', 'Instagram']].map((f) => `<button type="button" role="radio" aria-checked="${shelfFilter === f[0]}" data-filter="${f[0]}" data-key="f-${f[0]}">${f[1]}</button>`).join('')}</div></div>
-    <div class="grid-p" id="grid">${list.map((p) => `<div class="prod ${p.on ? '' : 'is-off'} ${p.isNew ? 'is-new' : ''}" data-id="${p.id}"><div class="prod__img" style="background:${hsl(p.hue, 55, 42)}"><span>${esc(initials(p.name))}</span></div><div class="prod__body"><input class="prod__name" value="${esc(p.name)}" aria-label="Product name" maxlength="48" data-name="${p.id}"><div class="prod__meta"><span>$${p.price}</span>${srcTag[p.src] || ''}${p.posts ? `<span>${p.posts} posts</span>` : ''}</div><label class="check"><input type="checkbox" data-on="${p.id}" ${p.on ? 'checked' : ''}> Include</label></div></div>`).join('')}</div>
+    <div class="grid-p" id="grid">${list.map((p) => `<div class="prod ${p.on ? '' : 'is-off'} ${p.isNew ? 'is-new' : ''}" data-id="${p.id}"><div class="prod__img ${p.image ? 'has-photo' : ''}" style="background:${hsl(p.hue || 220, 55, 42)}">${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span>${esc(initials(p.name))}</span>`}</div><div class="prod__body"><input class="prod__name" value="${esc(p.name)}" aria-label="Product name" maxlength="48" data-name="${p.id}"><div class="prod__meta">${p.price ? `<span>$${p.price}</span>` : ''}${srcTag[p.src] || ''}${p.posts ? `<span>${p.posts} posts</span>` : ''}</div><label class="check"><input type="checkbox" data-on="${p.id}" ${p.on ? 'checked' : ''}> Include</label></div></div>`).join('')}</div>
     <div><button class="btn btn--ghost btn--small" type="button" id="addprod">+ Add a product</button></div>
     ${actions({ reward: 50 })}</div>`;
   };
@@ -316,13 +332,13 @@
     return `<svg class="icp__av" viewBox="0 0 ${N} ${N}" width="${size}" height="${size}" shape-rendering="crispEdges" role="img" aria-label="Pixel portrait"><rect width="${N}" height="${N}" fill="${cols[2]}"/>${cells}</svg>`;
   };
   let adding = false, editing = '';
-  R.icp = () => `<div class="panel">${head(6, 'Your ICPs', 'Coldie turned the scan into ICP cards. Pick your main one, plus a backup if you like. Edit the hook so it sounds like you.', SIM)}
-    <div class="bench"><span class="label">Brands in your range</span>${cat().rivals.map((x) => `<span class="src">${esc(x)}</span>`).join('')}<span class="hint">Sample archetypes at ${esc(revLabel() || 'your range')}.</span></div>
+  R.icp = () => `<div class="panel">${head(6, 'Your ICPs', S.real ? 'Coldie read your site and drafted these. Each one shows the evidence it came from. Pick your main ICP, plus a backup.' : 'Coldie turned the scan into ICP cards. Pick your main one, plus a backup if you like. Edit the hook so it sounds like you.', tagNow())}
+    <div class="bench"><span class="label">${S.real ? 'Brands you named' : 'Brands in your range'}</span>${(S.real ? (S.rivals.length ? S.rivals : ['none named']) : cat().rivals).map((x) => `<span class="src">${esc(x)}</span>`).join('')}<span class="hint">${S.real ? 'ICPs drafted from your site copy and catalogue.' : 'Sample archetypes at ' + esc(revLabel() || 'your range') + '.'}</span></div>
     <div class="grid-i" id="icps">${S.icps.map((p) => {
       const idx = S.picks.indexOf(p.id);
       return `<article class="icp ${idx > -1 ? 'is-picked' : ''}" data-card="${p.id}">${idx > -1 ? `<span class="badge">${idx === 0 ? '★ Main ICP' : 'Backup'}</span>` : ''}
       <div class="icp__top">${avatar(p.id + p.name + seedBase())}<div><h3>${esc(p.name)}</h3><p class="who">${esc(p.who)}</p></div></div>
-      <dl><div><dt>Pain</dt><dd>${esc(p.pain)}</dd></div><div><dt>Scrolls</dt><dd>${p.scroll.map(esc).join(' · ')}</dd></div>${p.overlap ? `<div><dt>Overlaps with</dt><dd>${esc(p.overlap)} followers</dd></div>` : ''}<div><dt>Meta format</dt><dd>${esc(p.fmt)}</dd></div><div><dt>Hook</dt><dd>${editing === p.id ? `<input class="icp__hook" data-key="hook-${p.id}" data-hook="${p.id}" value="${esc(p.hook)}" maxlength="80" aria-label="Ad hook">` : `“${esc(p.hook)}”`}</dd></div><div><dt>Signal</dt><dd>${esc(p.level)}${p.mine ? '' : ' · ' + p.signals + ' sample signals'}</dd></div></dl>
+      <dl><div><dt>Pain</dt><dd>${esc(p.pain)}</dd></div><div><dt>Scrolls</dt><dd>${p.scroll.map(esc).join(' · ')}</dd></div>${p.overlap ? `<div><dt>Overlaps with</dt><dd>${esc(p.overlap)} followers</dd></div>` : ''}<div><dt>Meta format</dt><dd>${esc(p.fmt)}</dd></div><div><dt>Hook</dt><dd>${editing === p.id ? `<input class="icp__hook" data-key="hook-${p.id}" data-hook="${p.id}" value="${esc(p.hook)}" maxlength="80" aria-label="Ad hook">` : `“${esc(p.hook)}”`}</dd></div>${p.evidence ? `<div><dt>Evidence</dt><dd class="evidence">${esc(p.evidence)}</dd></div>` : ''}<div><dt>Signal</dt><dd>${esc(p.level)}${p.mine || p.real ? '' : ' · ' + p.signals + ' sample signals'}</dd></div></dl>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn--small ${idx > -1 ? '' : 'btn--ghost'}" data-pick="${p.id}" data-key="pick-${p.id}" aria-pressed="${idx > -1}">${idx === 0 ? 'Main ICP ✓' : idx === 1 ? 'Backup ✓' : 'Pick this ICP'}</button><button type="button" class="btn btn--ghost btn--small" data-edit="${p.id}" data-key="edit-${p.id}">${editing === p.id ? 'Done' : 'Edit hook'}</button></div></article>`;
     }).join('')}
       ${adding ? `<div class="add-form"><div class="cols2"><div class="field"><label for="cn">Name</label><input class="input" id="cn" maxlength="40" placeholder="e.g. The Gift Planner"></div><div class="field"><label for="cw">Who they are</label><input class="input" id="cw" maxlength="100" placeholder="e.g. 30–45, buys for friends"></div></div><div style="display:flex;gap:10px"><button class="btn btn--small" type="button" id="cadd">Add ICP</button><button class="btn btn--ghost btn--small" type="button" id="ccancel">Cancel</button></div></div>` : `<button type="button" class="card-add" id="addicp">+ Add my own ICP</button>`}
@@ -331,7 +347,7 @@
 
   const bookAd = (b, brand, colors, icp, prod) => {
     const closers = b.tones.slice(0, 2).map((t) => TONES[t]).join(' ');
-    return `<div class="ad"><div class="ad__head"><span class="ad__av" style="background:${colors[0]}">${esc(initials(brand))}</span><div><b>${esc(brand)}</b><small>Sponsored · sample</small></div></div>
+    return `<div class="ad"><div class="ad__head"><span class="ad__av" style="background:${colors[0]}">${esc(initials(brand))}</span><div><b>${esc(brand)}</b><small>Sponsored · preview</small></div></div>
       <div class="ad__media" style="background:${colors[0]}"><b>${esc(prod)}</b></div>
       <p class="ad__text">${esc(b.headline || (icp ? icp.hook : ''))} ${esc(closers)}</p>
       <div class="ad__cta"><span>${esc(parseSite(S.site) || 'yourbrand.com')}</span><b style="background:${colors[2]};color:#111">Shop now</b></div></div>`;
@@ -341,13 +357,13 @@
     const prod = (S.products.find((p) => p.on) || { name: S.product || 'Your product' }).name;
     if (!b.headline && main) b.headline = main.hook;
     const f = g.fonts, style = (s) => ({ serif: 'serif', sans: 'sans', rounded: 'rounded', mono: 'mono' }[s]);
-    return `<div class="panel">${head(7, 'Your brand book', 'Coldie drafted this from your site and Instagram. Reroll the colors, pick three voice words, then lock it in.', SIM)}
+    return `<div class="panel">${head(7, 'Your brand book', g.fromSite ? 'Colours and type come from your live site. Reroll for alternatives, pick three voice words, then lock it in.' : 'Coldie drafted this from your brief. Reroll the colors, pick three voice words, then lock it in.', tagNow())}
     <div class="book"><div class="book__col">
       <div class="sect"><p class="label"><span>Mark</span></p><div class="mark"><span class="mark__logo" style="background:${g.colors[0]}">${esc(initials(brand)[0] || '?')}</span><div><b>${esc(brand)}</b><p class="hint">${esc(parseSite(S.site) || '@' + (parseIG(S.ig) || 'yourbrand'))}</p></div></div></div>
       <div class="sect"><p class="label"><span>Palette</span><button class="btn btn--ghost btn--small" type="button" id="reroll">Reroll</button></p><div class="swatches">${g.colors.map((c, i) => `<button type="button" class="sw" data-copy="${c}" aria-label="${g.names[i]} ${c}, copy"><i style="background:${c}"></i><span>${g.names[i]}<br>${c}</span></button>`).join('')}</div></div>
-      <div class="sect"><p class="label"><span>Type</span></p><div class="type-spec"><p class="big ${style(f[2])}">${esc(f[0])}</p><small>Headings · suggested pairing, shown here in a stand-in face</small><p class="big ${style(f[3])}" style="font-size:1.2rem">${esc(f[1])}</p><small>Body</small></div></div>
+      <div class="sect"><p class="label"><span>Type</span></p><div class="type-spec"><p class="big ${style(f[2])}">${esc(f[0])}</p><small>Headings · ${g.fromSite ? 'from your site' : 'suggested pairing'}, shown here in a stand-in face</small><p class="big ${style(f[3])}" style="font-size:1.2rem">${esc(f[1])}</p><small>Body</small></div></div>
       <div class="sect"><p class="label"><span>Voice · pick three</span></p><div class="chips">${Object.keys(TONES).map((t) => `<button type="button" class="chip" aria-pressed="${b.tones.includes(t)}" data-tone="${t}" data-key="tone-${t}">${t}</button>`).join('')}</div>
-        <div class="say"><p class="yes"><span class="label">Say</span>${esc(TONES[b.tones[0]] || '')}</p><p class="no"><span class="label">Don’t say</span>“Revolutionary”, “game-changing”, “best ever”.</p></div></div>
+        <div class="say"><p class="yes"><span class="label">Say</span>${esc((S.real && S.realBrand && S.realBrand.say) || TONES[b.tones[0]] || '')}</p><p class="no"><span class="label">Don’t say</span>${S.real && S.realBrand && S.realBrand.dont && S.realBrand.dont.length ? S.realBrand.dont.map((w) => '“' + esc(w) + '”').join(', ') : '“Revolutionary”, “game-changing”, “best ever”.'}</p></div></div>
     </div><div class="book__col"><div class="field"><label for="headline">Ad headline</label><input class="input" id="headline" maxlength="90" value="${esc(b.headline)}"></div>
       <div id="adprev">${bookAd(b, brand, g.colors, main, prod)}</div><p class="hint">First Meta ad preview, written from your main ICP and voice. Sample copy, not live.</p></div></div>
     ${S.brandLocked ? '<p class="ok">Brand book locked. You can still go back and edit.</p>' : ''}
@@ -359,8 +375,8 @@
     return `<div class="panel final">${head(8, 'Level ' + (l + 1) + ': ' + LEVELS[l].n, 'Coldie knows your brand. Here’s what you built.')}
     <div class="final__top"><ul class="sum"><li>${S.products.filter((p) => p.on).length} products on your shelf</li><li>${S.picks.length} ICP${S.picks.length > 1 ? 's' : ''} picked${main ? ': ' + esc(main.name) : ''}</li><li>Brand book locked</li><li>${S.xp} XP earned</li></ul><img src="assets/mascot/celebrate.anim.webp" alt="Coldie celebrating" width="220" height="220"></div>
     <div class="next"><img src="assets/mascot/pixel_setup.anim.webp" alt="Coldie setting up a tracking pixel" width="120" height="120"><div><p class="label">Next quest</p><h2 class="display">Install your Meta Pixel</h2><p class="hint" style="color:var(--paper)">Coldie’s first real job: set up the Pixel and Conversions API, then check them before any ad runs.</p></div></div>
-    <form class="signup" id="signup" novalidate><div class="field"><label for="email">Save your progress and get early access</label><input class="input" id="email" type="email" autocomplete="email" placeholder="you@brand.com" value="${esc(S.email)}"></div><button class="btn btn--yellow" type="submit" style="align-self:end">Get early access</button><p class="err" id="e-email" role="alert"></p><p class="ok" id="ok-email" role="status">${S.emailDone ? 'You’re on the list. Saved in this browser only, nothing was sent in this preview.' : ''}</p></form>
-    <div class="actions"><button class="btn btn--ghost" type="button" id="back">Back</button><a class="btn btn--ghost" href="v2.html">Back to the site</a></div></div>`;
+    <form class="signup" id="signup" novalidate><div class="field"><label for="email">Save your progress and get early access</label><input class="input" id="email" type="email" autocomplete="email" placeholder="you@brand.com" value="${esc(S.email)}"></div><button class="btn btn--yellow" type="submit" style="align-self:end">Get early access</button><p class="err" id="e-email" role="alert"></p><p class="ok" id="ok-email" role="status">${S.emailDone ? 'You’re on the list.' : ''}</p></form>
+    <div class="actions"><button class="btn btn--ghost" type="button" id="back">Back</button><div class="actions__right"><a class="btn btn--ghost" href="v2.html">Back to the site</a><button class="btn btn--yellow" type="button" id="toapp">Open my workspace →</button></div></div></div>`;
   };
 
   /* ============================================================ B: step behaviour */
@@ -499,7 +515,12 @@
       [['reading captions, comments and reviews', .1], [signals + ' audience signals', .45], ['comparing with ' + cat().label.toLowerCase() + ' brands at ' + (revLabel() || 'your range'), .75], ['drafted ' + S.icps.length + ' ICP cards', .95]],
       [['choosing a palette', .15], ['pairing typefaces', .45], ['writing a voice guide', .75]]
     ];
-    const D = 30000;
+    const D = 30000, MIN = 14000;
+    let live = null, liveDone = !apiOk, liveFail = '';
+    if (apiOk) {
+      api('plugins/onboard/actions/scan', { product: S.product, cat: S.cat, site: S.site, ig: S.ig, noSite: S.noSite, noIG: S.noIG, icpMode: S.icpMode, icpText: S.icpText, rivals: S.rivals, rev: S.rev })
+        .then((r) => { live = r; }).catch((er) => { liveFail = er.message; }).finally(() => { liveDone = true; });
+    }
     const canvas = $('#cv'), arena = $('#arena');
     const game = createGame(canvas, {
       auto: REDUCE,
@@ -518,29 +539,43 @@
     game.start();
     setTimeout(() => { const m = $('#armsg'); if (m) m.hidden = true; }, 2600);
     $$('#stages .stg')[0].classList.add('is-now');
-    let elapsed = 0, prev = performance.now(); const fired = new Set();
+    let elapsed = 0, pp = 0, prev = performance.now(); const fired = new Set();
     const log = $('#log');
     const pushLog = (t) => { const p = document.createElement('p'); p.textContent = t; log.appendChild(p); while (log.children.length > 8) log.firstChild.remove(); };
     const setC = (k, v) => { const el = $('[data-c="' + k + '"]'); if (el) el.textContent = v; };
     const timer = setInterval(() => {
       const now = performance.now(); elapsed += Math.min(500, now - prev) * (ff ? 8 : 1); prev = now;
-      const p = Math.min(1, elapsed / D), si = Math.min(4, Math.floor(p * 5)), local = (p * 5) - si;
+      // Simulated: 30 s of play. Live: the bar creeps to 94% while the API works, then runs out once it has
+      // answered and the player has had MIN ms of game.
+      if (!apiOk) pp = Math.min(1, elapsed / D);
+      else if (!liveDone || elapsed < MIN) pp = Math.min(0.94, Math.max(pp, elapsed / D));
+      else pp = Math.min(1, pp + 0.04);
+      const p = pp, si = Math.min(4, Math.floor(p * 5)), local = (p * 5) - si;
       $$('#stages .stg').forEach((el, i) => {
         const pct = i < si ? 100 : i === si ? Math.round(clamp(local, 0, 1) * 100) : 0;
         el.classList.toggle('is-done', i < si || p >= 1); el.classList.toggle('is-now', i === si && p < 1);
         $('.stg__bar i', el).style.width = (p >= 1 ? 100 : pct) + '%'; $('.stg__pct', el).textContent = (p >= 1 ? 100 : pct) + '%';
         if (i < si || p >= 1) $('.stg__ic', el).textContent = '✓';
       });
-      L.forEach((lines, i) => lines.forEach((ln, j) => { const key = i + '-' + j; if (!fired.has(key) && (p * 5 >= i + ln[1])) { fired.add(key); pushLog(ln[0]); } }));
+      if (!apiOk) L.forEach((lines, i) => lines.forEach((ln, j) => { const key = i + '-' + j; if (!fired.has(key) && (p * 5 >= i + ln[1])) { fired.add(key); pushLog(ln[0]); } }));
+      else if (!fired.has('live') ) { fired.add('live'); pushLog(hasSite ? 'fetching ' + d + '/ (live)' : 'reading your description (live)'); if (hasIG) pushLog('@' + h + ': Instagram reading needs a data provider'); }
       const stP = (i) => clamp(p * 5 - i, 0, 1);
-      setC('pages', Math.round(info.pages * stP(0))); setC('posts', Math.round(info.posts * stP(1))); setC('products', Math.round(info.products * stP(2))); setC('signals', Math.round(info.signals * stP(3)));
-      if (p >= 1) finish();
+      if (!apiOk) { setC('pages', Math.round(info.pages * stP(0))); setC('posts', Math.round(info.posts * stP(1))); setC('products', Math.round(info.products * stP(2))); setC('signals', Math.round(info.signals * stP(3))); }
+      if (p >= 1 && liveDone) finish();
     }, 100);
     function finish() {
       clearInterval(timer); game.stop(); cleanup && cleanupInner();
+      if (live) {
+        S.real = true; S.realBrand = live.brand; S.sources = live.sources; S.scanError = '';
+        if (live.products.length) S.products = live.products.map((x, i) => Object.assign({ hue: (i * 47) % 360 }, x));
+        S.icps = live.icps; S.picks = [];
+        if (S.icpMode === 'know' && S.icpText.trim()) S.icps.unshift({ id: 'iu', name: 'Your customer', who: S.icpText.trim().slice(0, 120), pain: 'Coldie will test this against what it reads', scroll: live.icps[0] ? live.icps[0].scroll : [], hook: live.icps[0] ? live.icps[0].hook : '', fmt: live.icps[0] ? live.icps[0].fmt : '', level: 'You told us', mine: true, real: true });
+        Object.assign(info, live.info);
+        live.log.forEach(pushLog);
+      } else if (liveFail) { S.real = false; S.scanError = liveFail; toast('Live scan failed. Showing a simulated preview.'); }
       S.scanDone = true; S.scanScore = game.score; S.scanInfo = info; save();
       addXP('scan', clamp(Math.round(game.score / 2), 30, 150));
-      cleanup = null; go(S.step); say('Scan done! Here’s what I found.');
+      cleanup = null; go(S.step); say(S.real ? 'Scan done! I read ' + (parseSite(S.site) || 'your brief') + '. Here’s what I found.' : 'Scan done! Here’s what I found.');
     }
     function cleanupInner() { document.removeEventListener('keydown', onKey); arena.removeEventListener('pointerdown', onTap); }
     return () => { clearInterval(timer); game.stop(); cleanupInner(); };
@@ -609,10 +644,30 @@
     f.addEventListener('submit', (e) => {
       e.preventDefault(); const v = $('#email').value.trim(), err = $('#e-email');
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { err.textContent = 'That email doesn’t look right.'; $('#email').setAttribute('aria-invalid', 'true'); return; }
-      err.textContent = ''; $('#email').removeAttribute('aria-invalid'); S.email = v; S.emailDone = true; save();
-      $('#ok-email').textContent = 'You’re on the list. Saved in this browser only, nothing was sent in this preview.'; addXP('email', 25); say('You’re in! See you on the other side of the Pixel.');
+      err.textContent = ''; $('#email').removeAttribute('aria-invalid'); S.email = v; save();
+      const done = (msg) => { S.emailDone = true; save(); $('#ok-email').textContent = msg; addXP('email', 25); say('You’re in! See you on the other side of the Pixel.'); };
+      if (!apiOk) return done('Saved in this browser. (Preview mode: nothing was sent.)');
+      api('plugins/onboard/actions/signup', { email: v, source: 'onboarding', brand: brandName(), site: S.site }).then((r) => done(r.already ? 'You were already on the list. Progress saved.' : 'You’re on the list.')).catch((er) => { err.textContent = er.message; });
     });
+    $('#toapp').addEventListener('click', () => { handoff(); location.href = 'app.html#/tracking?from=onboarding'; });
   };
+
+  /* ============================================================ hand-off to the workspace */
+  // app.html reads this once (js/workspace.js → importOnboarding) and fills brand, products, ICPs, brand book.
+  function handoff() {
+    const g = genBrand(), b = S.brand || {}, main = S.icps.find((x) => x.id === S.picks[0]) || S.icps[0], backup = S.icps.find((x) => x.id === S.picks[1]);
+    const data = {
+      v: 1, at: new Date().toISOString(), real: !!S.real,
+      brand: { name: brandName(), url: parseSite(S.site) ? 'https://' + parseSite(S.site) : '', ig: parseIG(S.ig), line: (S.real && S.realBrand && S.realBrand.line) || S.product.trim(), category: cat().label, revenue: revLabel(),
+        voice: (b.tones || []).join(', '), avoid: (S.real && S.realBrand && S.realBrand.dont ? S.realBrand.dont : ['revolutionary', 'game-changing', 'best ever']).join(', ') },
+      book: { colors: g.colors, names: g.names, fonts: g.fonts, tones: b.tones || [], headline: b.headline || '', say: (S.real && S.realBrand && S.realBrand.say) || '', fromSite: !!g.fromSite, logo: (S.real && S.realBrand && S.realBrand.logo) || null },
+      products: S.products.filter((p) => p.on).map((p) => ({ name: p.name, price: p.price, image: p.image || null, url: p.url || null, src: p.src })),
+      icps: [main, backup].filter(Boolean).map((p, i) => ({ role: i ? 'backup' : 'main', name: p.name, who: p.who, pain: p.pain, scroll: p.scroll, hook: p.hook, fmt: p.fmt, evidence: p.evidence || '' })),
+      competitors: S.rivals.slice(), sources: S.sources || null
+    };
+    try { localStorage.setItem('coldstart.handoff.v1', JSON.stringify(data)); } catch (e) { /* storage blocked */ }
+    S.handedOff = true; save();
+  }
 
   /* ============================================================ global wiring */
   document.addEventListener('click', (e) => {

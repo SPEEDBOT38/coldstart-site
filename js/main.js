@@ -216,9 +216,17 @@
       const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
       msg.classList.toggle('is-error', !ok);
       if (!ok) { msg.textContent = 'that email does not look right_'; input.focus(); return; }
-      // TODO: send input.value to the real waitlist endpoint. Nothing is stored or sent yet.
-      msg.textContent = 'prototype only — email validated, not sent or saved_';
-      form.reset();
+      const email = input.value.trim();
+      const next = () => setTimeout(() => { location.href = 'onboarding.html'; }, 1400);
+      msg.textContent = 'saving_';
+      fetch('/api/plugins/onboard/actions/signup', { method: 'POST', headers: { 'content-type': 'application/json', 'x-coldstart': '1' }, body: JSON.stringify({ email: email, source: 'landing' }) })
+        .then((r) => r.json().then((j) => ({ ok: r.ok, j: j })))
+        .then((res) => {
+          if (!res.ok) { msg.classList.add('is-error'); msg.textContent = (res.j.error || 'could not save that') + '_'; return; }
+          msg.textContent = (res.j.already ? 'you were already on the list' : 'you are on the list') + ' — waking coldie_';
+          form.reset(); next();
+        })
+        .catch(() => { msg.textContent = 'offline preview — taking you to coldie_'; next(); });
     });
   }
 

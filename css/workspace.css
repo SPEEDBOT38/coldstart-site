@@ -225,3 +225,26 @@ dialog{color:var(--ink);border:1px solid var(--blue);border-radius:5px;padding:0
 .img-controls .field select{width:100%}
 .img-controls textarea{min-height:64px}
 @media(max-width:760px){.img-body>.img-frame{flex-basis:100%;max-width:280px}}
+
+/* == v10 · onboarding hand-off ============================================ */
+.ov-onboard{display:grid;grid-template-columns:auto 1fr auto;gap:6px 18px;align-items:center;padding:16px 20px;margin-bottom:18px;border-radius:3px;background:var(--accent);color:var(--ink);text-decoration:none}
+.ov-onboard .eyebrow{grid-row:1/3;margin:0;color:var(--ink);opacity:.7}
+.ov-onboard strong{font:italic 20px/1 var(--font-display);text-transform:uppercase}
+.ov-onboard strong b{color:var(--blue);font-weight:400}
+.ov-onboard>span:nth-of-type(2){grid-column:2;font-size:12px}
+.ov-onboard .btn{grid-row:1/3;grid-column:3;background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.bb-swatches{display:flex;gap:8px;flex-wrap:wrap}
+.bb-sw{display:grid;gap:4px;justify-items:center}
+.bb-sw i{width:40px;height:40px;border-radius:3px;border:1px solid var(--rule);display:block}
+.bb-sw small{font:9px var(--font-mono)}
+.icp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;padding:16px}
+.icp-card{border:1px solid var(--rule);border-radius:3px;padding:14px;background:#fff;display:grid;gap:6px;align-content:start}
+.icp-card h3{font:italic 15px/1.15 var(--font-display);text-transform:uppercase;color:var(--blue)}
+.shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:16px}
+.shelf-item{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:center;border:1px solid var(--rule);border-radius:3px;padding:8px;background:#fff}
+.shelf-item img,.shelf-ph{width:48px;height:48px;border-radius:2px;object-fit:cover;display:grid;place-items:center;background:var(--blue);color:var(--paper);font:11px var(--font-mono)}
+.shelf-item strong{display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shelf-item strong a{color:inherit}
+.shelf-item small{font:10px var(--font-mono);color:var(--muted)}
+@media(max-width:760px){.ov-onboard{grid-template-columns:1fr}.ov-onboard .eyebrow,.ov-onboard .btn,.ov-onboard>span:nth-of-type(2){grid-row:auto;grid-column:auto}}
+.icp-card .badge{justify-self:start}
