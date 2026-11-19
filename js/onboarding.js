@@ -665,8 +665,35 @@
       if (!apiOk) return done('Saved in this browser. (Preview mode: nothing was sent.)');
       api('plugins/onboard/actions/signup', { email: v, source: 'onboarding', brand: brandName(), site: S.site }).then((r) => done(r.already ? 'You were already on the list. Progress saved.' : 'You’re on the list.')).catch((er) => { err.textContent = er.message; });
     });
-    $('#toapp').addEventListener('click', () => { handoff(); location.href = 'app.html#/tracking?from=onboarding'; });
+    $('#toapp').addEventListener('click', () => startInBackground());
   };
+
+  /* ============================================================ insights: the analysis runs here, during onboarding */
+  // Brand, Instagram, competitor ads, analysis and three ads. One bounded step per call; progress is shown on this page.
+  const STAGE_LABEL = [['brand', 'Reading your brand'], ['instagram', 'Reading your Instagram'], ['pull', 'Pulling competitor ads'], ['analyze', 'Reading each ad'], ['synthesize', 'Writing the competitor analysis'], ['write', 'Writing 3 ads'], ['review', 'Reviewing the copy'], ['done', 'Done']];
+  const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+  // The kit the ads are drawn with, read from the brand book by colour name (Primary, Paper, Ink).
+  function kitFrom(g) {
+    const pick = (name) => { const i = (g.names || []).indexOf(name); return i >= 0 ? g.colors[i] : null; };
+    return { colors: { primary: pick('Primary') || g.colors[0], background: pick('Paper') || '#F2F2F2', text: pick('Ink') || '#0B0B0B' }, fonts: { heading: (g.fonts || [])[0] || 'Poppins' } };
+  }
+  function insightsInput() {
+    const g = genBrand(), b = S.brand || {}, main = S.icps.find((x) => x.id === S.picks[0]) || S.icps[0], backup = S.icps.find((x) => x.id === S.picks[1]);
+    const cur = (S.realBrand && S.realBrand.currency) || 'INR';
+    return {
+      brand: { name: brandName(), url: parseSite(S.site) ? 'https://' + parseSite(S.site) : '', ig: parseIG(S.ig), line: (S.real && S.realBrand && S.realBrand.line) || S.product.trim(), voice: (b.tones || []).join(', '), avoid: (S.real && S.realBrand && S.realBrand.dont ? S.realBrand.dont : ['revolutionary', 'game-changing', 'best ever']).join(', '), currency: cur, category: cat().label, product: S.product.trim() },
+      kit: kitFrom(g),
+      products: S.products.filter((p) => p.on).map((p) => ({ name: p.name, price: p.price, image: p.image || null, url: p.url || null })),
+      icps: [main, backup].filter(Boolean).map((p, i) => ({ role: i ? 'backup' : 'main', name: p.name, who: p.who, pain: p.pain, hook: p.hook, fmt: p.fmt, scroll: p.scroll, evidence: p.evidence || '' })),
+      competitors: S.rivals.slice(),
+      country: cur === 'INR' ? 'IN' : 'US',
+    };
+  }
+  // The analysis runs in the background: the workspace picks it up, so nothing is shown here.
+  function startInBackground() {
+    S.insightsInput = insightsInput(); S.insightsAt = new Date().toISOString(); save();
+    handoff(); location.href = 'app.html#/ads?from=onboarding';
+  }
 
   /* ============================================================ hand-off to the workspace */
   // app.html reads this once (js/workspace.js → importOnboarding) and fills brand, products, ICPs, brand book.
@@ -679,7 +706,8 @@
       book: { colors: g.colors, names: g.names, fonts: g.fonts, tones: b.tones || [], headline: b.headline || '', say: (S.real && S.realBrand && S.realBrand.say) || '', fromSite: !!g.fromSite, logo: (S.real && S.realBrand && S.realBrand.logo) || null, hero: (S.real && S.realBrand && S.realBrand.hero) || null },
       products: S.products.filter((p) => p.on).map((p) => ({ name: p.name, price: p.price, image: p.image || null, images: (p.images || []).slice(0, 4), url: p.url || null, src: p.src })),
       icps: [main, backup].filter(Boolean).map((p, i) => ({ role: i ? 'backup' : 'main', name: p.name, who: p.who, pain: p.pain, scroll: p.scroll, hook: p.hook, fmt: p.fmt, evidence: p.evidence || '' })),
-      competitors: S.rivals.slice(), sources: S.sources || null
+      competitors: S.rivals.slice(), sources: S.sources || null,
+      insights: S.insightsInput ? { at: S.insightsAt, input: S.insightsInput } : null
     };
     try { localStorage.setItem('coldstart.handoff.v1', JSON.stringify(data)); } catch (e) { /* storage blocked */ }
     S.handedOff = true; save();

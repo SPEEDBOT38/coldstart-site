@@ -290,3 +290,78 @@ dialog{color:var(--ink);border:1px solid var(--blue);border-radius:5px;padding:0
 @media(max-width:760px){.ad-row.has-photo{grid-template-columns:56px minmax(0,1fr)}.ad-row.has-photo .ad-thumb{width:56px;height:56px}}
 @media(max-width:1000px){.ad-row.has-photo{grid-template-columns:64px minmax(0,1fr) auto}}
 @media(max-width:760px){.ad-row.has-photo{grid-template-columns:56px minmax(0,1fr)}}
+/* AI studio: Higgsfield-style generator. Controls on the left, a dark results stage on the right. */
+.studio-tabs{margin:0 0 18px}
+.gen-layout{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:20px;align-items:start}
+.gen-controls{display:grid;gap:18px}
+.gen-group{display:grid;gap:8px}
+.gen-models{display:grid;gap:8px}
+.gen-model{display:grid;gap:2px;text-align:left;padding:12px 14px;min-height:44px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel);color:var(--ink);cursor:pointer;font:inherit}
+.gen-model small{color:var(--muted)}
+.gen-model[aria-pressed="true"]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);background:#0000f20d}
+.gen-chips{display:flex;flex-wrap:wrap;gap:6px}
+.gen-chip{min-height:36px;padding:0 12px;border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer;font:inherit;font-size:13px}
+.gen-chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--paper)}
+.gen-stage{background:#0b0b10;color:var(--paper);border-radius:var(--r);padding:18px;min-height:420px}
+.gen-stage .eyebrow{color:var(--paper)}
+.gen-stage .caption{color:#ffffffa6}
+.gen-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.gen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.gen-tile{margin:0;background:#16161d;border-radius:var(--r);overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);align-content:start}
+.gen-tile img{width:100%;aspect-ratio:1/1;object-fit:contain;display:block;background:#1c1c25}
+.gen-tile figcaption{padding:10px 12px 0;display:grid;gap:6px}
+.gen-tile figcaption p{margin:0;font-size:13px;color:#ffffffcc;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gen-tile-actions{padding:10px 12px 12px;flex-wrap:wrap}
+.gen-tile-actions select{min-height:36px;max-width:100%;flex:1 1 140px;border-radius:var(--r)}
+.gen-empty{display:grid;place-items:center;min-height:300px;color:#ffffffaa}
+@media(max-width:760px){.gen-layout{grid-template-columns:1fr}.gen-stage{min-height:0}.gen-chip{min-height:44px}}
+/* Buttons and the attach selector inside the dark results stage */
+.gen-tile .btn{color:var(--paper);background:transparent;border:1px solid #ffffff66;min-height:36px}
+.gen-tile .btn:hover{background:#ffffff14}
+.gen-tile select{background:#1c1c25;color:var(--paper);border:1px solid #ffffff3d}
+
+/* Insights: the page after onboarding (brand book, buyers, competitor analysis, ad reads, three new ads) */
+.ins-page{display:grid;gap:20px}
+.ins-card{margin:0}
+.ins-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+.ins-grid2 p{margin:4px 0 14px}
+.ins-chips{display:flex;flex-wrap:wrap;gap:6px}
+.gen-chip.static{cursor:default}
+.ins-quote{margin:8px 0 14px;padding:10px 14px;border-left:3px solid var(--blue);background:#0000f20a;font-style:italic}
+.ins-list{margin:4px 0 14px;padding-left:18px}
+.ins-swatches{display:flex;flex-wrap:wrap;gap:12px;margin:6px 0 14px}
+.ins-swatch{display:grid;gap:4px;justify-items:center;font-size:12px}
+.ins-swatch i{display:block;width:44px;height:44px;border-radius:var(--r);border:1px solid var(--rule)}
+.ins-logo{max-width:160px;max-height:70px;object-fit:contain;margin:6px 0 14px}
+.ins-headline{font-family:var(--font-display);font-size:20px;margin:4px 0 8px;color:var(--blue)}
+.ins-icps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.ins-icp{border:1px solid var(--rule);border-radius:var(--r);padding:16px;background:var(--panel)}
+.ins-icp h3{margin:6px 0 6px}
+.ins-comps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:20px}
+.ins-comp{border-top:2px solid var(--blue);padding-top:12px}
+.ins-rec{border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;margin:8px 0}
+.ins-group{margin:22px 0 10px}
+.ins-ad-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.ins-ad{border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;background:var(--panel);display:grid;align-content:start}
+.ins-ad img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#eee;display:block}
+.ins-ad-noimg{aspect-ratio:1/1;display:grid;place-items:center;background:#e9e9ee;color:var(--muted);font-size:13px}
+.ins-ad-body{padding:10px 12px;display:grid;gap:4px}
+.ins-new{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.ins-newad{border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;background:var(--panel);display:grid}
+.ins-newad-img img{width:100%;display:block;aspect-ratio:4/5;object-fit:cover;background:#eee}
+.ins-newad-body{padding:14px;display:grid;gap:8px}
+.ins-newad-body h3{margin:2px 0}
+.warn-text{color:#8a4b00}
+.ins-progress{max-width:760px}
+.ins-steps{list-style:none;padding:0;margin:16px 0;display:grid;gap:10px}
+.ins-step{display:flex;align-items:center;gap:10px;font-size:15px}
+.ins-step span{width:12px;height:12px;border-radius:50%;border:2px solid var(--rule);flex:none}
+.ins-step.is-done span{background:var(--blue);border-color:var(--blue)}
+.ins-step.is-current span{border-color:var(--blue);box-shadow:0 0 0 4px #0000f222}
+.ins-step.is-current{font-weight:600}
+.ins-step.is-todo{color:var(--muted)}
+.ins-logs{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:6px;font-size:13px;color:var(--muted)}
+.ins-log.is-warn{color:#8a4b00}
+.ins-log.is-error{color:#a40000}
+.ins-notes{font-size:13px;color:var(--muted)}
+@media(max-width:760px){.ins-grid2{grid-template-columns:1fr}.ins-new{grid-template-columns:1fr}}

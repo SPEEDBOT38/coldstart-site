@@ -16,8 +16,9 @@ function net(log, { fail } = {}) {
   };
 }
 const ctx = (f, store = createStore({ STORE: 'memory' })) => ({ store, fetch: f, ip: '7.7.7.7' });
-const setEnv = () => { process.env.IMAGE_API_URL = 'https://img.test'; process.env.IMAGE_API_KEY = 'secret-key'; process.env.OPENROUTER_API_KEY = 'or'; };
-const clear = () => { for (const k of ['IMAGE_API_URL', 'IMAGE_API_KEY', 'OPENROUTER_API_KEY', 'IMAGE_DAILY_LIMIT']) delete process.env[k]; };
+// These tests cover the FLUX path on Cloudflare (IMAGE_ENGINE=flux); the Gemini path has its own test at the end.
+const setEnv = () => { process.env.IMAGE_API_URL = 'https://img.test'; process.env.IMAGE_API_KEY = 'secret-key'; process.env.OPENROUTER_API_KEY = 'or'; process.env.IMAGE_ENGINE = 'flux'; };
+const clear = () => { for (const k of ['IMAGE_API_URL', 'IMAGE_API_KEY', 'OPENROUTER_API_KEY', 'IMAGE_DAILY_LIMIT', 'IMAGE_ENGINE']) delete process.env[k]; };
 const post = { platform: 'instagram', title: 'Two-minute soil check', body: 'Push a finger in to the second knuckle before you water.' };
 
 test('Gemini writes the image prompt from the post, then the worker draws it', async () => {
@@ -61,5 +62,23 @@ test('daily image cap protects the free neuron budget', async () => {
   const c = ctx(net([]));
   await generateImage(c, { prompt: 'a' }); await generateImage(c, { prompt: 'b' });
   await assert.rejects(() => generateImage(c, { prompt: 'c' }), e => e.status === 429);
+  clear();
+});
+
+test('Gemini engine: the product photo goes in as the reference and the image comes back as data', async () => {
+  clear(); process.env.OPENROUTER_API_KEY = 'or';
+  const log = [];
+  const f = async (url, init = {}) => {
+    log.push({ url: String(url), body: JSON.parse(init.body || '{}') });
+    return new Response(JSON.stringify({ choices: [{ message: { images: [{ image_url: { url: 'data:image/png;base64,iVBORw0KGgo=' } }] } }], usage: { cost: 0.04 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  const ref = 'data:image/jpeg;base64,' + JPG.toString('base64');
+  const out = await generateImage(ctx(f), { prompt: 'a jar of scrub on warm sand', reference: ref, palette: { primary: '#05AC98' }, aspect: '4:5' });
+  assert.equal(out.model, 'google/gemini-3-pro-image-preview');
+  assert.match(out.image, /^data:image\/png;base64,/);
+  const parts = log[0].body.messages[0].content;
+  assert.equal(parts[1].type, 'image_url');
+  assert.equal(log[0].body.image_config.aspect_ratio, '4:5');
+  assert.match(parts[0].text, /No added text/);
   clear();
 });

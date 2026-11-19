@@ -411,3 +411,15 @@ h1:focus, h1[tabindex="-1"]:focus { outline: none; }
   .grid-p { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 }
 .stg.is-skip .stg__ic { background: transparent; border-style: dashed; color: var(--ink); } .stg.is-skip b { opacity: .75; }
+
+/* Insights built during onboarding (the Level step) */
+.ins-box{margin-top:18px;padding:16px;border:2px solid currentColor;border-radius:12px;background:rgba(255,255,255,.06)}
+.ins-box .label{margin:0 0 8px}
+.ins-steps{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:4px;font-size:14px;opacity:.7}
+.ins-steps li.is-done{opacity:1}
+.ins-steps li.is-now{opacity:1;font-weight:700}
+.ins-steps li.is-done::before{content:"✓ "}
+.ins-steps li.is-now::before{content:"› "}
+.ins-log{list-style:none;margin:0;padding:0;font-size:12px;opacity:.75;display:grid;gap:2px}
+.ins-thumbs{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.ins-thumb img{width:120px;aspect-ratio:4/5;object-fit:cover;border-radius:8px;display:block;background:#fff3}
