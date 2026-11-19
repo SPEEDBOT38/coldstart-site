@@ -142,6 +142,7 @@
           <p class="small muted"><strong>Why this ad:</strong> ${esc(v.why_this_angle)}</p>
           ${v.inspired_by && v.inspired_by.competitor ? `<p class="small muted"><strong>Borrowed structure from ${esc(v.inspired_by.competitor)}:</strong> ${esc(v.inspired_by.what_we_borrowed)}</p>` : ''}
           <p class="small muted"><strong>For:</strong> ${esc(v.audience || '')} · <strong>CTA:</strong> ${esc(v.cta)}${v.claims_flagged && v.claims_flagged.length ? ` · <span class="warn-text">placeholder kept for: ${esc(v.claims_flagged.join(', '))}</span>` : ''}</p>
+          ${v.verified === false ? `<p class="small warn-text"><strong>Check the label before you use this:</strong> ${esc(v.check_issues || 'the product may differ from the photo')}</p>` : ''}
           <div class="row"><a class="btn secondary" data-download="${k}" href="#" download="ad-${k + 1}.jpg">Download</a>${btnHtml('Send to Studio', 'ins-to-studio', k)}</div>
         </div></article>`).join('')}</div></section>`;
   }
@@ -174,7 +175,7 @@
   function applyAds(S, I) {
     const vs = I.run.variants || [], keys = I.images || [], at = String(I.at || '').slice(-6);
     const budget = (I.input && I.input.brand && I.input.brand.currency) === 'INR' || !I.input ? 500 : 8;
-    S.ads = vs.map((v, k) => ({ id: 'ins-ad-' + (k + 1) + '-' + at, title: v.headline || v.angle, goal: [v.angle, v.product].filter(Boolean).join(' · '), budget, status: 'draft', photo: null, mediaId: keys[k] || null, icp: v.audience || '', product: v.product || '', source: 'insights' }));
+    S.ads = vs.map((v, k) => ({ id: 'ins-ad-' + (k + 1) + '-' + at, title: v.headline || v.angle, goal: [v.angle, v.product].filter(Boolean).join(' · '), budget, status: 'draft', photo: null, mediaId: keys[k] || null, icp: v.audience || '', product: v.product || '', source: 'insights', verified: v.verified === true, check: v.check_issues || null }));
     const made = vs.map((v, k) => ({ id: keys[k], prompt: v.creative_direction || v.headline || '', model: 'Insights · ' + (v.product || 'your product'), style: v.angle || 'product', aspect: '4:5', ms: null, at: I.at })).filter(g => g.id);
     S.generations = [...made, ...(S.generations || []).filter(g => !keys.includes(g.id))].slice(0, 24);
   }
@@ -210,6 +211,7 @@
         const brandName = (I.input && I.input.brand && I.input.brand.name) || '';
         // the scene is generated from the real product photo, then the text is set around it
         const scene = await ctx.api(API + 'scene', { method: 'POST', body: { variant: v, product: { name: v.product, image: v.product_image }, brand: { name: brandName, tone_of_voice: I.run.brand && I.run.brand.tone_of_voice }, palette: { primary: kit.colors && kit.colors.primary, background: kit.colors && kit.colors.background, text: kit.colors && kit.colors.text } } });
+        I.run.variants[k].verified = scene.verified; I.run.variants[k].check_issues = scene.issues; I.run.variants[k].scene_attempts = scene.attempts;
         const img = await window.AdCompose.composeScene(scene.image, { ...v, price }, { kit, brandName });
         const key = 'ins-' + String(I.at).slice(-6) + '-' + k;
         await window.AdCompose.putMedia(key, img); keys.push(key);
