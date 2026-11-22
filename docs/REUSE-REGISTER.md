@@ -24,5 +24,15 @@ Rule: find a maintained implementation first; write only glue. **Verification li
 | ComfyUI, Qwen-Image, LTX-2, Wan2.2 | see handoff | not verified | Hosted GPU options | None connected | Blocked: no GPU account |
 | Cloudflare Workers AI FLUX.2 | Cloudflare docs | provider terms | Pilot background generator | Not connected. The endpoint name, payload and price must be read from current Cloudflare docs first | Blocked: no Cloudflare credentials |
 
+## Checkpoint 3 additions
+| Item | Version/source | License | How used | Notes |
+|---|---|---|---|---|
+| `stopword` | npm | MIT | Keyword tokenising in the social pipeline | Dependency, no copied code |
+| `node:sqlite` | Node built-in | n/a | Durable local store backend | Needs a Node version that ships it (device Node 24 does) |
+| Cloudflare D1 REST API | Cloudflare docs | provider terms | `d1Backend` adapter, same SQL as SQLite | Contract-tested with a SQLite fake only |
+| X API v2 search/counts/tweets | docs.x.com | provider terms | Search, counts-based trend baseline, publish, metrics | Coded to the official docs; mock_only |
+| mochiscout, reddit-research-agent, postiz-app | GitHub | AGPL / see repo | **Study-only, no source copied** | GitHub API was unreachable from the build sandbox, so their licenses were not re-verified this checkpoint |
+| Cloudflare Workers AI FLUX.1 schnell | developers.cloudflare.com/workers-ai/models/flux-1-schnell | Model/provider terms | Optional background generator | Price not shown on the model page; cost recorded as null, not guessed |
+
 ## Not reused on purpose
 `@imgly/background-removal` (AGPL/commercial), `ffmpeg-static` (GPL-3.0), any AGPL/GPL source in the proprietary core.

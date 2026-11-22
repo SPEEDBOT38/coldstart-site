@@ -214,3 +214,14 @@ test('verify invalidates an approval as soon as the campaign changes', async () 
   assert.equal(bad.valid, false); assert.equal(bad.status, 'invalidated');
   assert.equal((await c.call('ops', 'verify', { approvalId: ap.id, payload: launch() })).json.valid, false, 'stays invalid even if changed back');
 });
+
+test('100 simultaneous generation requests against a cap of 5: provider called 5 times; the same key 100 times: once', async () => {
+  const { base } = await start(); const c = client(base); const m = await approvedMaster(c);
+  await c.call('ops', 'setPolicy', { caps: { credits: 5 } }); const before = imgCalls;
+  const rs = await Promise.all(Array.from({ length: 100 }, () => c.call('ops', 'createJob', jobBody(m))));
+  assert.equal(rs.filter(r => r.status === 200).length, 5); assert.equal(rs.filter(r => r.status === 429).length, 95); assert.equal(imgCalls - before, 5);
+  await c.call('ops', 'setPolicy', { caps: { credits: 50 } }); const key = 'same-key-' + crypto.randomUUID(), b2 = imgCalls;
+  const same = await Promise.all(Array.from({ length: 100 }, () => c.call('ops', 'createJob', jobBody(m, { idempotencyKey: key }))));
+  assert.equal(imgCalls - b2, 1, 'provider billed once'); assert.ok(same.every(r => [200, 409].includes(r.status)));
+  const u = (await c.get('usage')).json; assert.equal(u.used.creativeMonth, 6);
+});

@@ -9,6 +9,11 @@ import numpy as np
 from rembg import remove, new_session
 
 MODEL = os.environ.get('REMBG_MODEL', 'u2netp'); KEY = os.environ.get('COMPOSITE_KEY', '')
+PINNED = {'u2netp': '309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8'}   # sha256 of u2netp.onnx; source https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx ; U-2-Net licence Apache-2.0
+def _check_weights():
+    f = os.path.join(os.environ.get('U2NET_HOME', os.path.expanduser('~/.u2net')), MODEL + '.onnx')
+    if MODEL in PINNED and os.path.exists(f) and hashlib.sha256(open(f, 'rb').read()).hexdigest() != PINNED[MODEL]: raise SystemExit('model weights checksum mismatch: refusing to start')
+_check_weights()
 SESSION = new_session(MODEL)
 MAX_PX = 24_000_000
 

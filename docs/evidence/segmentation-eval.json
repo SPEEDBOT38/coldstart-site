@@ -1,0 +1,76 @@
+{
+ "note": "SYNTHETIC stress fixtures with exact ground truth; not genuine product photographs.",
+ "model": "u2netp",
+ "cases": {
+  "glossy_bottle": {
+   "segmentation_vs_ground_truth": {
+    "iou": 0.996,
+    "boundary_f1_2px": 1.0,
+    "predicted_area_ratio": 1.004
+   },
+   "protected_pixel_check": {
+    "protected_pixels": 164199,
+    "protected_pixels_changed": 0,
+    "matte_coverage": 0.923,
+    "protected_pixel_equality": "pass"
+   },
+   "reading": "Preservation can pass while segmentation is poor: the check only proves we did not alter the pixels the matte kept."
+  },
+  "transparent_bottle": {
+   "segmentation_vs_ground_truth": {
+    "iou": 0.983,
+    "boundary_f1_2px": 0.889,
+    "predicted_area_ratio": 1.017
+   },
+   "protected_pixel_check": {
+    "protected_pixels": 160322,
+    "protected_pixels_changed": 0,
+    "matte_coverage": 0.91,
+    "protected_pixel_equality": "pass"
+   },
+   "reading": "Preservation can pass while segmentation is poor: the check only proves we did not alter the pixels the matte kept."
+  },
+  "thin_edges": {
+   "segmentation_vs_ground_truth": {
+    "iou": 0.179,
+    "boundary_f1_2px": 0.696,
+    "predicted_area_ratio": 5.56
+   },
+   "protected_pixel_check": {
+    "protected_pixels": 13336,
+    "protected_pixels_changed": 0,
+    "matte_coverage": 0.113,
+    "protected_pixel_equality": "needs_review"
+   },
+   "reading": "Preservation can pass while segmentation is poor: the check only proves we did not alter the pixels the matte kept."
+  },
+  "small_label_jar": {
+   "segmentation_vs_ground_truth": {
+    "iou": 0.993,
+    "boundary_f1_2px": 0.999,
+    "predicted_area_ratio": 1.004
+   },
+   "protected_pixel_check": {
+    "protected_pixels": 196809,
+    "protected_pixels_changed": 0,
+    "matte_coverage": 0.937,
+    "protected_pixel_equality": "pass"
+   },
+   "reading": "Preservation can pass while segmentation is poor: the check only proves we did not alter the pixels the matte kept."
+  },
+  "reflective_can": {
+   "segmentation_vs_ground_truth": {
+    "iou": 0.992,
+    "boundary_f1_2px": 1.0,
+    "predicted_area_ratio": 1.008
+   },
+   "protected_pixel_check": {
+    "protected_pixels": 189062,
+    "protected_pixels_changed": 0,
+    "matte_coverage": 0.934,
+    "protected_pixel_equality": "pass"
+   },
+   "reading": "Preservation can pass while segmentation is poor: the check only proves we did not alter the pixels the matte kept."
+  }
+ }
+}

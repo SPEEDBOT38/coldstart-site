@@ -83,7 +83,7 @@
 
   /* ---------- Action Inbox (S13) ---------- */
   let fType = 'all', fStatus = 'open', sel = new Set();
-  const TYPE = { approval: 'Approval', review: 'Creative review', confirm: 'Confirm' };
+  const TYPE = { approval: 'Approval', review: 'Creative review', confirm: 'Confirm', post: 'Social post' };
   function inbox(view) {
     const all = S().inbox || [], now = Date.now();
     const items = all.filter((i) => (fType === 'all' || i.kind === fType) && (fStatus === 'all' || (fStatus === 'snoozed' ? i.snoozeUntil > now : !(i.snoozeUntil > now))));
@@ -96,7 +96,7 @@
     $('#f-type').onchange = (e) => { fType = e.target.value; inbox(view); }; $('#f-status').onchange = (e) => { fStatus = e.target.value; inbox(view); };
     const act = (id, fn, msg, type) => { const it = S().inbox.find((x) => x.id === id); if (!it) return; fn(it); C.log('inbox', msg + ': ' + it.title, { item: id, kind: it.kind, decision: type }); C.save(); sel.delete(id); route(); };
     view.querySelectorAll('[data-sel]').forEach((c) => c.onchange = () => { c.checked ? sel.add(c.dataset.sel) : sel.delete(c.dataset.sel); inbox(view); });
-    view.querySelectorAll('[data-ok]').forEach((b) => b.onclick = () => act(b.dataset.ok, (it) => { S().inbox = S().inbox.filter((x) => x !== it); }, 'Approved', 'approve'));
+    view.querySelectorAll('[data-ok]').forEach((b) => b.onclick = async () => { const it = S().inbox.find((x) => x.id === b.dataset.ok); if (it && it.kind === 'post') { try { await window.Social.approve(it); } catch (e) { return toast(e.message); } } act(b.dataset.ok, (it2) => { S().inbox = S().inbox.filter((x) => x !== it2); }, 'Approved', 'approve'); });
     view.querySelectorAll('[data-no]').forEach((b) => b.onclick = () => act(b.dataset.no, (it) => { S().inbox = S().inbox.filter((x) => x !== it); }, 'Rejected', 'reject'));
     view.querySelectorAll('[data-snz]').forEach((b) => b.onclick = () => act(b.dataset.snz, (it) => { it.snoozeUntil = Date.now() + 864e5; }, 'Snoozed 24 h', 'snooze'));
     view.querySelectorAll('[data-chg]').forEach((b) => b.onclick = () => {

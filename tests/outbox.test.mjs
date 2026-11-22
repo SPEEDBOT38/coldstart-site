@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createStore } from '../lib/store.js';
 import { scoped } from '../lib/ops/kv.js';
 import { setPolicy } from '../lib/ops/policy.js';
-import { createPublish, authorizePublish, editPublish, cancelPublish, runPublish, resolveUnknown, getPublish } from '../lib/ops/outbox.js';
+import { markManual, refreshMetrics, createPublish, authorizePublish, editPublish, cancelPublish, runPublish, resolveUnknown, getPublish } from '../lib/ops/outbox.js';
 import { integrationStatus } from '../lib/providers/adapters.js';
 
 const mk = (ws = 'wsaaaaaaaa') => scoped(createStore({ STORE: 'memory' }), ws);
@@ -74,4 +74,19 @@ test('cancel after publish is refused; tenants cannot see each other’s jobs', 
   const f = async (u, o) => ok({ data: { id: '7' } }); const id = await ready(a);
   await runPublish(a, live(f), id); await assert.rejects(() => cancelPublish(a, id), /Already published/);
   await assert.rejects(() => getPublish(b, id), /Unknown publish job/);
+});
+
+test('Reddit assisted: only a person can complete it, and it is recorded as user-attested, not platform-verified', async () => {
+  const kv = mk(); await setPolicy(kv, { allow: { organic: true } });
+  const { job } = await createPublish(kv, { payload: { channel: 'reddit', text: 'Disclosure: I work on Fern & Form. Try a gritty mix.' }, idempotencyKey: 'idem-key-0009' });
+  await assert.rejects(() => markManual(kv, job.id, { url: 'https://www.reddit.com/r/plants/comments/abc/t/' }), /Approve this exact content/);
+  await authorizePublish(kv, job.id, { hash: job.payloadHash });
+  const r = await runPublish(kv, { getConn: () => null, fetch: async () => ok({}) }, job.id); assert.equal(r.job.state, 'blocked'); assert.equal(r.blocked.state, 'requires_approval');
+  await assert.rejects(() => markManual(kv, job.id, { url: 'javascript:alert(1)' }), /link/);
+  const j = await markManual(kv, job.id, { url: 'https://www.reddit.com/r/plants/comments/abc/t/' }); assert.equal(j.state, 'completed'); assert.equal(j.verification, 'user_attested');
+  assert.equal((await refreshMetrics(kv, live(null), job.id)).metrics, null, 'no invented metrics for manual posts');
+});
+test('X metrics are stored as dated snapshots after a verified publish', async () => {
+  const kv = mk(); const f = async (u, o) => String(u).includes('public_metrics') ? ok({ data: { id: '7', public_metrics: { like_count: 3, impression_count: 120 } } }) : ok({ data: { id: '7' } });
+  const id = await ready(kv); await runPublish(kv, live(f), id); const r = await refreshMetrics(kv, live(f), id); assert.equal(r.metrics.impression_count, 120); assert.equal((await getPublish(kv, id)).metrics.length, 1);
 });

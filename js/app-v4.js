@@ -114,6 +114,7 @@
     view.querySelectorAll('[data-why]').forEach((b) => b.addEventListener('click', () => drawer(b.dataset.why)));
     view.querySelectorAll('[data-save]').forEach((b) => b.addEventListener('click', () => { const p = S.plan.find((x) => x.id === b.dataset.save); p.saved = !p.saved; C.save(); discover(); bindAfter(); }));
     view.querySelectorAll('[data-dismiss]').forEach((b) => b.addEventListener('click', () => { const p = S.plan.find((x) => x.id === b.dataset.dismiss); p.dismissed = true; syncCampaign(); C.save(); toast('Dismissed. It’s out of the campaign too.'); discover(); bindAfter(); }));
+    if (window.Social) window.Social.section(view);
     const rr = $('#run-research'); if (rr) rr.addEventListener('click', runResearch);
     const sr = $('#set-region'); if (sr) sr.addEventListener('submit', (e) => { e.preventDefault(); S.bounds.region = $('#rg').value.trim(); S.bounds.regionMode = 'set'; C.save(); discover(); bindAfter(); });
   }
@@ -305,6 +306,7 @@
       <p class="muted small">Proposed slots only. Connect accounts in Settings to schedule. Nothing is scheduled by the app right now.</p>` : `<div class="empty" style="margin:0"><strong>Nothing to schedule yet.</strong><p>Approve a campaign plan first. Approved work appears here with its real status.</p><a class="btn" href="#/campaigns/c1" style="margin-top:12px">Open campaign</a></div>`}
     <div class="panel"><div class="panel-b" style="display:flex;gap:14px;flex-wrap:wrap"><span class="chip dash">Scheduled · 0</span><span class="chip ${pubM ? 'b' : 'dash'}">Published · ${pubM}</span><span class="chip dash">Failed · 0</span><span class="chip y">Awaiting manual posting · ${manual}</span></div></div>`;
     view.querySelectorAll('[data-slot]').forEach((b) => b.addEventListener('click', () => slotDialog(appr[+b.dataset.slot])));
+    if (window.Social) window.Social.calendarSection(view);
   }
   function slotDialog(s) {
     const d = document.getElementById('dlg'), manualOk = s.ch === 'reddit';

@@ -76,6 +76,26 @@ async function suite(label, viewport) {
     const s = await S(page); eq(s.research.signals.length, 1);
   });
 
+  await T(tag('social: Reddit thread (manual) → evidence → draft → Action Inbox approval → Calendar → marked posted by user, not verified'), async () => {
+    await page.goto(BASE + '/app-v4.html#/discover'); await page.waitForSelector('#so-reddit');
+    ok(inc(await page.locator('#social-sec').innerText(), 'X: requires'), 'X is shown as needing credentials, not as live');
+    await page.click('#so-reddit'); await page.fill('#rd-u', 'https://www.reddit.com/r/IndoorGarden/comments/abc123/best_soil_mix_for_balcony_herbs/'); await page.fill('#rd-t', 'Best soil mix for balcony herbs in Pune?'); await page.fill('#rd-x', 'My basil keeps dying on a sunny balcony. Looking for a potting soil mix that drains well and holds some water.'); await page.click('#rd-s');
+    await page.waitForSelector('[data-sdraft]', { timeout: 10000 });
+    ok(inc(await page.locator('#social-sec .opp').first().innerText(), 'Supplied by you'), 'manual evidence is labelled as supplied by the user');
+    eq(await page.locator('#social-sec .opp a:has-text("Open evidence")').first().getAttribute('href'), 'https://www.reddit.com/r/IndoorGarden/comments/abc123/best_soil_mix_for_balcony_herbs/');
+    await page.click('[data-sdraft]'); await page.waitForSelector('#dd-t');
+    await page.fill('#dd-t', 'Basil on a sunny balcony dries out fast. A chunkier mix with some coco coir helps it drain and still hold water. Disclosure: I work at Fern & Form, a plant-care brand.');
+    await page.click('#dd-s'); await page.waitForURL(/#\/inbox/, { timeout: 8000 }).catch(async (e) => { throw new Error('draft not sent: ' + (await page.locator('#dd-e, #dd-i').allInnerTexts()).join(' | ')); });
+    ok(inc(await page.locator('main').innerText(), 'Reddit reply'), 'draft is waiting in the Action Inbox');
+    let jobs = (await ops(page, 'publishJobs')).json.jobs; eq(jobs.length, 1); eq(jobs[0].state, 'requested'); ok(!jobs[0].authorized, 'not authorized before approval');
+    await page.click('[data-ok^="sp-"]'); await page.waitForFunction(() => !document.querySelector('[data-ok^="sp-"]'), null, { timeout: 8000 });
+    jobs = (await ops(page, 'publishJobs')).json.jobs; ok(jobs[0].authorized, 'approval recorded on the server, bound to the payload');
+    await page.goto(BASE + '/app-v4.html#/calendar'); await page.waitForSelector('[data-sp-man]');
+    await page.click('[data-sp-man]'); await page.fill('#au', 'https://www.reddit.com/r/IndoorGarden/comments/abc123/best_soil_mix_for_balcony_herbs/def456/'); await page.click('#au-s');
+    await page.waitForFunction(() => /Posted by you/.test(document.getElementById('social-cal').textContent), null, { timeout: 8000 });
+    jobs = (await ops(page, 'publishJobs')).json.jobs; eq(jobs[0].state, 'completed'); eq(jobs[0].verification, 'user_attested');
+  });
+
   await T(tag('identity: upload → read packaging text (real OCR) → confirm → approve master'), async () => {
     await page.goto(BASE + '/app-v4.html#/campaigns/library'); await page.waitForSelector('#up-file', { state: 'attached' });
     await page.setInputFiles('#up-file', FX('ref.png')); await page.waitForSelector('[data-ident-open]', { timeout: 15000 });

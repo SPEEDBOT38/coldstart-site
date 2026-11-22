@@ -19,3 +19,14 @@ Expected `POST {GPU_API_URL}/v1/generate` returning an image and an `x-model` he
 
 ## AI router
 Research and planning use OpenRouter (`OPENROUTER_API_KEY`) when set; otherwise features say "Not connected". No spend limit exists at the router; limits are enforced here per workspace.
+
+## Checkpoint 3 environment variables
+| Variable | Purpose | State without it |
+|---|---|---|
+| `STORE=sqlite` / `SQLITE_FILE` | Durable local store | memory/file fallback |
+| `CF_ACCOUNT_ID`, `D1_DATABASE_ID`, `CF_API_TOKEN` | D1 store | not used |
+| `X_BEARER_TOKEN` | X search/counts | X source reports requires_credentials |
+| `BACKGROUND_PROVIDER=cloudflare`, `CF_ACCOUNT_ID`, `CF_AI_TOKEN` | FLUX background generation | procedural backdrop only |
+| `COMPOSITE_API_URL` | Pixel-locked compositor service | Fidelity-first mode disabled |
+
+Costs so far: $0 of provider spend. Nothing was called against X, Reddit, Meta, Cloudflare or Vercel.
