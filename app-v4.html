@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coldstart workspace</title>
+  <meta name="theme-color" content="#0000F2">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230000F2'/%3E%3Ctext x='6' y='23' fill='%23F2F2F2' font-family='sans-serif' font-size='24'%3Ec%3C/text%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens-v2.css">
+  <link rel="stylesheet" href="css/v4.css">
+</head>
+<body class="app" data-theme="paper">
+  <a class="skip" href="#view">Skip to content</a>
+  <div class="frame" aria-hidden="true"></div>
+  <div class="shell">
+    <aside class="side" aria-label="Navigation">
+      <a class="wordmark" href="v3.html" aria-label="Coldstart home">cold start<b>_</b></a>
+      <div class="ws"><i id="ws-av" aria-hidden="true">C</i><div><strong id="ws-name">Your business</strong><small>Workspace</small></div></div>
+      <span class="nav-cap">NAVIGATION</span>
+      <nav id="nav" aria-label="Main"></nav>
+      <div class="side-foot">
+        <div class="mode"><b>You approve everything</b>Nothing is published or spent without your yes.</div>
+        <a href="app-v3.html">Open v3 workspace (Studio, Tracking)</a>
+      </div>
+    </aside>
+    <div class="main">
+      <header class="top">
+        <div style="display:flex;align-items:center;gap:10px"><button class="menu-btn" id="menu" type="button" aria-label="Open navigation"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+          <div class="crumb"><span>Workspace /</span><b id="crumb">Home</b></div></div>
+        <div class="top-r">
+          <button class="btn sm ghost" id="ws-switch" type="button" aria-label="Workspace">Your workspace</button>
+          <span class="chip warn" id="pause-flag" hidden>Paused</span>
+          <button class="btn sm ghost" id="btn-search" type="button" aria-label="Search (Ctrl K)">Search <kbd>Ctrl K</kbd></button>
+          <button class="btn sm" id="btn-add" type="button">Add new</button>
+          <button class="btn sm ghost" id="btn-assist" type="button">Assistant</button>
+          <a class="btn sm ghost" href="#/inbox" aria-label="Action Inbox">Inbox <span class="badge" id="inbox-badge" hidden>0</span></a>
+          <button class="btn sm ghost" id="btn-bell" type="button" aria-label="Notifications">Alerts</button>
+          <button class="btn sm ghost" id="btn-pause" type="button">Pause</button>
+          <a class="avatar" href="#/settings" aria-label="Settings">D</a></div>
+      </header>
+      <main class="view" id="view" tabindex="-1"><p>Opening workspace…</p></main>
+      <footer class="foot"><span>RESEARCH TALKS TO THE COLDSTART SERVER · PLANS AND APPROVALS ARE STORED IN THIS BROWSER</span><span>NOTHING PUBLISHES OR SPENDS</span></footer>
+    </div>
+  </div>
+  <dialog id="dlg" aria-label="Dialog"></dialog>
+  <dialog id="pal" aria-label="Search"></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/v4-core.js"></script>
+  <script src="js/studio-v4.js"></script>
+  <script src="js/identity-v4.js"></script>
+  <script src="js/ops-v4.js"></script>
+  <script src="js/app-v4.js"></script>
+  <script>window.Ops.wire();</script>
+</body>
+</html>

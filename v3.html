@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coldstart — Verified Meta signal, market listening &amp; first ads for day-zero D2C brands</title>
+  <meta name="description" content="An AI agent for day-zero D2C brands (India first, Shopify first). Coldie verifies your Meta Pixel + CAPI deduplication, listens to your market, and drafts your first ads. You approve everything.">
+  <meta name="theme-color" content="#0000F2">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230000F2'/%3E%3Cpath d='M17 9h-5a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4h5' fill='none' stroke='%23F2F2F2' stroke-width='3.4'/%3E%3Cpath d='M19 23h6' stroke='%23ECEA36' stroke-width='3.4'/%3E%3C/svg%3E">
+  <script>
+    document.documentElement.classList.add('js', 'is-loading');
+    setTimeout(function () {
+      var d = document.documentElement, p = document.getElementById('preloader');
+      if (d.classList.contains('is-loading')) { d.classList.remove('is-loading'); d.classList.add('is-ready'); if (p) p.remove(); }
+    }, 6000);
+  </script>
+  <link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens-v2.css">
+  <link rel="stylesheet" href="css/v3.css">
+</head>
+<body data-theme="blue">
+  <a class="skip" href="#main">Skip to main content</a>
+
+  <div class="preloader" id="preloader" role="status" aria-label="Loading Coldstart">
+    <canvas class="preloader__wipe" aria-hidden="true"></canvas>
+    <div class="preloader__inner">
+      <video class="preloader__coldie" muted loop playsinline autoplay preload="auto" poster="assets/mascot/loading_screen.poster.webp" data-fallback="assets/mascot/loading_screen.anim.webp" aria-hidden="true">
+        <source src="assets/mascot/loading_screen.webm" type="video/webm">
+      </video>
+      <div class="preloader__count display" aria-hidden="true"><span id="preCount">000</span><i>%</i></div>
+      <div class="preloader__bar" aria-hidden="true"></div>
+      <p class="preloader__status label" id="preStatus">booting coldie_</p>
+    </div>
+  </div>
+
+  <div class="frame" aria-hidden="true"></div>
+
+  <!-- Sticky theme-aware navigation bar -->
+  <div class="bar" id="bar" data-theme="blue" role="navigation" aria-label="Sticky navigation">
+    <div class="col bar__row label">
+      <a class="logo" href="#top" aria-label="Coldstart, back to top"><b>cold</b><b>start<span class="blink">_</span></b></a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#problem">3× problem</a>
+        <a href="#how">how it works</a>
+        <a href="#capabilities">live vs sandbox</a>
+        <a href="#proof">proof</a>
+        <a href="#faq">faq</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn--ghost btn--small" href="app-v3.html#/tracking">Open workspace</a>
+        <a class="btn btn--yellow btn--small" href="onboarding-v3.html">Get early access →</a>
+      </div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+  </div>
+
+  <!-- Main top header -->
+  <header class="top" id="top" data-theme="blue">
+    <div class="col top__row label">
+      <a class="logo" href="#top" aria-label="Coldstart"><b>cold</b><b>start<span class="blink">_</span></b><span class="logo__badge">D2C · V3</span></a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#problem">3× problem</a>
+        <a href="#insight">signal first</a>
+        <a href="#how">how it works</a>
+        <a href="#capabilities">capability map</a>
+        <a href="#proof">proof</a>
+        <a href="#pricing">pricing</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn--ghost btn--small" href="app-v3.html#/tracking">Workspace</a>
+        <a class="btn btn--yellow btn--small" href="onboarding-v3.html">Get early access →</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 1. HERO -->
+    <section class="hero" data-theme="blue">
+      <div class="dither-layer" aria-hidden="true">
+        <canvas class="c-lift" data-dither="cursor" data-cursor-radius="150" data-cursor-amp=".65"></canvas>
+      </div>
+      <div class="col hero__grid">
+        <div class="hero__copy">
+          <div class="hero__eyebrow label">
+            <span class="hero__tag">India first · Shopify first</span>
+            <span class="status-pill status-pill--live">Pre-revenue · Early access</span>
+          </div>
+          <h1 class="display">
+            <span class="line">Verify your signal.</span>
+            <span class="line">Then run your first ads<span class="blink">_</span></span>
+          </h1>
+          <p class="lead-statement">
+            Coldstart is an AI marketing agent for day-zero D2C brands. Before you spend a rupee on Meta, Coldie verifies your Pixel + CAPI deduplication, listens to your market, and drafts your first posts and ads—and you approve every single one.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--yellow" href="onboarding-v3.html">Get early access (8-quest setup) →</a>
+            <a class="btn btn--ghost" href="app-v3.html#/tracking">Inspect workspace &amp; pixel setup</a>
+          </div>
+          <div class="hero__trust">
+            <div class="hero__trust-item">
+              <strong>1. Signal Verified</strong>
+              <span>Browser + CAPI deduped by event_id</span>
+            </div>
+            <div class="hero__trust-item">
+              <strong>2. Evidence First</strong>
+              <span>Live store scan, Reddit/X &amp; Ad Library</span>
+            </div>
+            <div class="hero__trust-item">
+              <strong>3. Human Gate</strong>
+              <span>0 auto-spend · 0 unapproved posts</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero__stage">
+          <div class="duo hero__art" data-dither-video data-cell="2" data-light="#F2F2F2" data-dark="#00006A" data-fit="1.1">
+            <canvas class="c-deep" data-dither="blobs vignette" data-cell="2" data-blobs="3" data-blob-amp=".3" data-blob-radius=".4" data-amount=".5" data-seed="6" aria-hidden="true"></canvas>
+            <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/run_loop.poster.webp" data-fallback="assets/mascot/run_loop.anim.webp" aria-label="Coldie, the Coldstart 3D mascot, running">
+              <source src="assets/mascot/run_loop.webm" type="video/webm">
+            </video>
+            <canvas aria-hidden="true"></canvas>
+            <span class="label">coldie / day-zero agent</span>
+          </div>
+          <div class="hero__log" aria-label="How Coldie works in sequence">
+            <div class="hero__log-head label">
+              <span>coldie shift sequence</span>
+              <span style="color:var(--accent)">human-approved</span>
+            </div>
+            <ol class="log__lines" id="log">
+              <li><i>[ ]</i><span>1. verify meta pixel + capi deduplication</span></li>
+              <li><i>[ ]</i><span>2. read your shopify catalogue &amp; brand voice</span></li>
+              <li><i>[ ]</i><span>3. listen to reddit/x &amp; spy on rival meta ads</span></li>
+              <li><i>[ ]</i><span>4. queue drafts &amp; visuals for your approval</span></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. THE PROBLEM: ONE ORDER COUNTED THREE TIMES -->
+    <section class="problem" id="problem" data-theme="paper">
+      <div class="col">
+        <header class="sec-head" data-reveal>
+          <div class="sec-head__left">
+            <span class="label sec-head__eyebrow">01 / The Day-Zero Trap</span>
+            <h2 class="display">One real order gets counted three times<span class="blink">_</span></h2>
+            <p class="lead-statement">
+              Founders launch ads before anyone verifies the tracking signal. A single ₹1,499 order fires three separate Purchase events into Meta—training the ad algorithm on phantom conversions.
+            </p>
+          </div>
+          <a class="btn" href="app-v3.html#/tracking">Fix it in Tracking →</a>
+        </header>
+
+        <div class="sim-card" id="problemSim" data-reveal>
+          <div class="sim-bar">
+            <div>
+              <span class="label" style="color:var(--accent)">Interactive Signal Simulator</span>
+              <h3 class="display" style="margin-top:4px">See what Meta Events Manager actually receives</h3>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+              <div class="sim-toggle" role="group" aria-label="Tracking mode">
+                <button type="button" data-sim-mode="broken" aria-pressed="true">Unverified Store (3× overcount)</button>
+                <button type="button" data-sim-mode="verified" aria-pressed="false">Coldstart Verified (1× deduped)</button>
+              </div>
+              <button type="button" class="btn btn--yellow btn--small" id="simFireOrder">Simulate ₹1,499 Order ↻</button>
+            </div>
+          </div>
+
+          <div class="sim-stage">
+            <div class="sim-order">
+              <div>
+                <span class="label" style="color:var(--blue)">Real Customer Checkout</span>
+                <h4 class="display" style="margin-top:6px;font-size:1.15rem">Shopify Order <span id="simOrderId">#9042</span></h4>
+                <p style="font-size:.92rem;margin-top:6px">1 × Barrier Repair Cream paid via UPI.</p>
+              </div>
+              <div>
+                <span class="label">Actual Revenue</span>
+                <div class="sim-order__price">₹1,499</div>
+                <span class="mono" style="font-size:.75rem;color:var(--muted)">1 real human buyer</span>
+              </div>
+            </div>
+
+            <div class="sim-lanes" id="simLanes" aria-live="polite"></div>
+
+            <div class="sim-meta" id="simMeta" aria-live="polite"></div>
+          </div>
+
+          <div class="sim-foot">
+            <p id="simFootText" style="font-size:.95rem"></p>
+            <details>
+              <summary class="label" style="cursor:pointer;color:var(--blue)">Inspect raw event payload ▾</summary>
+              <pre id="simPayload" class="mono" style="margin-top:10px;padding:12px;background:#00006A;color:#F2F2F2;border-radius:3px;font-size:.75rem;max-width:680px;overflow-x:auto"></pre>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. THE INSIGHT: SIGNAL IS THE PRODUCT -->
+    <section class="insight-sec" id="insight" data-theme="blue">
+      <div class="col">
+        <header class="sec-head" data-reveal>
+          <div class="sec-head__left">
+            <span class="label sec-head__eyebrow">02 / The Core Insight</span>
+            <h2 class="display">Signal is the product. We start at verified<span class="blink">_</span></h2>
+            <p class="lead-statement">
+              Connected is not installed. Installed is not verified. Most tools stop the moment OAuth succeeds. Coldstart does not mark your setup green until a deduplicated event lands in Meta.
+            </p>
+          </div>
+        </header>
+
+        <div class="gates" data-reveal>
+          <article class="gate">
+            <div class="gate__step">
+              <span class="label" style="color:var(--peri)">Stage 01 · Connected</span>
+              <span class="status-pill status-pill--sample">Where tools stop</span>
+            </div>
+            <h3 class="display">OAuth or Token Saved</h3>
+            <p>You logged into Facebook or pasted a Dataset ID. Zero events are flowing from your store yet, and legacy theme snippets may still be firing duplicates.</p>
+            <div class="gate__verdict">Status: 0% signal proof</div>
+          </article>
+
+          <article class="gate">
+            <div class="gate__step">
+              <span class="label" style="color:var(--peri)">Stage 02 · Installed</span>
+              <span class="status-pill status-pill--sample">Still unverified</span>
+            </div>
+            <h3 class="display">Snippet + Webhook Linked</h3>
+            <p>Browser pixel code is in Shopify Customer Events and the <code>orders/paid</code> webhook is linked to Coldstart’s CAPI relay—but no checkout has tested it.</p>
+            <div class="gate__verdict">Status: Waiting on test event</div>
+          </article>
+
+          <article class="gate gate--hero">
+            <div class="gate__step">
+              <span class="label" style="color:var(--blue)">Stage 03 · VERIFIED ★</span>
+              <span class="status-pill status-pill--live">Where Coldstart starts</span>
+            </div>
+            <h3 class="display">Deduplicated &amp; Proven</h3>
+            <p>Browser <code>fbq</code> and Server CAPI send the exact same <code>event_name</code> + <code>event_id</code> (<code>order_&lt;id&gt;</code>), SHA-256 hashed PII is validated, and Meta returns <code>events_received: 1</code>.</p>
+            <div class="gate__verdict" style="color:var(--blue);font-weight:700">Status: Ready to spend with confidence</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. HOW IT WORKS WITH COLDIE -->
+    <section class="jobs" id="how" data-theme="paper">
+      <div class="col">
+        <figure data-reveal>
+          <div class="wide" data-dither-img data-cell="3" data-dark="#0000B4" data-light="#F2F2F2" data-pos=".42">
+            <img src="assets/img/room.webp" width="1448" height="1086" alt="Coldie leaning back in an armchair in a night-lit room next to a desk with a CRT monitor" decoding="async">
+            <canvas aria-hidden="true"></canvas>
+          </div>
+          <figcaption class="wide__cap label">
+            <span>fig. 01 — you build the product, coldie handles the signal &amp; drafts</span>
+            <span>you approve every post &amp; rupee</span>
+          </figcaption>
+        </figure>
+
+        <header class="sec-head" data-reveal>
+          <div class="sec-head__left">
+            <span class="label sec-head__eyebrow">03 / What Coldie Does</span>
+            <h2 class="display">Six jobs. One human approval gate<span class="blink">_</span></h2>
+            <p class="lead-statement">
+              Coldie reads your store, listens to real buyer conversations, tears down competitor ads, and queues platform-ready drafts. Nothing goes live without your click.
+            </p>
+          </div>
+          <a class="btn" href="onboarding-v3.html">Wake Coldie →</a>
+        </header>
+
+        <ol class="grid3">
+          <li class="job-card" data-reveal>
+            <div class="job-card__top">
+              <span class="label" style="color:var(--blue)">01 · Tracking Hero</span>
+              <span class="status-pill status-pill--live">Live Token / Sandbox OAuth</span>
+            </div>
+            <h3 class="display">Meta Pixel + CAPI</h3>
+            <p>Generates your deduplicated storefront snippet and Shopify Customer Events pixel, hashes PII with SHA-256 on the server, and verifies test events.</p>
+            <div class="duo slot" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.04">
+              <canvas class="c-lift" data-dither="blobs vignette" data-amount=".6" data-seed="1" aria-hidden="true"></canvas>
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/pixel_setup.poster.webp" data-fallback="assets/mascot/pixel_setup.anim.webp" aria-hidden="true">
+                <source src="assets/mascot/pixel_setup.webm" type="video/webm">
+              </video>
+              <canvas aria-hidden="true"></canvas>
+              <span class="slot__tag label">clip: pixel_setup</span>
+            </div>
+          </li>
+
+          <li class="job-card" data-reveal>
+            <div class="job-card__top">
+              <span class="label" style="color:var(--blue)">02 · Store Scan</span>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <h3 class="display">Read Your Store</h3>
+            <p>Pulls your real Shopify <code>/products.json</code> catalogue, scrapes your site copy, colours, and fonts via Firecrawl, and builds your Brand Book and ICPs with Gemini.</p>
+            <div class="duo slot" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.04">
+              <canvas class="c-lift" data-dither="blobs sink" data-amount=".7" data-seed="5" aria-hidden="true"></canvas>
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/web_post.poster.webp" data-fallback="assets/mascot/web_post.anim.webp" aria-hidden="true">
+                <source src="assets/mascot/web_post.webm" type="video/webm">
+              </video>
+              <canvas aria-hidden="true"></canvas>
+              <span class="slot__tag label">clip: web_post</span>
+            </div>
+          </li>
+
+          <li class="job-card" data-reveal>
+            <div class="job-card__top">
+              <span class="label" style="color:var(--blue)">03 · Market Listening</span>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <h3 class="display">Reddit, X &amp; IG Signals</h3>
+            <p>Searches public conversations via routed providers (<code>treg</code> → Firecrawl fallback), filters out off-topic noise, and tags buyer pain and intent.</p>
+            <div class="duo slot" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.04">
+              <canvas class="c-lift" data-dither="blobs rise" data-amount=".7" data-seed="3" aria-hidden="true"></canvas>
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/reddit_post.poster.webp" data-fallback="assets/mascot/reddit_post.anim.webp" aria-hidden="true">
+                <source src="assets/mascot/reddit_post.webm" type="video/webm">
+              </video>
+              <canvas aria-hidden="true"></canvas>
+              <span class="slot__tag label">clip: reddit_post</span>
+            </div>
+          </li>
+
+          <li class="job-card" data-reveal>
+            <div class="job-card__top">
+              <span class="label" style="color:var(--blue)">04 · Rival Teardowns</span>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <h3 class="display">Meta Ad Library Spy</h3>
+            <p>Pulls active ads from the Meta Ad Library (<code>ads_archive</code>), breaks down hooks, formats, and gaps, and never confuses ad visibility with ROAS.</p>
+            <div class="duo slot" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.04">
+              <canvas class="c-lift" data-dither="blobs vignette" data-amount=".8" data-seed="9" aria-hidden="true"></canvas>
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/competitor_scan.poster.webp" data-fallback="assets/mascot/competitor_scan.anim.webp" aria-hidden="true">
+                <source src="assets/mascot/competitor_scan.webm" type="video/webm">
+              </video>
+              <canvas aria-hidden="true"></canvas>
+              <span class="slot__tag label">clip: competitor_scan</span>
+            </div>
+          </li>
+
+          <li class="job-card" data-reveal>
+            <div class="job-card__top">
+              <span class="label" style="color:var(--blue)">05 · Studio + Visuals</span>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <h3 class="display">Drafts &amp; AI Images</h3>
+            <p>Writes platform-native copy for Reddit, X, Instagram, Facebook &amp; Shopify blog with Gemini, and generates post images via Cloudflare Workers AI (FLUX / SDXL).</p>
+            <div class="duo slot" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.04">
+              <canvas class="c-lift" data-dither="blobs right" data-amount=".7" data-seed="2" aria-hidden="true"></canvas>
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/ig_ad.poster.webp" data-fallback="assets/mascot/ig_ad.anim.webp" aria-hidden="true">
+                <source src="assets/mascot/ig_ad.webm" type="video/webm">
+              </video>
+              <canvas aria-hidden="true"></canvas>
+              <span class="slot__tag label">clip: ig_ad</span>
+            </div>
+          </li>
+
+          <li class="job-card" data-reveal>
+            <div class="job-card__top">
+              <span class="label" style="color:var(--blue)">06 · Approval Queue</span>
+              <span class="status-pill status-pill--sandbox">Local Queue + Sandbox Publish</span>
+            </div>
+            <h3 class="display">You Approve Everything</h3>
+            <p>Per-post, batch, or guarded-auto approval modes. Editing any approved post clears its approval immediately so unreviewed changes never ship.</p>
+            <div class="duo slot" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.04">
+              <canvas class="c-lift" data-dither="blobs left" data-amount=".7" data-seed="4" aria-hidden="true"></canvas>
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/publish_queue.poster.webp" data-fallback="assets/mascot/publish_queue.anim.webp" aria-hidden="true">
+                <source src="assets/mascot/publish_queue.webm" type="video/webm">
+              </video>
+              <canvas aria-hidden="true"></canvas>
+              <span class="slot__tag label">clip: publish_queue</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 5. HONEST CAPABILITY MAP (LIVE / SANDBOX / SAMPLE) -->
+    <section class="cap-map" id="capabilities" data-theme="paper">
+      <div class="col" id="capMap">
+        <header class="sec-head" data-reveal>
+          <div class="sec-head__left">
+            <span class="label sec-head__eyebrow">04 / Hard Honesty Contract</span>
+            <h2 class="display">What is Live, Sandbox, and Sample today<span class="blink">_</span></h2>
+            <p class="lead-statement">
+              Every screen in Coldstart labels its data source. Here is the exact capability matrix enforced by the codebase—no vapourware, no silent fallbacks.
+            </p>
+          </div>
+          <span id="liveHealthBadge" class="status-pill status-pill--sandbox">Checking /api/health…</span>
+        </header>
+
+        <div class="cap-filters" role="group" aria-label="Filter capabilities by status" data-reveal>
+          <button type="button" class="cap-filter" data-cap-filter="all" aria-pressed="true">All capabilities (10)</button>
+          <button type="button" class="cap-filter" data-cap-filter="live" aria-pressed="false">Live (5)</button>
+          <button type="button" class="cap-filter" data-cap-filter="sandbox" aria-pressed="false">Sandbox (2)</button>
+          <button type="button" class="cap-filter" data-cap-filter="sample" aria-pressed="false">Sample / Local (2)</button>
+          <button type="button" class="cap-filter" data-cap-filter="unimpl" aria-pressed="false">Not Implemented (1)</button>
+        </div>
+
+        <div class="cap-grid" data-reveal>
+          <article class="cap-item" data-cap-status="live">
+            <div class="cap-item__head">
+              <h3>Onboarding Website &amp; Shopify Scan</h3>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <p>Fetches real Shopify <code>/products.json</code> (up to 24 products with photos &amp; prices), scrapes site markdown + brand palette/fonts via Firecrawl, and synthesizes 3 evidence-backed ICPs + Brand Book with Gemini.</p>
+            <div class="cap-item__meta">Route: <code>POST /api/plugins/onboard/actions/scan</code> · Fallback: Labelled simulated preview if offline</div>
+          </article>
+
+          <article class="cap-item" data-cap-status="live">
+            <div class="cap-item__head">
+              <h3>Market Listening (Reddit, X, IG Hashtags)</h3>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <p>Queries public conversations through <code>treg</code> routed search with Firecrawl web-search fallback, verifies post URLs, and tags buyer intent and themes via Gemini Flash-Lite (or labelled keyword heuristic).</p>
+            <div class="cap-item__meta">Route: <code>POST /api/plugins/research/actions/scan</code> · Keys: <code>TREG_TOKEN</code>, <code>FIRECRAWL_API_KEY</code>, <code>GEMINI_API_KEY</code></div>
+          </article>
+
+          <article class="cap-item" data-cap-status="live">
+            <div class="cap-item__head">
+              <h3>Competitor Meta Ad Library Teardowns</h3>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <p>Searches Meta Ad Library (<code>ads_archive</code> via <code>treg</code>) by category or named rival across countries (IN, US, GB, etc.) and generates structured creative teardowns without inventing ROAS or spend.</p>
+            <div class="cap-item__meta">Route: <code>POST /api/plugins/research/actions/competitors</code> · Needs: <code>TREG_TOKEN</code></div>
+          </article>
+
+          <article class="cap-item" data-cap-status="live">
+            <div class="cap-item__head">
+              <h3>Studio Gemini Drafting &amp; Workers AI Images</h3>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <p>Drafts and rewrites posts for all 5 platforms using your Brand Book &amp; ICP. Generates post visuals via Cloudflare Workers AI (FLUX schnell / SDXL Lightning / DreamShaper) stored in browser IndexedDB (<code>coldstart-media</code>).</p>
+            <div class="cap-item__meta">Routes: <code>/api/plugins/studio/actions/draft</code> &amp; <code>/api/plugins/images/actions/generate</code></div>
+          </article>
+
+          <article class="cap-item" data-cap-status="live">
+            <div class="cap-item__head">
+              <h3>Meta CAPI Token Path &amp; Deduplication Relay</h3>
+              <span class="status-pill status-pill--live">Live</span>
+            </div>
+            <p>Paste a Dataset ID + Conversions API access token to send real server events to <code>graph.facebook.com</code> today. Includes SHA-256 PII normalization, sealed <code>cs_vault</code> cookie, and public <code>/api/collect/:siteKey</code> relay.</p>
+            <div class="cap-item__meta">Routes: <code>POST /api/plugins/meta/token</code> &amp; <code>POST /api/collect/:siteKey</code></div>
+          </article>
+
+          <article class="cap-item" data-cap-status="sandbox">
+            <div class="cap-item__head">
+              <h3>Meta OAuth Login &amp; Shopify Webhook Link</h3>
+              <span class="status-pill status-pill--sandbox">Sandbox</span>
+            </div>
+            <p>Facebook Login for Business OAuth and Shopify store OAuth + <code>orders/paid</code> webhook registration run in realistic sandbox mode until <code>META_APP_ID</code>/<code>SECRET</code>, <code>SHOPIFY_API_KEY</code>/<code>SECRET</code>, and App Review are completed.</p>
+            <div class="cap-item__meta">Routes: <code>/api/plugins/meta/connect</code> &amp; <code>/api/plugins/shopify/connect</code></div>
+          </article>
+
+          <article class="cap-item" data-cap-status="sandbox">
+            <div class="cap-item__head">
+              <h3>Reddit &amp; X One-Click Publishing</h3>
+              <span class="status-pill status-pill--sandbox">Sandbox</span>
+            </div>
+            <p>OAuth connection and direct publishing for approved Reddit self-posts (with community rule confirmation) and X posts run in sandbox until <code>REDDIT_CLIENT_ID</code> and <code>X_CLIENT_ID</code> credentials are set.</p>
+            <div class="cap-item__meta">Routes: <code>/api/plugins/reddit/actions/submit</code> &amp; <code>/api/plugins/x/actions/post</code></div>
+          </article>
+
+          <article class="cap-item" data-cap-status="sample">
+            <div class="cap-item__head">
+              <h3>Approval Engine, Calendar, Ads &amp; Fern &amp; Form</h3>
+              <span class="status-pill status-pill--sample">Sample / Browser-Local</span>
+            </div>
+            <p>The default <em>Fern &amp; Form</em> workspace, approval state machine (each/batch/guarded-auto), calendar scheduling, and paid-ad campaign drafts live in browser <code>localStorage</code>. Zero money is ever spent.</p>
+            <div class="cap-item__meta">Engine: <code>js/workspace-state.js</code> (14/14 unit tests)</div>
+          </article>
+
+          <article class="cap-item" data-cap-status="sample">
+            <div class="cap-item__head">
+              <h3>Results &amp; Attribution Charts</h3>
+              <span class="status-pill status-pill--sample">Sample</span>
+            </div>
+            <p>Store session trends and traffic-mix bars in the Results tab are illustrative sample series with dithered bar edges. Attributed ROAS is explicitly shown as <code>—</code> (not connected), never faked.</p>
+            <div class="cap-item__meta">Surface: <code>app-v3.html#/results</code></div>
+          </article>
+
+          <article class="cap-item" data-cap-status="unimpl">
+            <div class="cap-item__head">
+              <h3>Instagram Profile Reading in Onboarding</h3>
+              <span class="status-pill status-pill--unimpl">Not Implemented</span>
+            </div>
+            <p>While you can enter your <code>@instagram</code> handle during onboarding for your brand profile, Coldie does <strong>not</strong> scrape or guess your Instagram profile posts. The scan explicitly reports Instagram as <code>unavailable / not read</code>.</p>
+            <div class="cap-item__meta">Enforced in: <code>lib/plugins/onboard.js</code></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. ONBOARDING & WORKSPACE PREVIEW -->
+    <section class="preview-sec" id="preview" data-theme="blue">
+      <div class="col">
+        <header class="sec-head" data-reveal>
+          <div class="sec-head__left">
+            <span class="label sec-head__eyebrow">05 / Product Tour</span>
+            <h2 class="display">4-minute quest onboarding → Operate-first workspace<span class="blink">_</span></h2>
+            <p class="lead-statement">
+              Start with 8 interactive quests (and play MetaCroc while Coldie scans your store), then land directly in the Tracking command center to verify your pixel.
+            </p>
+          </div>
+        </header>
+
+        <div class="preview-split" data-reveal>
+          <article class="preview-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+              <span class="label" style="color:var(--accent)">Surface B · onboarding-v3.html</span>
+              <span class="status-pill status-pill--live">Handoff: coldstart.handoff.v1</span>
+            </div>
+            <h3 class="display" style="font-size:1.5rem">8 Quests + MetaCroc Runner</h3>
+            <p>Tell Coldie what you sell and link your store. While the 15–25s live scan reads your catalogue and drafts your ICPs, jump over duplicate pixels and rejected ads in MetaCroc to earn XP.</p>
+            <div class="quest-pills">
+              <div class="quest-pill"><b>Q1</b> What you sell</div>
+              <div class="quest-pill"><b>Q2</b> Who buys + revenue</div>
+              <div class="quest-pill"><b>Q3</b> Link site + IG</div>
+              <div class="quest-pill"><b>Q4</b> Scan + MetaCroc</div>
+              <div class="quest-pill"><b>Q5</b> Product shelf</div>
+              <div class="quest-pill"><b>Q6</b> Evidence ICPs</div>
+              <div class="quest-pill"><b>Q7</b> Brand book + ad</div>
+              <div class="quest-pill"><b>Q8</b> Level up → Tracking</div>
+            </div>
+            <div style="margin-top:auto;padding-top:12px">
+              <a class="btn btn--yellow" href="onboarding-v3.html">Launch 8-Quest Onboarding →</a>
+            </div>
+          </article>
+
+          <article class="preview-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+              <span class="label" style="color:var(--accent)">Surface C · app-v3.html</span>
+              <span class="status-pill status-pill--live">8 Views + Brand Context</span>
+            </div>
+            <h3 class="display" style="font-size:1.5rem">Tracking Hero + Content Studio</h3>
+            <p>Your onboarding data imports automatically into the workspace. Job #1 is connecting Meta, installing your deduplicated pixel, and firing a verified server event before approving drafts in Studio.</p>
+            <div class="quest-pills">
+              <div class="quest-pill"><b>01</b> Overview / Command</div>
+              <div class="quest-pill"><b>02</b> Tracking (Hero) ★</div>
+              <div class="quest-pill"><b>03</b> Research &amp; Ad Spy</div>
+              <div class="quest-pill"><b>04</b> Studio &amp; AI Images</div>
+              <div class="quest-pill"><b>05</b> Publishing Calendar</div>
+              <div class="quest-pill"><b>06</b> Paid Ads Drafts</div>
+              <div class="quest-pill"><b>07</b> Results (Sample)</div>
+              <div class="quest-pill"><b>08</b> Plugin Connections</div>
+            </div>
+            <div style="margin-top:auto;padding-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn" href="app-v3.html#/tracking">Open Tracking Hero →</a>
+              <a class="btn btn--ghost" href="app-v3.html#/overview">Explore Sample Workspace</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. COLDIE REACTION STATES -->
+    <section class="states" id="states" data-theme="paper">
+      <div class="col">
+        <header class="sec-head" data-reveal>
+          <div class="sec-head__left">
+            <span class="label sec-head__eyebrow">06 / Meet Coldie</span>
+            <h2 class="display">Six states of a day-zero launch<span class="blink">_</span></h2>
+          </div>
+          <a class="label" href="design-system.html#mascot">all 3D clips ↗</a>
+        </header>
+
+        <details class="row" name="state" open>
+          <summary><span class="label">01</span><h3 class="display">No traffic yet</h3><i aria-hidden="true">+</i></summary>
+          <div class="row__body">
+            <div class="duo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.3">
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/cry_flail.poster.webp" data-fallback="assets/mascot/cry_flail.anim.webp" aria-hidden="true"><source src="assets/mascot/cry_flail.webm" type="video/webm"></video>
+              <canvas aria-hidden="true"></canvas>
+            </div>
+            <div><p>Day one. The store is live, the dashboard is empty, and Coldie is taking it personally until your pixel and first posts are queued.</p><span class="label">clip: cry_flail</span></div>
+          </div>
+        </details>
+
+        <details class="row" name="state">
+          <summary><span class="label">02</span><h3 class="display">Ad rejected</h3><i aria-hidden="true">+</i></summary>
+          <div class="row__body">
+            <div class="duo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.3">
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/angry_swear.poster.webp" data-fallback="assets/mascot/angry_swear.anim.webp" aria-hidden="true"><source src="assets/mascot/angry_swear.webm" type="video/webm"></video>
+              <canvas aria-hidden="true"></canvas>
+            </div>
+            <div><p>Meta flagged an unverified claim. Coldie’s Brand Book keeps a strict “Don’t Say” list so your rewrites stay compliant.</p><span class="label">clip: angry_swear</span></div>
+          </div>
+        </details>
+
+        <details class="row" name="state">
+          <summary><span class="label">03</span><h3 class="display">Launch day</h3><i aria-hidden="true">+</i></summary>
+          <div class="row__body">
+            <div class="duo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.3">
+              <video class="clip" muted playsinline preload="metadata" data-autoplay data-once poster="assets/mascot/bomb_panic.poster.webp" data-fallback="assets/mascot/bomb_panic.anim.webp" aria-hidden="true"><source src="assets/mascot/bomb_panic.webm" type="video/webm"></video>
+              <canvas aria-hidden="true"></canvas>
+            </div>
+            <div><p>Everything wants to go live at once. Pause the organic queue or paid drafts independently with one click.</p><span class="label">clip: bomb_panic</span></div>
+          </div>
+        </details>
+
+        <details class="row" name="state">
+          <summary><span class="label">04</span><h3 class="display">Duplicate pixel</h3><i aria-hidden="true">+</i></summary>
+          <div class="row__body">
+            <div class="duo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.3">
+              <video class="clip" muted playsinline preload="metadata" data-autoplay data-once poster="assets/mascot/faceplant.poster.webp" data-fallback="assets/mascot/faceplant.anim.webp" aria-hidden="true"><source src="assets/mascot/faceplant.webm" type="video/webm"></video>
+              <canvas aria-hidden="true"></canvas>
+            </div>
+            <div><p>A leftover snippet in <code>theme.liquid</code> tripped the signal. Coldie spots it and helps you clean it up.</p><span class="label">clip: faceplant</span></div>
+          </div>
+        </details>
+
+        <details class="row" name="state">
+          <summary><span class="label">05</span><h3 class="display">Post landed</h3><i aria-hidden="true">+</i></summary>
+          <div class="row__body">
+            <div class="duo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.3">
+              <video class="clip" muted loop playsinline preload="metadata" data-autoplay poster="assets/mascot/laugh_tablet.poster.webp" data-fallback="assets/mascot/laugh_tablet.anim.webp" aria-hidden="true"><source src="assets/mascot/laugh_tablet.webm" type="video/webm"></video>
+              <canvas aria-hidden="true"></canvas>
+            </div>
+            <div><p>Your Reddit care guide sparked real comments because it led with helpful diagnostics instead of spam.</p><span class="label">clip: laugh_tablet</span></div>
+          </div>
+        </details>
+
+        <details class="row" name="state">
+          <summary><span class="label">06</span><h3 class="display">Signal verified</h3><i aria-hidden="true">+</i></summary>
+          <div class="row__body">
+            <div class="duo" data-dither-video data-cell="2" data-dark="#00006A" data-fit="1.3">
+              <video class="clip" muted playsinline preload="metadata" data-autoplay data-once poster="assets/mascot/cool_shades.poster.webp" data-fallback="assets/mascot/cool_shades.anim.webp" aria-hidden="true"><source src="assets/mascot/cool_shades.webm" type="video/webm"></video>
+              <canvas aria-hidden="true"></canvas>
+            </div>
+            <div><p>Browser and Server CAPI match on <code>order_&lt;id&gt;</code>. Shades on.</p><span class="label">clip: cool_shades</span></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 8. HONEST PROOF, PRICING TEASER & FAQ -->
+    <section class="proof-sec" id="proof" data-theme="paper">
+      <div class="col">
+        <header class="sec-head" data-reveal>
+          <div class="sec-head__left">
+            <span class="label sec-head__eyebrow">07 / Proof Without Fiction</span>
+            <h2 class="display">Pre-revenue. Zero fake logos. Real code<span class="blink">_</span></h2>
+            <p class="lead-statement">
+              We are pre-revenue and onboarding our first cohort of D2C founders. Instead of invented customer testimonials or inflated ROAS claims, here is what is verified in the repository right now.
+            </p>
+          </div>
+        </header>
+
+        <div class="proof-grid" data-reveal>
+          <div class="proof-card">
+            <span class="label" style="color:var(--blue)">Automated Test Suite</span>
+            <strong>116+ Tests</strong>
+            <p>Unit, API, and state-engine tests covering CAPI SHA-256 hashing, OAuth state/PKCE, webhook HMACs, AI model chains, and approval guardrails.</p>
+          </div>
+          <div class="proof-card">
+            <span class="label" style="color:var(--blue)">Token Vault</span>
+            <strong>AES-256-GCM</strong>
+            <p>Connection tokens live in a sealed, <code>httpOnly</code> server cookie (<code>cs_vault</code>) signed with <code>appsecret_proof</code>—never exposed to browser JS.</p>
+          </div>
+          <div class="proof-card">
+            <span class="label" style="color:var(--blue)">Cost Guardrails</span>
+            <strong>Hard Caps</strong>
+            <p>Daily and per-IP hourly budgets (<code>lib/budget.js</code>) protect research scans, Gemini calls, and Workers AI neurons from runaway spend.</p>
+          </div>
+          <div class="proof-card">
+            <span class="label" style="color:var(--blue)">Human Control</span>
+            <strong>100% Gated</strong>
+            <p>Editing any approved post immediately invalidates its approval and schedule. Nothing auto-publishes or spends a single rupee.</p>
+          </div>
+        </div>
+
+        <!-- PRICING TEASER -->
+        <div id="pricing" style="margin-top:64px" data-reveal>
+          <header class="sec-head">
+            <div class="sec-head__left">
+              <span class="label sec-head__eyebrow">08 / Pricing Teaser</span>
+              <h2 class="display">Start free in early access<span class="blink">_</span></h2>
+            </div>
+          </header>
+
+          <div class="pricing-grid">
+            <article class="price-card price-card--featured">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="label" style="color:var(--accent)">Early Access Cohort</span>
+                <span class="status-pill status-pill--live">Open Now</span>
+              </div>
+              <div class="price-card__amount">₹0 <span style="font-size:1rem;font-family:var(--font-mono)">/ during beta</span></div>
+              <p>For day-zero D2C founders setting up their Shopify + Meta signal and testing their first organic and paid angles.</p>
+              <ul class="price-list">
+                <li>Full 8-quest onboarding scan (Shopify catalogue + Firecrawl + Gemini ICPs)</li>
+                <li>Meta Pixel + Conversions API deduplication snippet &amp; live token verification</li>
+                <li>Live Reddit/X/IG conversation scan &amp; Meta Ad Library teardowns (within daily server caps)</li>
+                <li>Studio Gemini drafting + Cloudflare Workers AI post image generation</li>
+              </ul>
+              <div style="margin-top:auto;padding-top:12px">
+                <a class="btn btn--yellow" href="onboarding-v3.html">Start onboarding free →</a>
+              </div>
+            </article>
+
+            <article class="price-card">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="label" style="color:var(--blue)">Self-Hosted / BYOK</span>
+                <span class="status-pill status-pill--live">MIT / Repo Ready</span>
+              </div>
+              <div class="price-card__amount">BYO Keys <span style="font-size:1rem;font-family:var(--font-mono)">/ ~₹1 per scan</span></div>
+              <p>Run Coldstart on your own Vercel + Upstash Redis + Cloudflare Workers AI account with your own API keys.</p>
+              <ul class="price-list">
+                <li>Zero-dependency Node API (<code>server.js</code> / <code>api/index.js</code>)</li>
+                <li>Direct <code>GEMINI_API_KEY</code> or <code>OPENROUTER_API_KEY</code> (~$0.003/scan)</li>
+                <li>10,000 free Workers AI neurons/day (~170 FLUX images/day)</li>
+                <li>Your own Meta App ID &amp; Shopify Custom App credentials</li>
+              </ul>
+              <div style="margin-top:auto;padding-top:12px">
+                <a class="btn btn--ghost" href="app-v3.html#/connections">Inspect plugin keys →</a>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- FAQ -->
+        <div id="faq" style="margin-top:64px" data-reveal>
+          <header class="sec-head">
+            <div class="sec-head__left">
+              <span class="label sec-head__eyebrow">09 / Honest FAQ</span>
+              <h2 class="display">Questions founders ask before connecting<span class="blink">_</span></h2>
+            </div>
+          </header>
+
+          <details class="row" open>
+            <summary><span class="label">Q01</span><h3 class="display">How do I send live Meta CAPI events today without waiting for Meta App Review?</h3><i aria-hidden="true">+</i></summary>
+            <div class="row__body" style="grid-template-columns:1fr">
+              <p>In <strong>Workspace → Tracking → Use dataset ID + token</strong>, paste your Dataset (Pixel) ID and a Conversions API access token generated in Meta Events Manager. That path bypasses OAuth sandbox mode, validates directly against <code>graph.facebook.com</code>, and stores the token encrypted in the server’s <code>cs_vault</code> cookie.</p>
+            </div>
+          </details>
+          <details class="row">
+            <summary><span class="label">Q02</span><h3 class="display">Does Coldstart really read my Instagram profile during onboarding?</h3><i aria-hidden="true">+</i></summary>
+            <div class="row__body" style="grid-template-columns:1fr">
+              <p><strong>No.</strong> Onboarding scans your live website (Shopify <code>/products.json</code> + Firecrawl copy, colours, and fonts). Instagram profile reading in onboarding is not implemented yet, and Coldstart explicitly marks it as <code>unavailable / not read</code> rather than inventing fake post counts.</p>
+            </div>
+          </details>
+          <details class="row">
+            <summary><span class="label">Q03</span><h3 class="display">Can Coldie spend money on Meta ads or publish posts without my permission?</h3><i aria-hidden="true">+</i></summary>
+            <div class="row__body" style="grid-template-columns:1fr">
+              <p><strong>Never.</strong> There is no background cron job spending ad budget or auto-posting. Every draft requires explicit approval in Studio, editing a post resets its approval, and paid ad campaigns in the Ads tab are local review drafts only.</p>
+            </div>
+          </details>
+          <details class="row">
+            <summary><span class="label">Q04</span><h3 class="display">Where is my workspace data stored?</h3><i aria-hidden="true">+</i></summary>
+            <div class="row__body" style="grid-template-columns:1fr">
+              <p>Your onboarding progress (<code>coldstart.onboarding.v1</code>), handoff package (<code>coldstart.handoff.v1</code>), and workspace state (<code>coldstart-workspace-v1</code>) are stored locally in your browser’s <code>localStorage</code>, and generated images live in browser IndexedDB (<code>coldstart-media</code>). OAuth/CAPI tokens stay server-side in an AES-256-GCM sealed <code>httpOnly</code> cookie.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. START / EARLY ACCESS CTA -->
+    <section class="start" id="start" data-theme="paper">
+      <div class="col">
+        <div class="start__box" data-reveal>
+          <div style="display:grid;gap:14px">
+            <span class="label" style="color:var(--accent)">Ready for Quest 1?</span>
+            <h2 class="display">Start at verified<span class="blink">_</span></h2>
+            <p style="font-size:1.05rem;opacity:.92">
+              Save your email for early access and jump straight into the 8-quest onboarding scan, or open the workspace directly.
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
+              <a class="btn btn--yellow" href="onboarding-v3.html">Start 8-Quest Onboarding →</a>
+              <a class="btn btn--ghost" href="app-v3.html#/tracking">Jump to Workspace Tracking</a>
+            </div>
+          </div>
+
+          <form class="signup" id="signup" data-signup-form novalidate>
+            <label class="label" for="email" style="color:var(--accent)">Or save your founder email first</label>
+            <div class="signup__row">
+              <input id="email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="founder@yourbrand.in" required>
+              <button class="btn btn--yellow" type="submit">Get early access</button>
+            </div>
+            <p class="signup__msg label" id="signupMsg" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <div class="col foot__row label">
+        <span>Coldstart v3 · Day-zero D2C marketing agent · © 2026 Coldstart</span>
+        <span>
+          <a href="onboarding-v3.html">onboarding (v3)</a> &nbsp;·&nbsp;
+          <a href="app-v3.html">workspace (v3)</a> &nbsp;·&nbsp;
+          <a href="v2.html">v2 site</a> &nbsp;·&nbsp;
+          <a href="design-system.html">design system</a>
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <footer class="curtain" id="curtain" data-theme="blue">
+    <div class="col">
+      <div class="curtain__cols">
+        <div>
+          <span class="logo"><b>cold</b><b>start<span class="blink">_</span></b></span>
+          <p class="label" style="margin-top:14px;color:var(--peri)">Connected → Installed → Verified.</p>
+        </div>
+        <nav aria-label="Product">
+          <span class="label">story</span>
+          <h3 class="display">Coldstart</h3>
+          <a class="label" href="#problem">3× order problem</a>
+          <a class="label" href="#insight">signal is the product</a>
+          <a class="label" href="#how">how coldie works</a>
+          <a class="label" href="#capabilities">capability map</a>
+        </nav>
+        <nav aria-label="Surfaces">
+          <span class="label">surfaces</span>
+          <h3 class="display">App &amp; Quests</h3>
+          <a class="label" href="onboarding-v3.html">8-quest onboarding ↗</a>
+          <a class="label" href="app-v3.html#/tracking">tracking hero ↗</a>
+          <a class="label" href="app-v3.html#/research">live research ↗</a>
+          <a class="label" href="app-v3.html#/studio">content studio ↗</a>
+        </nav>
+        <nav aria-label="System">
+          <span class="label">reference</span>
+          <h3 class="display">Design</h3>
+          <a class="label" href="design-system.html">design system</a>
+          <a class="label" href="components.html">component shelf</a>
+          <a class="label" href="v2.html">previous v2</a>
+          <a class="label" href="#top">back to top ↑</a>
+        </nav>
+      </div>
+      <div class="curtain__base label">
+        <span>© 2026 Coldstart · Pre-revenue · 0 fake metrics</span>
+        <span>cold start<span class="blink">_</span></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/dither.js"></script>
+  <script src="js/v3.js"></script>
+</body>
+</html>

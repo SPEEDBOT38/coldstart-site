@@ -1,0 +1,33 @@
+# Cloudflare pipeline worker: durable job state (D1), asset storage (R2) and a queue consumer.
+# NOT DEPLOYED. It needs a Cloudflare account: create the resources below, put their ids here, then `npx wrangler deploy`.
+#   npx wrangler d1 create coldstart-jobs && npx wrangler d1 execute coldstart-jobs --file=schema.sql --remote
+#   npx wrangler r2 bucket create coldstart-assets
+#   npx wrangler queues create coldstart-jobs-q && npx wrangler queues create coldstart-jobs-dlq
+#   npx wrangler secret put API_KEY        # same bearer secret the Vercel app sends (PIPELINE_API_KEY)
+#   npx wrangler secret put GPU_API_KEY    # hosted GPU/cutout service
+name = "coldstart-pipeline"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "coldstart-jobs"
+database_id = "REPLACE_WITH_D1_ID"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "coldstart-assets"
+
+[[queues.producers]]
+binding = "JOBS"
+queue = "coldstart-jobs-q"
+
+[[queues.consumers]]
+queue = "coldstart-jobs-q"
+max_batch_size = 1
+max_retries = 3
+dead_letter_queue = "coldstart-jobs-dlq"
+
+[vars]
+GPU_API_URL = ""   # hosted GPU service base URL, e.g. https://gpu.example.com

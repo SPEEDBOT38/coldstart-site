@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coldstart Workspace (v3) — Operate-First Marketing Agent</title>
+  <meta name="description" content="Coldstart Workspace: tracking verification, market listening, studio drafting and calendar scheduling for day-zero D2C brands.">
+  <meta name="theme-color" content="#0000F2">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230000F2'/%3E%3Ctext x='6' y='23' fill='%23F2F2F2' font-family='sans-serif' font-size='24'%3Ec%3C/text%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens-v2.css">
+  <link rel="stylesheet" href="css/workspace-v3.css">
+</head>
+<body data-theme="paper">
+  <a class="skip" href="#workspace">Skip to workspace</a>
+  <div class="frame" aria-hidden="true"></div>
+  <button class="scrim" data-action="close-menu" aria-label="Close mobile navigation"></button>
+
+  <div class="layout">
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <a class="wordmark" href="v3.html" aria-label="Back to Coldstart landing page">cold start<b>_</b></a>
+      <div class="workspace-id">
+        <span class="avatar" id="workspace-avatar" aria-hidden="true">F</span>
+        <div>
+          <strong id="workspace-name">Fern &amp; Form</strong>
+          <small id="workspace-sub">SAMPLE WORKSPACE</small>
+        </div>
+      </div>
+      <span class="nav-caption">WORKSPACE OPERATING SYSTEM</span>
+      <nav id="nav" aria-label="Main navigation"></nav>
+      <div class="sidebar-foot">
+        <div id="side-promo"></div>
+        <a id="brand-nav" class="nav-link" href="#/brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg>
+          Brand Context
+        </a>
+        <button class="line-button" data-action="reset">Reset sample workspace</button>
+      </div>
+    </aside>
+
+    <div class="main-wrap">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn mobile-menu" data-action="menu" aria-label="Open mobile navigation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <div class="crumb">
+            <span class="crumb-workspace">Workspace /</span>
+            <b id="crumb">Tracking (Hero)</b>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="search-trigger" data-action="search" aria-label="Search workspace">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg>
+            <span>Search actions</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <span class="sample">v3 Beta</span>
+          <span class="profile-dot" aria-label="Workspace profile avatar">F</span>
+        </div>
+      </header>
+
+      <p id="storage-warning" class="storage-warning" hidden>Browser local storage is blocked. Changes will not survive a reload.</p>
+      <main id="workspace" tabindex="-1">
+        <div class="loading-fallback">Opening workspace…</div>
+      </main>
+
+      <footer class="footer">
+        <span>TRACKING &amp; PLUGINS TALK TO COLDSTART SERVER · DRAFTS &amp; CALENDAR RUN LOCAL STATE IN THIS BROWSER</span>
+        <span id="queue-status">Operating workspace</span>
+      </footer>
+    </div>
+  </div>
+
+  <dialog id="dialog" aria-label="Workspace dialog action"></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="no-js">JavaScript is required for this interactive D2C workspace.</p></noscript>
+
+  <script src="js/dither.js"></script>
+  <script src="js/workspace-state.js"></script>
+  <script src="js/connectors.js"></script>
+  <script src="js/workspace-v3.js"></script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+/* Coldstart Workspace v3 Stylesheet
+   Hero Tracking post-onboarding layout, responsive down to 360px,
+   high-contrast electric blue #0000F2, paper #F2F2F2, deep blue #00006A, ink #000091, accent yellow #ECEA36, periwinkle #9C9CFF. */
+
+@import url('workspace.css');
+
+/* Elevate Tracking Banner as the First Real Job */
+.track-hero-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 24px;
+  background: var(--blue);
+  color: var(--paper);
+  border: 3px solid #00006A;
+  border-radius: 4px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  box-shadow: 8px 8px 0 #00006A;
+  position: relative;
+  overflow: hidden;
+}
+.track-hero-banner::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  bottom: -30px;
+  width: 220px;
+  height: 220px;
+  background: var(--checker) 0 0/6px 6px;
+  color: var(--peri);
+  opacity: .15;
+  transform: rotate(15deg);
+  pointer-events: none;
+}
+.track-hero-copy h2 {
+  font: italic clamp(1.4rem, 2.4vw, 2.1rem)/1.1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: -.5px;
+  margin: 6px 0 10px;
+}
+.track-hero-copy p {
+  font-size: 13.5px;
+  color: #E2E2FF;
+  max-width: 48ch;
+  line-height: 1.5;
+}
+.track-hero-gates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.track-gate-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(0, 0, 106, .75);
+  border: 1px solid rgba(156, 156, 255, .4);
+  border-radius: 3px;
+  font-size: 12px;
+}
+.track-gate-row.is-done {
+  background: #fff;
+  color: #00006A;
+  border-color: #fff;
+}
+.track-gate-num {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(242, 242, 242, .2);
+}
+.track-gate-row.is-done .track-gate-num {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* Tracking deduplication comparison table */
+.dedup-table-wrap {
+  border: 2px solid var(--rule);
+  border-radius: 4px;
+  background: #fff;
+  overflow-x: auto;
+  margin-top: 14px;
+}
+.dedup-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+.dedup-table th {
+  background: #00006A;
+  color: var(--paper);
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--blue);
+}
+.dedup-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+.dedup-table tr:last-child td { border-bottom: 0; }
+.dedup-table tr:hover td { background: rgba(0, 0, 242, .03); }
+
+/* Rescan website button in brand settings */
+.brand-rescan-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--ghost-bg);
+  border: 1px dashed var(--blue);
+  border-radius: 3px;
+  margin-top: 18px;
+}
+
+/* Sidebar level badge */
+.sidebar-level-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 106, .85);
+  border: 1px solid rgba(242, 242, 242, .25);
+  border-radius: 3px;
+  margin: 0 9px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.sidebar-level-pill b { color: var(--accent); }
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+  .track-hero-banner {
+    grid-template-columns: 1fr;
+    padding: 20px 18px;
+  }
+}

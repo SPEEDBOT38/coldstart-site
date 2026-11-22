@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wake Coldie — Coldstart Onboarding (v3)</title>
+  <meta name="description" content="Four minutes with Coldie: scan your Shopify store, extract your products, and draft your ICPs and brand book before verifying your Meta Pixel.">
+  <meta name="theme-color" content="#0000F2">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%230000F2'/%3E%3Cpath d='M17 9h-5a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4h5' fill='none' stroke='%23F2F2F2' stroke-width='3.4'/%3E%3Cpath d='M19 23h6' stroke='%23ECEA36' stroke-width='3.4'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/ZenDots-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens-v2.css">
+  <link rel="stylesheet" href="css/onboarding-v3.css">
+</head>
+<body class="ob" data-theme="blue">
+  <div class="frame" aria-hidden="true"></div>
+  <a class="skip" href="#stage">Skip to current quest</a>
+
+  <header class="hud" id="hud">
+    <div class="hud__row">
+      <a class="logo" href="v3.html" aria-label="Coldstart, back to marketing site">
+        <b>cold</b><b>start<span class="blink">_</span></b>
+      </a>
+
+      <div class="hud__quest" id="hudQuest" aria-live="polite">
+        <div class="hud__quest-top">
+          <p class="label" id="hudLabel">press start</p>
+          <span class="pill pill--mode-live" id="pillMode">Checking API…</span>
+        </div>
+        <div class="bar" role="progressbar" aria-label="Onboarding quest progress" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0" id="hudBar">
+          <i></i>
+        </div>
+      </div>
+
+      <div class="pills">
+        <p class="pill pill--lvl" id="pillLvl" title="Level"><span class="label">LV</span> <b id="lvlNum">1</b> <span id="lvlName" class="pill__name">Cold Start</span></p>
+        <p class="pill pill--xp" id="pillXp" title="Experience Points"><b id="xpNum">0</b> <span class="label">XP</span></p>
+        <button class="pill pill--btn" id="restart" type="button">start over</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <nav class="rail" id="rail" aria-label="Quests navigation"></nav>
+    <section class="stage" id="stage" tabindex="-1" aria-label="Current quest panel"></section>
+    <aside class="dock" id="dock" aria-label="Coldie mascot assistant">
+      <div class="bubble" id="bubble" role="status"><p id="bubbleText"></p></div>
+      <div class="coldie">
+        <img id="coldieImg" src="assets/mascot/wave.anim.webp" alt="Coldie, the Coldstart 3D mascot" width="280" height="280">
+        <p class="label coldie__tag">coldie_</p>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+  <script src="js/onboarding-v3.js"></script>
+</body>
+</html>
