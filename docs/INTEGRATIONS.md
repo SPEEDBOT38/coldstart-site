@@ -45,6 +45,6 @@ Costs so far: $0 of provider spend. Nothing was called against X, Reddit, Meta, 
 
 ## Checkpoint 5 environment variables
 - `DATABASE_URL` / `POSTGRES_URL` — Neon/Postgres store (set in the Vercel dashboard; never in chat). Takes priority over D1/Upstash unless `STORE=memory`.
-- `CRON_SECRET` (>=24 chars) — guards `POST /api/diag/store`, which runs the 8 durability/concurrency checks inside the deployed function.
+- `DIAG_SECRET` (>=24 chars, separate from `CRON_SECRET`) — guards `POST /api/diag/store` (staging only: 404 when `VERCEL_ENV=production`; 3 runs/min; test records are removed afterwards).
 - `X_API_ENABLED=1` — re-enables the dormant X research adapter. Default off (paid X API out of scope; manual X post workflow instead).
 - `REMBG_MODEL` (default isnet-general-use), `REMBG_SECOND_MODEL` (default u2netp), `SEG_AGREE_MIN` (default 0.90) — compositor segmentation.
