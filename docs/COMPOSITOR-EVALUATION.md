@@ -27,3 +27,10 @@
 | small-label jar | 0.993 | 0.999 | pass |
 | reflective can | 0.992 | 1.00 | pass |
 Reading: preservation can "pass" while segmentation is wrong, because it only proves the matte's kept pixels were not altered. The synthetic backgrounds are easy, so the high IoUs say little about real photos. The thin-edge case shows the pipeline degrades to `needs_review` instead of passing. **Genuine photos of reflective, transparent, small-print and thin-edged products still must be tested.**
+
+## Checkpoint 6: Vercel Python Function path (measured in the sandbox; NOT yet measured on Vercel)
+- Dropped rembg for direct onnxruntime inference (`workers/composite/seg.py`). Masks match rembg: IoU 1.000 (u2netp) and 0.989-1.000 (isnet-general-use) on the five synthetic fixtures.
+- Dependencies shrink from ~656 MB (rembg + scipy + opencv + numba + llvmlite) to ~140 MB (onnxruntime, numpy, Pillow). Weights 175 MB (isnet) + 4 MB (u2netp), downloaded at build by `scripts/fetch-models.sh` and checked against the pinned sha256. Bundle ~320 MB, under Vercel's 500 MB Python limit (to be confirmed by a real build).
+- Peak RSS with both models, 1200 px input: 1.0 GB (ORT memory arena off), 2.3 GB with the arena on. Warm composite 3.6-4.4 s on the sandbox CPU; model load 1.1 s.
+- Known limit: Vercel function request/response bodies are capped at 4.5 MB; the reference image and the returned PNG travel as base64.
+- Served at `/api/compose/composite` and `/api/compose/matte`; enable with `COMPOSITE_ON_VERCEL=1` (Preview only). Preview protection stays on, so the Node function sends `x-vercel-protection-bypass` from `VERCEL_AUTOMATION_BYPASS_SECRET`.

@@ -41,3 +41,11 @@ test('a manual mask is forwarded to the compositor', async () => {
   const r = await opsPlugin.actions.compositeAd.run({ store, ws: 'wsstages001', fetch }, { masterId: m.id, reference: png, mask }); srv.closeAllConnections(); srv.close();
   assert.equal(JSON.parse(body).mask, mask); assert.equal(r.report.segmentation.status, 'manual_corrected');
 });
+test('image-worker provider: server-side daily cap stops generation before the provider is called', async () => {
+  const { pick } = await import('../lib/providers/background.js'); let hits = 0;
+  const img = http.createServer((q, r) => { q.resume(); q.on('end', () => { hits++; r.writeHead(200, { 'content-type': 'image/jpeg', 'x-model': '@cf/black-forest-labs/flux-1-schnell', 'x-ms': '900' }); r.end(Buffer.alloc(2000, 7)); }); }); await new Promise(r => img.listen(0, '127.0.0.1', r));
+  Object.assign(process.env, { BACKGROUND_PROVIDER: 'imageworker', IMAGE_API_URL: 'http://127.0.0.1:' + img.address().port, IMAGE_API_KEY: 'k', BG_DAILY_LIMIT: '2' }); assert.equal(pick().id, 'image-worker-flux');
+  const { srv, store, m } = await setup(() => true); const run = (n) => opsPlugin.actions.compositeAd.run({ store, ws: 'wsstages001', fetch }, { masterId: m.id, reference: png, scene: 'sunlit shelf', idempotencyKey: 'cap-key-000' + n });
+  const a = await run(1), b = await run(2); assert.equal(a.report.background_kind, 'ai_generated'); assert.equal(a.report.backgroundProvider.model, '@cf/black-forest-labs/flux-1-schnell');
+  await assert.rejects(run(3), e => e.detail?.stage === 'background'); assert.equal(hits, 2); srv.closeAllConnections(); srv.close(); img.close(); delete process.env.BACKGROUND_PROVIDER; delete process.env.BG_DAILY_LIMIT;
+});

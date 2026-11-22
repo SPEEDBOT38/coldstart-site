@@ -1,4 +1,4 @@
-"""Pixel-locked product compositor. Reuses rembg (MIT; u2netp weights Apache-2.0) for the matte and Pillow (HPND) for compositing.
+"""Pixel-locked product compositor. Runs the rembg-published ISNet/U2NetP ONNX models on onnxruntime (MIT/Apache-2.0 code) for the matte and Pillow (HPND) for compositing.
 Only glue lives here. Run:  python3 workers/composite/service.py   (PORT, COMPOSITE_KEY, REMBG_MODEL=u2netp)
 POST /composite  {reference:dataUrl, background?:dataUrl, width, height, scale?}  -> {image:dataUrl, report}
 The report is computed from the output pixels, not asserted: inside the eroded product matte the output must equal the locked foreground exactly."""
@@ -6,16 +6,11 @@ import base64, hashlib, io, json, os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from PIL import Image, ImageFilter, ImageChops
 import numpy as np
-from rembg import remove, new_session
+from seg import Matter
 
 MODEL = os.environ.get('REMBG_MODEL', 'isnet-general-use'); SECOND = os.environ.get('REMBG_SECOND_MODEL', 'u2netp'); AGREE_MIN = float(os.environ.get('SEG_AGREE_MIN', '0.9')); KEY = os.environ.get('COMPOSITE_KEY', '')
 PINNED = {'u2netp': '309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8', 'isnet-general-use': '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a'}   # sha256 of u2netp.onnx; source https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx ; U-2-Net licence Apache-2.0
-def _check_weights():
-    for m in [x for x in (MODEL, SECOND) if x]:
-        f = os.path.join(os.environ.get('U2NET_HOME', os.path.expanduser('~/.u2net')), m + '.onnx')
-        if m in PINNED and os.path.exists(f) and hashlib.sha256(open(f, 'rb').read()).hexdigest() != PINNED[m]: raise SystemExit('model weights checksum mismatch (' + m + '): refusing to start')
-_check_weights()
-SESSION = new_session(MODEL); SESSION2 = new_session(SECOND) if SECOND and SECOND != MODEL else None
+SESSION = Matter(MODEL, PINNED.get(MODEL)); SESSION2 = Matter(SECOND, PINNED.get(SECOND)) if SECOND and SECOND != MODEL else None
 MAX_PX = 24_000_000
 
 def dec(u):
@@ -34,7 +29,7 @@ def _iou(a, b):
     a = np.array(a) > 127; b = np.array(b) > 127; u = (a | b).sum(); return float((a & b).sum() / u) if u else 1.0
 def mattes(ref):
     """Primary matte plus an independent second-opinion matte from a different model. Disagreement is an uncertainty signal, not a quality score."""
-    a = remove(ref, session=SESSION).getchannel('A'); b = remove(ref, session=SESSION2).getchannel('A') if SESSION2 else None
+    a = SESSION.alpha(ref); b = SESSION2.alpha(ref) if SESSION2 else None
     return a, b, (_iou(a, b) if b is not None else None)
 def matte_endpoint(req):
     ref, ref_sha = dec(req['reference']); ref = ref.convert('RGB'); a, b, agree = mattes(ref)
@@ -80,14 +75,15 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def send(self, code, obj):
         b = json.dumps(obj).encode(); self.send_response(code); self.send_header('content-type', 'application/json'); self.send_header('content-length', str(len(b))); self.end_headers(); self.wfile.write(b)
-    def do_GET(self): self.send(200, {'ok': True, 'matte_model': MODEL}) if self.path == '/health' else self.send(404, {'error': 'not found'})
+    def op(self): return self.path.split('?')[0].rstrip('/').rsplit('/', 1)[-1]   # '/composite' locally, '/api/compose/composite' on Vercel
+    def do_GET(self): self.send(200, {'ok': True, 'matte_model': MODEL}) if self.op() in ('health', 'compose') else self.send(404, {'error': 'not found'})
     def do_POST(self):
         if KEY and self.headers.get('authorization') != 'Bearer ' + KEY: return self.send(401, {'error': 'unauthorized'})
-        if self.path not in ('/composite', '/matte'): return self.send(404, {'error': 'not found'})
+        if self.op() not in ('composite', 'matte'): return self.send(404, {'error': 'not found'})
         try:
             n = int(self.headers.get('content-length', 0))
             if n > 40_000_000: return self.send(413, {'error': 'too large'})
-            body = json.loads(self.rfile.read(n)); self.send(200, matte_endpoint(body) if self.path == '/matte' else composite(body))
+            body = json.loads(self.rfile.read(n)); self.send(200, matte_endpoint(body) if self.op() == 'matte' else composite(body))
         except (ValueError, KeyError, OSError) as e: self.send(400, {'error': str(e)[:200]})
 if __name__ == '__main__':
     ThreadingHTTPServer((os.environ.get('HOST', '127.0.0.1'), int(os.environ.get('PORT', 8920))), H).serve_forever()

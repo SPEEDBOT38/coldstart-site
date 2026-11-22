@@ -3,18 +3,55 @@
   "outputDirectory": ".",
   "cleanUrls": false,
   "redirects": [
-    { "source": "/", "destination": "/onboarding-v4.html", "permanent": false }
+    {
+      "source": "/",
+      "destination": "/onboarding-v4.html",
+      "permanent": false
+    }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api?__p=:path*" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api?__p=:path*"
+    }
   ],
   "headers": [
-    { "source": "/(.*)", "headers": [
-      { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-      { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
-    ] },
-    { "source": "/app.html", "headers": [ { "key": "X-Frame-Options", "value": "DENY" } ] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    },
+    {
+      "source": "/app.html",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    }
   ],
-  "functions": { "api/index.js": { "maxDuration": 60 } }
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60
+    },
+    "api/compose/[op].py": {
+      "maxDuration": 60,
+      "includeFiles": "workers/composite/**",
+      "excludeFiles": "{node_modules/**,tests/**,docs/**,assets/**,workers/composite/eval/**}"
+    }
+  },
+  "buildCommand": "sh scripts/fetch-models.sh"
 }
