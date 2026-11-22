@@ -41,6 +41,7 @@
       if (C.meta?.pixel) {
         const [snippet, stats] = await Promise.all([api('plugins/meta/actions/snippet'), api('plugins/meta/actions/stats')]);
         C.snippet = snippet; C.stats = stats;
+        try { C.assess = (await api('plugins/ops/actions/trackingAssess', { method: 'POST', body: { site: { mode: C.meta.mode }, log: stats.log || [] } })).assessment; } catch (e) { C.assess = null; }
       } else { C.snippet = null; C.stats = null; }
       if (C.meta && C.meta.via !== 'token' && !C.accounts) {
         C.accounts = (await api('plugins/meta/actions/adAccounts')).data;
@@ -122,6 +123,19 @@
     return `<section class="setup-step ${t.installed ? 'done' : ''}" id="step-install"><span class="step-number">${t.installed ? '✓' : '3'}</span><div><h3>Install browser + server events</h3>${body}</div></section>`;
   }
 
+  const MAP = [['page_viewed', 'PageView'], ['product_viewed', 'ViewContent'], ['product_added_to_cart', 'AddToCart'], ['checkout_started', 'InitiateCheckout'], ['checkout_completed', 'Purchase']];
+  const AS = { verified: ['ok', 'Verified: Meta accepted real server events.'], test_events_received: ['', 'Test events only. Send a real event from the live site.'], sandbox_only: ['bad', 'Sandbox: nothing reaches Meta.'], failing: ['bad', 'Events are failing.'], installed_unverified: ['', 'No events seen yet.'], not_configured: ['', 'Not configured.'] };
+  function stepDetect() {
+    const d = C.detect, px = C.meta?.pixel?.id, found = d ? d.inspection.pixelIds : [];
+    const mismatch = d && px && found.length && !found.includes(String(px));
+    return `<section class="setup-step ${d ? 'done' : ''}" id="step-detect"><span class="step-number">${d ? '✓' : '0'}</span><div><h3>Check your website</h3>
+      <p>Enter your store address. I read the public page markup to find the platform and any Meta Pixel already installed. A page can load tags later or through Tag Manager, so this is a hint, not proof.</p>
+      <form id="site-detect-form" class="fields"><label class="field"><span>Website</span><input name="url" type="text" placeholder="yourstore.com" required></label><button class="btn" style="justify-self:start" type="submit" ${busy('detect')}>Check website</button></form>
+      ${d ? `<div class="capi-result ${d.inspection.issues.some(i => ['duplicate_pixel', 'duplicate_loader'].includes(i.code)) ? 'bad' : 'ok'}"><strong>Platform: ${esc(d.inspection.platform)}</strong> · Pixel IDs in page: ${found.length ? found.map(esc).join(', ') : 'none found'} · GTM: ${d.inspection.gtmContainers.length ? d.inspection.gtmContainers.map(esc).join(', ') : 'none'} <span class="small muted">(markup only)</span></div>
+      ${mismatch ? `<p class="small" style="color:var(--ink)"><strong>The page uses a different Pixel than the dataset you chose (${esc(px)}).</strong> Events will go to the wrong dataset until one of them is changed.</p>` : ''}
+      <ul class="small">${d.inspection.issues.map(i => `<li>${esc(i.text)}</li>`).join('')}${d.guidance.map(g => `<li>${esc(g)}</li>`).join('')}</ul>
+      <p class="small muted">Event mapping used by the Shopify custom pixel: ${MAP.map(([a, b]) => `<code>${a}</code> → <code>${b}</code>`).join(', ')}. Purchase uses the order id as event_id so browser and server copies deduplicate.</p>` : ''}</div></section>`;
+  }
   function stepVerify() {
     const m = C.meta, st = C.stats, lt = C.lastTest, t = host.S.tracking;
     if (!m?.pixel) return `<section class="setup-step" id="step-verify"><span class="step-number">4</span><div><h3>Verify events</h3><p>Choose a dataset first.</p></div></section>`;
@@ -132,6 +146,7 @@
       <label class="field"><span>Customer email (optional, hashed before sending)</span><input name="email" type="email" placeholder="you@store.com"></label>
       <button class="btn" style="justify-self:start" type="submit" ${busy('test')}>Send server event</button></form>
       ${lt ? `<div class="capi-result ${lt.ok ? 'ok' : 'bad'}" id="capi-result"><strong>${lt.ok ? `Meta received ${lt.response.events_received} event${lt.response.events_received === 1 ? '' : 's'}` : 'Rejected'}</strong>${lt.ok ? ` · fbtrace ${esc(lt.response.fbtrace_id)} · ${lt.mode}` : ' · ' + esc(lt.error)}<details><summary>Payload sent</summary><pre>${esc(JSON.stringify(lt.sent, null, 2))}</pre></details></div>` : ''}
+      ${C.assess ? `<p class="capi-result ${(AS[C.assess.state] || ['', ''])[0]}"><strong>${esc((AS[C.assess.state] || ['', C.assess.state])[1])}</strong> ${esc(C.assess.next || '')} ${C.assess.state === 'verified' ? 'Browser/server deduplication is <strong>not confirmed</strong> here: check Events Manager → Diagnostics.' : ''}</p>` : ''}
       <div class="ev-grid">${evs.map(e => `<div class="ev-cell ${st?.counts[e] ? 'is-on' : ''}"><span>${e}</span><strong class="mono">${st?.counts[e] || 0}</strong></div>`).join('')}</div>
       <p class="small muted">${st?.note ? esc(st.note) : 'Counts are Meta’s 7-day event stats for this dataset.'}</p>
       <div class="table-wrap"><table class="log-table"><thead><tr><th>When</th><th>Source</th><th>Event</th><th>event_id</th><th>Result</th></tr></thead><tbody>${(st?.log || []).slice(0, 12).map(l => `<tr><td>${ago(l.at)}</td><td>${esc(l.source)}${l.test ? ' · test' : ''}</td><td>${esc(l.event_name)}</td><td class="mono">${esc(l.event_id)}</td><td>${l.ok ? '<span class="badge approved">Received</span>' : `<span class="badge failed" title="${esc(l.error)}">Rejected</span>`}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">No deliveries yet.</td></tr>'}</tbody></table></div>
@@ -142,7 +157,7 @@
     if (!C.ready && !C.loading) refresh({ quiet: true });
     const done = steps().filter(s => s[1]).length;
     return head('Tracking / Meta Pixel + Conversions API', 'Connect Meta, pick the dataset, install browser and server events, then prove Meta receives them.') +
-      `<div class="grid-aside"><section>${C.offline ? offlineNote() : ''}${!C.ready ? '<p class="muted">Loading connections…</p>' : stepConnect() + stepDataset() + stepInstall() + stepVerify()}</section>
+      `<div class="grid-aside"><section>${C.offline ? offlineNote() : ''}${!C.ready ? '<p class="muted">Loading connections…</p>' : stepDetect() + stepConnect() + stepDataset() + stepInstall() + stepVerify()}</section>
       <aside class="stack"><section class="blue-note px-note">${host.miniArt('pixel_setup')}<div><span class="eyebrow">Coldie / setup</span><h3>${done}/4 done<b class="cursor">_</b></h3><ul class="px-steps">${steps().map(([l, ok]) => `<li class="${ok ? 'is-ok' : ''}">${ok ? '■' : '□'} ${l}</li>`).join('')}</ul></div></section>
       <section class="panel"><div class="panel-head"><h2>How deduplication works</h2></div><div class="panel-body"><p class="small">Browser and server send the same <code>event_name</code> + <code>event_id</code>. Meta counts it once and keeps the richer server data: hashed email/phone, IP, user agent, <code>fbp</code>/<code>fbc</code>.</p><div class="divider"></div><p class="small muted">Hashing: Coldstart normalizes and SHA-256 hashes email, phone, name and address on the server. IP, user agent, fbp and fbc are sent as-is, as Meta requires.</p></div></section>
       <section class="panel"><div class="panel-body"><span class="eyebrow">Before you trust the numbers</span><p class="small muted">Remove any older hard-coded <code>fbq</code> snippet or a second Meta app on the store, or events double-count. Place one real test order and check it shows as both Browser and Server in Events Manager.</p><a class="line-button" style="display:inline-block;margin-top:14px" href="https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events" target="_blank" rel="noopener noreferrer">Meta dedup docs ↗</a></div></section></aside></div>`;
@@ -187,6 +202,7 @@
     'meta-consent': el => run('consent', () => api('plugins/meta/actions/setConsent', { method: 'POST', body: { consent: el.value } }), el.value === 'wait' ? 'Events wait for coldstart.grant(). Re-copy the code.' : 'Events send immediately. Re-copy the code.'),
   };
   const forms = {
+    'site-detect-form': fd => run('detect', async () => { C.detect = await api('plugins/ops/actions/trackingInspect', { method: 'POST', body: { url: String(fd.get('url') || '').trim() } }); }, 'Website checked.'),
     'meta-token-form': fd => run('token', () => api('plugins/meta/token', { method: 'POST', body: { pixel_id: fd.get('pixel_id'), access_token: fd.get('access_token') } }), 'Dataset connected with the Conversions API token.').then(() => host.closeDialog()),
     'pixel-create-form': fd => run('create', async () => { const r = await api('plugins/meta/actions/createPixel', { method: 'POST', body: { ad_account_id: C.acct, name: fd.get('name') } }); await api('plugins/meta/actions/selectPixel', { method: 'POST', body: { pixel_id: r.id } }); C.pixels = null; C.accounts = null; return r; }, r => `Created ${r.name} and selected it.`),
     'shop-connect-form': fd => { const shop = String(fd.get('shop') || '').trim().toLowerCase(); if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(shop)) return host.toast('Use your-store.myshopify.com'); location.href = '/api/plugins/shopify/connect?shop=' + encodeURIComponent(shop); },

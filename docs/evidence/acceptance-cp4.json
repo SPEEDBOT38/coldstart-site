@@ -1,0 +1,69 @@
+{
+ "generated_at": "2026-11-22T10:40:26.048Z",
+ "results": [
+  {
+   "at": "2026-11-22T10:40:26.046Z",
+   "id": "A",
+   "title": "Real D1 persistence + atomic quota under concurrency",
+   "status": "blocked",
+   "provider": "Cloudflare D1",
+   "input": "100 concurrent reservations, cap 10",
+   "expected": "exactly 10 granted; restart persistence; workspace isolation",
+   "actual": "Not run against D1: missing CF_ACCOUNT_ID, D1_DATABASE_ID, CF_API_TOKEN",
+   "cost_usd": 0,
+   "evidence": {
+    "local_sqlite_selftest": null,
+    "note": "SQLite result proves the script and the SQL, NOT D1 behaviour."
+   },
+   "unblock": "Create the D1 database, apply workers/pipeline/migrations, then export these variables in the shell that runs this script."
+  },
+  {
+   "at": "2026-11-22T10:40:26.048Z",
+   "id": "B",
+   "title": "Genuine photo → generated background → preserved product → approved asset",
+   "status": "blocked",
+   "provider": "rembg compositor + Cloudflare FLUX",
+   "input": "genuine product photographs (e.g. Apple product photos you are licensed to use)",
+   "expected": "protected pixels unchanged; background labelled by kind; human approval",
+   "actual": "No photos: set ACCEPT_PHOTOS to a folder of genuine photos.",
+   "cost_usd": 0,
+   "unblock": "Provide photos you own or are licensed to use. Optional: ground-truth masks for segmentation IoU."
+  },
+  {
+   "at": "2026-11-22T10:40:26.048Z",
+   "id": "C",
+   "title": "Real social data → source-backed trend and regional recommendation (Apple / India)",
+   "status": "blocked",
+   "provider": "X API v2 search + counts",
+   "input": "{\"brand\":\"Apple\",\"market\":{\"places\":[\"Bengaluru\",\"Mumbai\"],\"countryCodes\":[\"IN\"]}}",
+   "expected": "opportunities with source URL, timestamp, evidence, geo basis, trend vs baseline, cost",
+   "actual": "Not run: X_BEARER_TOKEN is not set.",
+   "cost_usd": 0,
+   "unblock": "Create an X developer app on a paid tier and export X_BEARER_TOKEN (app-only bearer)."
+  },
+  {
+   "at": "2026-11-22T10:40:26.048Z",
+   "id": "D",
+   "title": "Authorized, approved test post published and verified by external post id",
+   "status": "blocked",
+   "provider": "X API v2 (user-context OAuth 2.0 PKCE)",
+   "input": "one approved test post from the designated test account",
+   "expected": "job reaches completed with provider post id read back from X",
+   "actual": "Not run. Needs a person to connect the test account in Settings → Connections and approve the post.",
+   "cost_usd": null,
+   "unblock": "Set X_CLIENT_ID/X_CLIENT_SECRET, X_ALLOWED_ACCOUNT=@test_account, X_PUBLISH_ENABLED=1; connect the account; draft → approve → Publish now; record the post id."
+  },
+  {
+   "at": "2026-11-22T10:40:26.048Z",
+   "id": "E",
+   "title": "Real test conversion accepted by Meta, status visible in Cold Start_",
+   "status": "blocked",
+   "provider": "Meta Conversions API (Test Events)",
+   "input": "Purchase test event with a Test Events code",
+   "expected": "events_received = 1 and the tracking panel shows test_events_received, then verified after a live-mode non-test event",
+   "actual": "Not run. Needs a Meta dataset, CAPI token and Test Events code.",
+   "cost_usd": 0,
+   "unblock": "Create a test dataset, generate a CAPI access token and a TEST code; connect via the Tracking wizard; Verify events → Send server event."
+  }
+ ]
+}

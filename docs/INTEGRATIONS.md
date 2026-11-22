@@ -30,3 +30,15 @@ Research and planning use OpenRouter (`OPENROUTER_API_KEY`) when set; otherwise 
 | `COMPOSITE_API_URL` | Pixel-locked compositor service | Fidelity-first mode disabled |
 
 Costs so far: $0 of provider spend. Nothing was called against X, Reddit, Meta, Cloudflare or Vercel.
+
+## Checkpoint 4 environment variables
+| Variable | Purpose | Without it |
+|---|---|---|
+| `X_CLIENT_ID`, `X_CLIENT_SECRET` | X user-context OAuth (publishing) | publishing unavailable |
+| `X_ALLOWED_ACCOUNT`, `X_PUBLISH_ENABLED=1` | designated test account + opt-in | live publish blocked |
+| `PUBLISH_DAILY_CAP` | max provider posts/day/workspace (default 10) | default applies |
+| `X_MAX_POSTS_READ_PER_DAY`, `SCAN_CACHE_SECONDS`, `X_COST_PER_POST_USD` | read cap (default 500), cache TTL (default 3600), price from your plan | defaults; cost shown as not reported |
+| `CRON_SECRET` | authorises the Cloudflare cron call (>= 24 chars) | cron route returns 401 |
+| `META_PAGE_ID`, `META_PUBLISH_ENABLED=1` | Facebook/Instagram publishing after App Review | blocked |
+| `META_MAX_DAILY_BUDGET` | server cap on a draft's daily budget | no extra cap beyond the approved payload |
+| `HOST` | bind address of the compositor container | 127.0.0.1 |

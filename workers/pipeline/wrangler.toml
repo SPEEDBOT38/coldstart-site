@@ -1,9 +1,10 @@
 # Cloudflare pipeline worker: durable job state (D1), asset storage (R2) and a queue consumer.
 # NOT DEPLOYED. It needs a Cloudflare account: create the resources below, put their ids here, then `npx wrangler deploy`.
-#   npx wrangler d1 create coldstart-jobs && npx wrangler d1 execute coldstart-jobs --file=schema.sql --remote
+#   npx wrangler d1 create coldstart-jobs && npx wrangler d1 migrations apply coldstart-jobs --remote
 #   npx wrangler r2 bucket create coldstart-assets
 #   npx wrangler queues create coldstart-jobs-q && npx wrangler queues create coldstart-jobs-dlq
 #   npx wrangler secret put API_KEY        # same bearer secret the Vercel app sends (PIPELINE_API_KEY)
+#   npx wrangler secret put CRON_SECRET    # same value as CRON_SECRET in the Vercel project (>=24 chars); authorises the scheduled-scan call
 #   npx wrangler secret put GPU_API_KEY    # hosted GPU/cutout service
 name = "coldstart-pipeline"
 main = "worker.js"
@@ -14,6 +15,7 @@ workers_dev = true
 binding = "DB"
 database_name = "coldstart-jobs"
 database_id = "REPLACE_WITH_D1_ID"
+migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "ASSETS"
@@ -29,5 +31,10 @@ max_batch_size = 1
 max_retries = 3
 dead_letter_queue = "coldstart-jobs-dlq"
 
+
+[triggers]
+crons = ["17 */6 * * *"]   # scheduled social scans: the app decides per workspace whether a scan is due
+
 [vars]
+APP_URL = ""       # e.g. https://coldstart-staging.vercel.app (no trailing slash)
 GPU_API_URL = ""   # hosted GPU service base URL, e.g. https://gpu.example.com

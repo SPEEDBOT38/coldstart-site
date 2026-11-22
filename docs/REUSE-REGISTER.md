@@ -34,5 +34,13 @@ Rule: find a maintained implementation first; write only glue. **Verification li
 | mochiscout, reddit-research-agent, postiz-app | GitHub | AGPL / see repo | **Study-only, no source copied** | GitHub API was unreachable from the build sandbox, so their licenses were not re-verified this checkpoint |
 | Cloudflare Workers AI FLUX.1 schnell | developers.cloudflare.com/workers-ai/models/flux-1-schnell | Model/provider terms | Optional background generator | Price not shown on the model page; cost recorded as null, not guessed |
 
+## Checkpoint 4 additions
+| Item | Source | License | How used |
+|---|---|---|---|
+| Meta Graph API (Page feed, IG content publishing) | developers.facebook.com | provider terms | Thin `liveGraph` calls already in the repo; no new SDK |
+| `facebook-nodejs-business-sdk` | npm | per package | Existing: PAUSED ad drafts |
+| Cloud Run (container host option) | cloud.google.com/run/pricing | provider terms | Dockerfile only; not deployed |
+| Cloudflare Cron Triggers, D1 migrations, R2 | Cloudflare docs | provider terms | `workers/pipeline` config; not deployed |
+
 ## Not reused on purpose
 `@imgly/background-removal` (AGPL/commercial), `ffmpeg-static` (GPL-3.0), any AGPL/GPL source in the proprietary core.

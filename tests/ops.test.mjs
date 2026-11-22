@@ -158,7 +158,7 @@ test('server-side caps and pause are enforced regardless of the browser', async 
 });
 
 test('approval is bound to its payload: any change voids it; execution is blocked/simulated honestly', async () => {
-  const { base } = await start(); const c = client(base);
+  const { base } = await start(); const c = client(base); await c.call('ops', 'setPolicy', { allow: { budget: true } });
   const ap = (await c.call('ops', 'approve', { payload: launch() })).json.approval;
   assert.match(ap.hash, /^[a-f0-9]{64}$/); assert.equal(ap.actor, 'owner'); assert.equal(ap.status, 'active');
   // key order must not matter (canonical JSON)
@@ -184,6 +184,7 @@ test('sandbox Meta connection yields a labelled simulation; duplicate execute do
   const r2 = await fetch(base + approve, { headers: { cookie: jar }, redirect: 'manual' }); const vault = r2.headers.getSetCookie().map(s => s.split(';')[0]);
   const cookie = [...jar.split('; '), ...vault].filter(x => !x.startsWith('cs_oauth')).join('; ');
   const call = async (a, body) => { const r = await fetch(`${base}/api/plugins/ops/actions/${a}`, { method: 'POST', headers: { cookie, 'content-type': 'application/json', 'x-coldstart': '1' }, body: JSON.stringify(body) }); return { status: r.status, json: await r.json() }; };
+  await call('setPolicy', { allow: { budget: true } });
   const ap = (await call('approve', { payload: launch() })).json.approval;
   const ex = await call('execute', { approvalId: ap.id, payload: launch() });
   assert.equal(ex.json.execution.state, 'simulated'); assert.equal(ex.json.execution.simulated, true); assert.match(ex.json.execution.note, /nothing exists on Meta/);
@@ -224,4 +225,13 @@ test('100 simultaneous generation requests against a cap of 5: provider called 5
   const same = await Promise.all(Array.from({ length: 100 }, () => c.call('ops', 'createJob', jobBody(m, { idempotencyKey: key }))));
   assert.equal(imgCalls - b2, 1, 'provider billed once'); assert.ok(same.every(r => [200, 409].includes(r.status)));
   const u = (await c.get('usage')).json; assert.equal(u.used.creativeMonth, 6);
+});
+
+test('budget: a paid launch is blocked until budget spending is allowed, and over the server cap', async () => {
+  const { base } = await start(); const c = client(base);
+  const ap = (await c.call('ops', 'approve', { payload: launch() })).json.approval;
+  const e1 = (await c.call('ops', 'execute', { approvalId: ap.id, payload: launch() })).json.execution; assert.equal(e1.state, 'blocked'); assert.equal(e1.reason, 'budget_not_allowed');
+  await c.call('ops', 'setPolicy', { allow: { budget: true } }); process.env.META_MAX_DAILY_BUDGET = '1';
+  const e2 = (await c.call('ops', 'execute', { approvalId: ap.id, payload: launch() })).json.execution; delete process.env.META_MAX_DAILY_BUDGET;
+  assert.equal(e2.state, 'blocked'); assert.equal(e2.reason, 'over_budget_cap');
 });

@@ -7,6 +7,7 @@ import { setPolicy } from '../lib/ops/policy.js';
 import { markManual, refreshMetrics, createPublish, authorizePublish, editPublish, cancelPublish, runPublish, resolveUnknown, getPublish } from '../lib/ops/outbox.js';
 import { integrationStatus } from '../lib/providers/adapters.js';
 
+process.env.X_PUBLISH_ENABLED = '1';   // live publishing is opt-in; tests exercise the opted-in path against mocks
 const mk = (ws = 'wsaaaaaaaa') => scoped(createStore({ STORE: 'memory' }), ws);
 const payload = { channel: 'x', text: 'Fresh soil mix, 250 g.' };
 const live = (fetch, extra = {}) => ({ getConn: id => id === 'x' ? { mode: 'live', secrets: { token: 't', expires: Date.now() + 3600e3 } } : null, fetch, ...extra });
@@ -62,7 +63,7 @@ test('not connected, Reddit and Meta pages are blocked with an honest reason, no
   const kv = mk(); await setPolicy(kv, { allow: { organic: true } });
   const id = await ready(kv, payload, 'idem-key-0004'); const r = await runPublish(kv, { getConn: () => null, fetch: async () => ok({}) }, id);
   assert.equal(r.job.state, 'blocked'); assert.equal(r.blocked.state, 'requires_credentials');
-  const st = integrationStatus({ getConn: () => null }); assert.equal(st.reddit.state, 'requires_approval'); assert.equal(st.facebook.state, 'not_implemented'); assert.equal(st.x.integration, 'requires_credentials');
+  const st = integrationStatus({ getConn: () => null }); assert.equal(st.reddit.state, 'requires_approval'); assert.equal(st.facebook.state, 'requires_credentials'); assert.equal(st.x.integration, 'requires_credentials');
   assert.equal(integrationStatus(live(null)).x.integration, 'mock_only', 'a connected X is still labelled mock_only until a live test is recorded');
 });
 test('sandbox X is labelled and its fake id is never reported as a real post', async () => {
@@ -88,5 +89,5 @@ test('Reddit assisted: only a person can complete it, and it is recorded as user
 });
 test('X metrics are stored as dated snapshots after a verified publish', async () => {
   const kv = mk(); const f = async (u, o) => String(u).includes('public_metrics') ? ok({ data: { id: '7', public_metrics: { like_count: 3, impression_count: 120 } } }) : ok({ data: { id: '7' } });
-  const id = await ready(kv); await runPublish(kv, live(f), id); const r = await refreshMetrics(kv, live(f), id); assert.equal(r.metrics.impression_count, 120); assert.equal((await getPublish(kv, id)).metrics.length, 1);
+  const id = await ready(kv); await runPublish(kv, live(f), id); const r = await refreshMetrics(kv, live(f), id); assert.equal(r.metrics.impressions, 120); assert.equal(r.metrics.raw.impression_count, 120); assert.equal((await getPublish(kv, id)).metrics.length, 1);
 });

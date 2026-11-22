@@ -43,3 +43,18 @@ Status words: **Working** = built and exercised by an automated test; **Partial*
 | Background generation (`lib/providers/background.js`) | Interface + Cloudflare FLUX adapter, **requires_credentials** | Endpoint/payload read from the official model page; never called. Backgrounds are generated without the product, then composited pixel-locked. |
 | Scheduled scans (cron) | Not implemented | Scans run on demand, bounded and ledger-metered. |
 | Product Lock video, Results from real insights | Not implemented | |
+
+## Checkpoint 4 additions
+| Area | Status | Notes |
+|---|---|---|
+| X publishing credentials | Coded, mock_only | App bearer (`X_BEARER_TOKEN`, search/counts) is separate from user-context OAuth 2.0 PKCE (`tweet.read tweet.write users.read offline.access`). Token refresh, designated test account (`X_ALLOWED_ACCOUNT`), opt-in (`X_PUBLISH_ENABLED`), daily cap (`PUBLISH_DAILY_CAP`). |
+| Error classification (`lib/providers/classify.js`) | Working, tested with mocks | 401 → auth, 429 → rate_limit, 402/spend → quota, 403 duplicate/permission, other 4xx → refused (not ambiguous), timeout/5xx → ambiguous. Fixed the shared HTTP helper that collapsed all 4xx into 400. |
+| Facebook / Instagram adapters | Coded against the Graph API, mock_only | Page feed post; Instagram container → publish (needs `imageUrl`). Off until `META_PUBLISH_ENABLED=1` + `META_PAGE_ID`; needs Meta App Review. Provider post id + read-back + basic engagement. |
+| Scheduled scans | Coded, tested with mocks | Cloudflare Cron Trigger → `/api/cron/social` (CRON_SECRET, constant-time compare) → per-workspace schedule, pause/caps respected, failures isolated. Never deployed. |
+| X search paging, caching, read cap | Working with mocks | `next_token` paging (max 3 pages), 1 h result cache, `X_MAX_POSTS_READ_PER_DAY`. |
+| Reddit rules/disclosure check | Working | Reads only pasted rules; unknown rules never count as permission; disclosure required; brand replies to rants/grief threads blocked. |
+| Meta tracking UX | Added to the tracking wizard | Website check (platform, Pixel, GTM, duplicates, mismatch with chosen dataset), install guidance, event mapping, verification state. Markup-only confidence. |
+| Meta ad budget | Enforced server-side | Budget needs `allow.budget` and `META_MAX_DAILY_BUDGET`; drafts stay PAUSED. |
+| Results | Added | Observed / unavailable / estimate kept apart; freshness; manual posts never verified. |
+| Image pipeline stages | Added | Stage report, background kind (`ai_generated` / `user_supplied` / `procedural_gradient`), retry reuses a generated background. Cloudflare FLUX adapter never called. |
+| Staging config | Prepared, not deployed | `workers/pipeline` (D1 migrations, R2 asset routes, cron), `workers/composite/Dockerfile`, `scripts/verify-store.mjs`, `scripts/staging-smoke.mjs`, `docs/STAGING-RUNBOOK.md`. |

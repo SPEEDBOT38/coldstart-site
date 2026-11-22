@@ -173,7 +173,7 @@
   }
   async function runShoot(sku, dir, ratio, body, mode) {
     if (busy) return;
-    if (mode === 'locked') { busy = true; rerender(); try { const { asset } = await window.Identity.generateLocked({ sku, ratio }); toast(asset.qa.rows[0][1] === 'pass' ? 'Done. Product pixels were kept. Compare, then approve.' : 'Checks need your review.'); } catch (e) { toast(e.message); } busy = false; rerender(); return; }
+    if (mode === 'locked') { busy = true; rerender(); try { const { asset } = await window.Identity.generateLocked({ sku, ratio, scene: ((DIRS[dir] || {}).t || 'Studio') + ' product photography backdrop' }); toast(asset.qa.rows[0][1] === 'pass' ? 'Done. Product pixels were kept. Compare, then approve.' : 'Checks need your review.'); } catch (e) { toast(e.message); } busy = false; rerender(); return; }
     const keys = Object.keys(DIRS), d = dir === 'surprise' ? keys[Math.floor(Math.random() * keys.length)] : dir, plan = DIRS[d].plan;
     const alter = Object.fromEntries(Object.entries(store().sel.alter || {}).filter(([, v]) => v));
     if (!Object.keys(alter).length) return toast('Choose what may change first.');

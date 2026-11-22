@@ -6,6 +6,13 @@ const json = (o, status = 200) => new Response(JSON.stringify(o), { status, head
 const ok = (req, env) => req.headers.get('authorization') === 'Bearer ' + env.API_KEY;
 
 export default {
+  /** Cron Trigger: asks the app to run whichever workspaces have a scan due. The app checks pause state, caps and schedules itself. */
+  async scheduled(_event, env) {
+    if (!env.APP_URL || !env.CRON_SECRET) { console.log('scheduled scan skipped: APP_URL or CRON_SECRET not set'); return; }
+    const r = await fetch(env.APP_URL.replace(/\/$/, '') + '/api/cron/social', { method: 'POST', headers: { authorization: 'Bearer ' + env.CRON_SECRET } });
+    console.log('scheduled scan', r.status);
+    if (!r.ok) throw new Error('scheduled scan failed: ' + r.status);
+  },
   async fetch(req, env) {
     if (!ok(req, env)) return json({ error: 'unauthorized' }, 401);
     const url = new URL(req.url);
@@ -24,6 +31,13 @@ export default {
     }
     const m = url.pathname.match(/^\/jobs\/([\w-]+)$/);
     if (req.method === 'GET' && m) { const ws = url.searchParams.get('ws'); const row = await env.DB.prepare('SELECT * FROM jobs WHERE id = ? AND ws = ?').bind(m[1], ws).first(); return row ? json(row) : json({ error: 'not found' }, 404); }
+    // R2 asset store, namespaced by workspace. Keys cannot escape their workspace prefix.
+    const am = url.pathname.match(/^\/assets\/([\w-]{8,40})\/([\w.-]{1,120})$/);
+    if (am && ['PUT', 'GET'].includes(req.method)) {
+      const key = am[1] + '/' + am[2];
+      if (req.method === 'PUT') { const buf = await req.arrayBuffer(); if (buf.byteLength > 20e6) return json({ error: 'too large' }, 413); await env.ASSETS.put(key, buf, { httpMetadata: { contentType: req.headers.get('content-type') || 'application/octet-stream' } }); return json({ stored: key, bytes: buf.byteLength }, 201); }
+      const o = await env.ASSETS.get(key); return o ? new Response(o.body, { headers: { 'content-type': o.httpMetadata?.contentType || 'application/octet-stream' } }) : json({ error: 'not found' }, 404);
+    }
     return json({ error: 'not found' }, 404);
   },
   async queue(batch, env) {

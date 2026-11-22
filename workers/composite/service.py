@@ -74,4 +74,4 @@ class H(BaseHTTPRequestHandler):
             self.send(200, composite(json.loads(self.rfile.read(n))))
         except (ValueError, KeyError, OSError) as e: self.send(400, {'error': str(e)[:200]})
 if __name__ == '__main__':
-    ThreadingHTTPServer(('127.0.0.1', int(os.environ.get('PORT', 8920))), H).serve_forever()
+    ThreadingHTTPServer((os.environ.get('HOST', '127.0.0.1'), int(os.environ.get('PORT', 8920))), H).serve_forever()

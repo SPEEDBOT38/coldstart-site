@@ -145,16 +145,17 @@
     return { asset, job: r.job };
   }
   /* Fidelity-first: server cuts the product out (rembg), keeps its original pixels, builds the scene around it and measures the output. */
-  async function generateLocked({ sku, ratio }) {
+  async function generateLocked({ sku, ratio, scene }) {
     const m = await masterOf(sku);
     if (!m || m.status !== 'approved') throw Object.assign(new Error('Approve this product’s identity first.'), { code: 'master_not_approved' });
     if (!['4:5', '9:16', '1:1'].includes(ratio)) throw new Error('Fidelity-first supports 4:5, 9:16 and 1:1.');
     const reference = await St().media.get(sku.refs[0].id);
-    const r = await C.ops.post('compositeAd', { masterId: m.id, reference, ratio }), rep = r.report;
+    const r = await C.ops.post('compositeAd', { masterId: m.id, reference, ratio, scene, idempotencyKey: 'ca-' + crypto.randomUUID() }), rep = r.report;
     const id = 'as-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     await St().media.put(id, r.image);
+    const bgRow = ['Background', 'info', rep.background_kind === 'ai_generated' ? 'AI-generated background (' + ((rep.backgroundProvider || {}).model || 'model unknown') + '), created without the product and placed behind your original pixels.' : rep.background_kind === 'user_supplied' ? 'A background you supplied.' : 'Plain generated gradient. This is not AI photography; connect a background generator for real scenes.'];
     const eq = rep.protected_pixel_equality, rows = [['Protected pixels', eq, eq === 'pass' ? rep.protected_pixels.toLocaleString() + ' product pixels compared with your original: ' + rep.protected_pixels_changed + ' changed.' : eq === 'fail' ? rep.protected_pixels_changed + ' product pixels were altered.' : 'The cutout covered too little of the product. Check the edges by eye.'], ['Background', 'unverified', 'Background is ' + rep.background + '. It does not carry product facts.'], ['Cutout quality', 'unverified', 'Matte model ' + rep.matte_model + '. Check the edges and any transparent or reflective parts yourself.']];
-    const asset = { id, kind: 'shoot', skuId: sku.id, mediaId: id, title: sku.name + ' · Fidelity-first ' + ratio, synth: false, approved: false, w: 1080, h: { '4:5': 1350, '9:16': 1920, '1:1': 1080 }[ratio], spec: { ratio, masterId: m.id, masterVersion: m.version, masterHash: m.hash, mode: 'pixel-locked', outputSha256: rep.output_sha256 }, findings: rows.map((x) => ({ check: x[0], status: x[1], detail: x[2] })), qa: { rows, decision: eq === 'fail' ? 'Regenerate' : 'Needs manual review' }, verified: false, at: rep.at };
+    rows.push(bgRow); const asset = { id, kind: 'shoot', skuId: sku.id, mediaId: id, title: sku.name + ' · Fidelity-first ' + ratio, synth: false, approved: false, w: 1080, h: { '4:5': 1350, '9:16': 1920, '1:1': 1080 }[ratio], spec: { ratio, masterId: m.id, masterVersion: m.version, masterHash: m.hash, mode: 'pixel-locked', outputSha256: rep.output_sha256 }, findings: rows.map((x) => ({ check: x[0], status: x[1], detail: x[2] })), qa: { rows, decision: eq === 'fail' ? 'Regenerate' : 'Needs manual review' }, verified: false, at: rep.at };
     store().assets.unshift(asset); C.log('creative', 'Pixel-locked composite: ' + asset.title, { master: m.id, equality: eq, output: rep.output_sha256 }); C.save(); return { asset, report: rep };
   }
   async function runQA(asset) {
@@ -180,7 +181,7 @@
       <div id="cp-stage">${view === 'slider' ? `<img-comparison-slider tabindex="0" aria-label="Drag to compare original and generated image"><img slot="first" src="${esc(orig)}" alt="Original"><img slot="second" src="${esc(gen)}" alt="Generated"></img-comparison-slider><div class="mono small" style="display:flex;justify-content:space-between"><span>◀ ORIGINAL</span><span>GENERATED ▶</span></div>`
         : `<div class="side2"><div><span class="mono small">ORIGINAL</span><div class="pz" id="pz1"><img src="${esc(orig)}" alt="Original"></div></div><div><span class="mono small">GENERATED</span><div class="pz" id="pz2"><img src="${esc(gen)}" alt="Generated"></div></div></div><small class="muted">Scroll to zoom, drag to pan. Both views move together.</small>`}</div>
       <div class="qa"><div class="qa-h"><strong>Findings</strong><span class="chip ${a.verified ? 'b' : 'y'}">${a.verified ? 'Checks passed, review still required' : 'Not verified'}</span></div>
-      ${rows.map((r) => `<div class="qa-r"><span>${esc(r[0])}</span><span class="chip ${r[1] === 'pass' ? 'b' : r[1] === 'fail' ? 'warn' : 'dash'}">${r[1] === 'pass' ? 'Pass' : r[1] === 'fail' ? 'Fail' : 'Unverified'}</span><small>${esc(r[2])}</small></div>`).join('')}</div>
+      ${rows.map((r) => `<div class="qa-r"><span>${esc(r[0])}</span><span class="chip ${r[1] === 'pass' ? 'b' : r[1] === 'fail' ? 'warn' : 'dash'}">${r[1] === 'pass' ? 'Pass' : r[1] === 'fail' ? 'Fail' : r[1] === 'info' ? 'Note' : 'Unverified'}</span><small>${esc(r[2])}</small></div>`).join('')}</div>
       ${job ? `<small class="mono muted">job ${esc(job.id)} · ${esc(job.state)} · ${esc(job.workflow)} · ${esc(job.model || 'no model')}</small>` : ''}
       ${a.approved ? '<div class="chip y">Approved</div>' : `<label class="check-inline"><input type="checkbox" id="cp-seen"> I compared this with my original product and it matches.</label>${vp ? '<label class="check-inline"><input type="checkbox" id="cp-vp"> I understand the viewpoint is synthesized and invented.</label>' : ''}`}
       ${failed ? '<div class="err">Checks failed. This creative cannot be approved. Regenerate it.</div>' : !a.findings && !done && !a.approved ? '<div class="err">Identity checks have not finished. Run them from the Jobs tab.</div>' : ''}

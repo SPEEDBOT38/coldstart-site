@@ -85,6 +85,8 @@ async function suite(label, viewport) {
     eq(await page.locator('#social-sec .opp a:has-text("Open evidence")').first().getAttribute('href'), 'https://www.reddit.com/r/IndoorGarden/comments/abc123/best_soil_mix_for_balcony_herbs/');
     await page.click('[data-sdraft]'); await page.waitForSelector('#dd-t');
     await page.fill('#dd-t', 'Basil on a sunny balcony dries out fast. A chunkier mix with some coco coir helps it drain and still hold water. Disclosure: I work at Fern & Form, a plant-care brand.');
+    await page.click('#dd-s'); await page.waitForFunction(() => /rules check/i.test(document.getElementById('dd-e').textContent), null, { timeout: 5000 });   // Reddit drafts cannot proceed without a rules check
+    await page.fill('#dd-r', 'Be kind. Stay on topic.'); await page.click('#dd-rc'); await page.waitForFunction(() => /No conflict found/.test(document.getElementById('dd-rv').textContent), null, { timeout: 8000 });
     await page.click('#dd-s'); await page.waitForURL(/#\/inbox/, { timeout: 8000 }).catch(async (e) => { throw new Error('draft not sent: ' + (await page.locator('#dd-e, #dd-i').allInnerTexts()).join(' | ')); });
     ok(inc(await page.locator('main').innerText(), 'Reddit reply'), 'draft is waiting in the Action Inbox');
     let jobs = (await ops(page, 'publishJobs')).json.jobs; eq(jobs.length, 1); eq(jobs[0].state, 'requested'); ok(!jobs[0].authorized, 'not authorized before approval');
@@ -94,6 +96,14 @@ async function suite(label, viewport) {
     await page.click('[data-sp-man]'); await page.fill('#au', 'https://www.reddit.com/r/IndoorGarden/comments/abc123/best_soil_mix_for_balcony_herbs/def456/'); await page.click('#au-s');
     await page.waitForFunction(() => /Posted by you/.test(document.getElementById('social-cal').textContent), null, { timeout: 8000 });
     jobs = (await ops(page, 'publishJobs')).json.jobs; eq(jobs[0].state, 'completed'); eq(jobs[0].verification, 'user_attested');
+    await page.goto(BASE + '/app-v4.html#/results'); await page.waitForFunction(() => /not verified by the platform/.test((document.getElementById('res-live') || {}).textContent || ''), null, { timeout: 8000 });
+    const rt = await page.locator('#res-live').innerText(); ok(inc(rt, 'Unavailable'), 'manual post engagement is shown as unavailable, not as zeros'); ok(inc(rt, 'no estimates'), 'estimates are explicitly absent');
+  });
+
+  await T(tag('tracking: website check form is present and refuses private/non-https addresses'), async () => {
+    await page.goto(BASE + '/app-v3.html#/tracking'); await page.waitForSelector('#site-detect-form', { timeout: 15000 });
+    await page.fill('#site-detect-form input[name=url]', 'http://127.0.0.1:8911'); await page.click('#site-detect-form button[type=submit]');
+    await page.waitForFunction(() => /public https/i.test(document.body.innerText) || /public https/i.test((document.getElementById('toast') || {}).textContent || ''), null, { timeout: 8000 });
   });
 
   await T(tag('identity: upload → read packaging text (real OCR) → confirm → approve master'), async () => {
@@ -145,7 +155,7 @@ async function suite(label, viewport) {
     const prev = (await S(page)).studio.assets.length; await page.click('#go-shoot');
     await page.waitForFunction((n) => JSON.parse(localStorage.getItem('coldstart.v4')).studio.assets.length > n, prev, { timeout: 120000 });
     const a = (await S(page)).studio.assets[0]; eq(a.spec.mode, 'pixel-locked'); eq(a.findings[0].status, 'pass', 'protected pixels unchanged'); ok(/ 0 changed/.test(a.findings[0].detail), a.findings[0].detail); eq(a.verified, false, 'never auto-verified'); eq(a.synth, false);
-    eq((await ops(page, 'audit')).json.events.some((e) => /Pixel-locked composite \(pass\)/.test(e.text)), true, 'recorded on the server audit log');
+    eq((await ops(page, 'audit')).json.events.some((e) => /Pixel-locked composite \(pass/.test(e.text)), true, 'recorded on the server audit log');
     await page.waitForSelector(`[data-compare="${a.id}"]`); await page.click(`[data-compare="${a.id}"]`); await page.waitForSelector('#cp-ok'); eq(await page.locator('#cp-ok').isDisabled(), true, 'approve still gated by human comparison');
     await page.keyboard.press('Escape');
   });
@@ -182,6 +192,9 @@ async function suite(label, viewport) {
     ok(inc(await page.locator('#lr-pay').textContent(), '"sha256"'), 'approved creative is in the payload by hash');
     await page.click('#da'); await page.waitForSelector('#exec-panel'); const ap = (await ops(page, 'approvals')).json.approvals[0]; eq(ap.status, 'active'); eq(ap.hash.length, 64);
     await page.click('#mk-draft'); await page.waitForSelector('text=Blocked'); ok(inc(await page.locator('#exec-panel').innerText(), 'Nothing was sent'));
+    ok(inc(await page.locator('#exec-panel').innerText(), 'budget not allowed'), 'a paid draft is blocked until the person allows budget spending');
+    eq((await ops(page, 'setPolicy', { allow: { budget: true } })).status, 200);   // the Automations toggle does the same call behind a consent dialog (covered below)
+    await page.click('#mk-draft'); await page.waitForSelector('text=Meta not connected');
     await page.goto(BASE + '/api/plugins/meta/connect'); await page.waitForSelector('a.go'); await page.click('a.go'); await page.waitForLoadState('load');
     await page.goto(BASE + '/app-v4.html#/campaigns/c1'); await page.waitForSelector('#mk-draft'); await page.click('#mk-draft'); await page.waitForSelector('text=Simulated');
     ok(inc(await page.locator('#exec-panel').innerText(), 'Nothing exists on Meta'));
