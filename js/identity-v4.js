@@ -144,6 +144,19 @@
     C.save();
     return { asset, job: r.job };
   }
+  /* Fidelity-first: server cuts the product out (rembg), keeps its original pixels, builds the scene around it and measures the output. */
+  async function generateLocked({ sku, ratio }) {
+    const m = await masterOf(sku);
+    if (!m || m.status !== 'approved') throw Object.assign(new Error('Approve this product’s identity first.'), { code: 'master_not_approved' });
+    if (!['4:5', '9:16', '1:1'].includes(ratio)) throw new Error('Fidelity-first supports 4:5, 9:16 and 1:1.');
+    const reference = await St().media.get(sku.refs[0].id);
+    const r = await C.ops.post('compositeAd', { masterId: m.id, reference, ratio }), rep = r.report;
+    const id = 'as-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    await St().media.put(id, r.image);
+    const eq = rep.protected_pixel_equality, rows = [['Protected pixels', eq, eq === 'pass' ? rep.protected_pixels.toLocaleString() + ' product pixels compared with your original: ' + rep.protected_pixels_changed + ' changed.' : eq === 'fail' ? rep.protected_pixels_changed + ' product pixels were altered.' : 'The cutout covered too little of the product. Check the edges by eye.'], ['Background', 'unverified', 'Background is ' + rep.background + '. It does not carry product facts.'], ['Cutout quality', 'unverified', 'Matte model ' + rep.matte_model + '. Check the edges and any transparent or reflective parts yourself.']];
+    const asset = { id, kind: 'shoot', skuId: sku.id, mediaId: id, title: sku.name + ' · Fidelity-first ' + ratio, synth: false, approved: false, w: 1080, h: { '4:5': 1350, '9:16': 1920, '1:1': 1080 }[ratio], spec: { ratio, masterId: m.id, masterVersion: m.version, masterHash: m.hash, mode: 'pixel-locked', outputSha256: rep.output_sha256 }, findings: rows.map((x) => ({ check: x[0], status: x[1], detail: x[2] })), qa: { rows, decision: eq === 'fail' ? 'Regenerate' : 'Needs manual review' }, verified: false, at: rep.at };
+    store().assets.unshift(asset); C.log('creative', 'Pixel-locked composite: ' + asset.title, { master: m.id, equality: eq, output: rep.output_sha256 }); C.save(); return { asset, report: rep };
+  }
   async function runQA(asset) {
     const m = (await masters(true)).find((x) => x.id === asset.spec.masterId); if (!m) throw new Error('Product master not found.');
     const F = await qaFindings(m, await St().srcOf(asset.mediaId));
@@ -161,7 +174,7 @@
     const d = document.getElementById('dlg'); d.setAttribute('aria-label', 'Compare with original');
     let job = null; try { job = a.jobId ? (await C.ops.get('job', { id: a.jobId })).job : null; } catch (e) { /* offline */ }
     const view = (store().sel.cmpView) || 'slider';
-    const vp = job && job.review.viewpointChanged, failed = (job && job.state === 'failed') || a.failed, done = job && job.state === 'completed';
+    const vp = job && job.review.viewpointChanged, failed = (job && job.state === 'failed') || a.failed || (a.findings || []).some((f) => f.status === 'fail'), done = job && job.state === 'completed';
     d.innerHTML = `<div class="dlg-h"><h2 class="disp s">Compare with your original</h2><button class="btn sm ghost" id="cp-x" type="button">Close</button></div>
       <div class="dlg-b" style="display:grid;gap:12px"><div class="seg" role="group" aria-label="View"><button type="button" data-v="slider" aria-pressed="${view === 'slider'}">Before / after slider</button><button type="button" data-v="side" aria-pressed="${view === 'side'}">Side by side, synced zoom</button></div>
       <div id="cp-stage">${view === 'slider' ? `<img-comparison-slider tabindex="0" aria-label="Drag to compare original and generated image"><img slot="first" src="${esc(orig)}" alt="Original"><img slot="second" src="${esc(gen)}" alt="Generated"></img-comparison-slider><div class="mono small" style="display:flex;justify-content:space-between"><span>◀ ORIGINAL</span><span>GENERATED ▶</span></div>`
@@ -212,5 +225,5 @@
     body.querySelectorAll('[data-retry]').forEach((b) => b.onclick = async () => { const j = jobs.find((x) => x.id === b.dataset.retry), a = store().assets.find((x) => x.jobId === j.id); const sku = store().skus.find((s) => s.id === (a && a.skuId)) || store().skus.find((s) => (s.refs[0] || {}).sha === j.inputRefs.refSha); if (!sku) return toast('The product photo for this job is not in this browser.'); b.disabled = true; try { const r = await C.ops.post('retryJob', { id: j.id, reference: await St().media.get(sku.refs[0].id) }); if (a && r.image) { await St().media.put(a.mediaId, r.image); a.failed = null; a.qa = { rows: [['Identity checks', 'unverified', 'Run the checks.']], decision: 'Needs manual review' }; a.findings = null; C.save(); } toast('Retried: ' + r.job.state); } catch (e) { toast(e.message); } window.AppV4.route(); });
   }
 
-  window.Identity = { init(o) { toast = o.toast || toast; }, openMaster, masterOf, masters, statusChip, generate, runQA, compare, regenerate, jobsPanel, qaFindings, ocr };
+  window.Identity = { init(o) { toast = o.toast || toast; }, openMaster, masterOf, masters, statusChip, generate, generateLocked, runQA, compare, regenerate, jobsPanel, qaFindings, ocr };
 })();

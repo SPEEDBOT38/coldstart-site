@@ -1,0 +1,176 @@
+{
+  "at": "2026-11-22T08:59:19.898Z",
+  "results": [
+    [
+      "[desktop] onboarding: scan → confirm flagship (with validation) → goal → boundaries (country required) → plan → Accept plan",
+      "pass",
+      2510
+    ],
+    [
+      "[desktop] state survives refresh; confirmed info is not asked again in the Library",
+      "pass",
+      167
+    ],
+    [
+      "[desktop] research: scan result persists; server counts it against the daily cap",
+      "pass",
+      87
+    ],
+    [
+      "[desktop] identity: upload → read packaging text (real OCR) → confirm → approve master",
+      "pass",
+      31286
+    ],
+    [
+      "[desktop] generation: only allowed alterations; job runs on the server; real OCR QA; never auto-verified",
+      "pass",
+      499
+    ],
+    [
+      "[desktop] compare: slider, synced zoom/pan, findings, approval gate",
+      "pass",
+      2830
+    ],
+    [
+      "[desktop] fidelity-first: real matte, original pixels kept, measured from output, still needs review",
+      "pass",
+      1089
+    ],
+    [
+      "[desktop] bad generation: OCR catches altered label text → job failed → cannot approve",
+      "pass",
+      1189
+    ],
+    [
+      "[desktop] identity change voids approval and blocks generation until re-approved",
+      "pass",
+      1666
+    ],
+    [
+      "[desktop] jobs tab: states, cost, model, retry/cancel controls; recovery of an unchecked job",
+      "pass",
+      97
+    ],
+    [
+      "[desktop] launch: approval bound to payload → blocked (Meta not connected) → sandbox connect → simulated → duplicate-safe",
+      "pass",
+      858
+    ],
+    [
+      "[desktop] changing the campaign voids the approval; revoke after execution is refused with an explanation",
+      "pass",
+      654
+    ],
+    [
+      "[desktop] Pause All and caps are enforced by the server",
+      "pass",
+      1977
+    ],
+    [
+      "[desktop] inbox: Request changes uses a dialog (no prompt()), validates input",
+      "pass",
+      144
+    ],
+    [
+      "[desktop] five-item navigation preserved; no horizontal overflow on key screens",
+      "pass",
+      5082
+    ],
+    [
+      "[desktop] accessibility: axe on key screens (serious/critical)",
+      "pass",
+      6859
+    ],
+    [
+      "[desktop] keyboard: palette opens with Ctrl+K, Escape closes dialogs, focus lands in dialogs",
+      "pass",
+      104
+    ],
+    [
+      "[mobile] onboarding: scan → confirm flagship (with validation) → goal → boundaries (country required) → plan → Accept plan",
+      "pass",
+      2086
+    ],
+    [
+      "[mobile] state survives refresh; confirmed info is not asked again in the Library",
+      "pass",
+      158
+    ],
+    [
+      "[mobile] research: scan result persists; server counts it against the daily cap",
+      "pass",
+      77
+    ],
+    [
+      "[mobile] identity: upload → read packaging text (real OCR) → confirm → approve master",
+      "pass",
+      31306
+    ],
+    [
+      "[mobile] generation: only allowed alterations; job runs on the server; real OCR QA; never auto-verified",
+      "pass",
+      503
+    ],
+    [
+      "[mobile] compare: slider, synced zoom/pan, findings, approval gate",
+      "pass",
+      2773
+    ],
+    [
+      "[mobile] fidelity-first: real matte, original pixels kept, measured from output, still needs review",
+      "pass",
+      1042
+    ],
+    [
+      "[mobile] bad generation: OCR catches altered label text → job failed → cannot approve",
+      "pass",
+      1124
+    ],
+    [
+      "[mobile] identity change voids approval and blocks generation until re-approved",
+      "pass",
+      1662
+    ],
+    [
+      "[mobile] jobs tab: states, cost, model, retry/cancel controls; recovery of an unchecked job",
+      "pass",
+      96
+    ],
+    [
+      "[mobile] launch: approval bound to payload → blocked (Meta not connected) → sandbox connect → simulated → duplicate-safe",
+      "pass",
+      790
+    ],
+    [
+      "[mobile] changing the campaign voids the approval; revoke after execution is refused with an explanation",
+      "pass",
+      647
+    ],
+    [
+      "[mobile] Pause All and caps are enforced by the server",
+      "pass",
+      1840
+    ],
+    [
+      "[mobile] inbox: Request changes uses a dialog (no prompt()), validates input",
+      "pass",
+      189
+    ],
+    [
+      "[mobile] five-item navigation preserved; no horizontal overflow on key screens",
+      "pass",
+      5066
+    ],
+    [
+      "[mobile] keyboard: palette opens with Ctrl+K, Escape closes dialogs, focus lands in dialogs",
+      "pass",
+      108
+    ],
+    [
+      "bypass: POST without header refused; another browser cannot read or execute this workspace's records",
+      "pass",
+      28
+    ]
+  ],
+  "consoleErrors": []
+}

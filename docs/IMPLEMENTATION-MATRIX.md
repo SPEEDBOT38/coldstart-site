@@ -11,7 +11,8 @@ Status words: **Working** = built and exercised by an automated test; **Partial*
 | Image comparison (slider, side-by-side synced zoom/pan, findings, approve/reject/regenerate background/report) | Working | Approve gated by a "compared it" checkbox and by failed QA. Never says "verified" unless every check passes, and even then says review is still required. |
 | Packaging-text check | Partial | Real OCR (tesseract.js, vendored). Mismatch below 90% similarity fails; 90–97% is "unverified". Fidelity depends on photo quality. |
 | Colour check | Working | CIEDE2000 palette check (culori). |
-| Logo match, protected-region pixel check, segmentation, shape check | Blocked | Always shown "Unverified". Needs a hosted segmentation/GPU service. Fidelity-first (pixel-preserving) mode is Missing for the same reason. |
+| Fidelity-first (pixel-locked) composite | Partial | `workers/composite` (rembg u2netp + Pillow) is exercised for real by `tests/composite.integration.test.mjs` and the Studio e2e: protected product pixels are compared with the locked foreground from the output image (480,778 px, 0 changed on the fixture). Background is procedural (no generator connected). Only a synthetic fixture was tried: glossy, transparent and tiny-text products are untested. Needs a host for the Python worker (not Vercel). Still needs human approval. |
+| Logo match, segmentation model quality, shape check | Blocked | Always shown "Unverified". Needs a hosted segmentation/GPU service.  |
 | Job queue: states, cost, model, workflow version, retry, cancel, idempotency | Partial | All states and rules enforced server-side and tested. Executor runs inline in the request; the Cloudflare Queues consumer in `workers/pipeline` is written but never deployed or run. Storage is durable only with KV. |
 | Server-side limits | Working | Pause (423), research/day and renders/month caps (429). Ad-spend cap is **not** backend-enforced (removed from the UI rather than faked). |
 | Onboarding: flagship, variant, price, checkout URL, approval policy, Accept plan, persistence, recovery | Working | Scan is mocked in tests; the live scan needs a Firecrawl key. Confirmed info is not re-asked. |
@@ -28,3 +29,11 @@ Status words: **Working** = built and exercised by an automated test; **Partial*
 | A11y | Working | axe (WCAG 2.0/2.1 A and AA) has no serious or critical findings on six key screens, desktop. Keyboard: Ctrl+K palette, Escape closes dialogs. |
 | Responsive | Working | No horizontal overflow on 11 screens at 390px. |
 | 55-screen specification | **Not claimed complete** | Only the journeys above were exercised. |
+
+## Added in checkpoint 2 (status labels: verified_live | tested_sandbox | mock_only | requires_credentials | requires_approval | not_implemented)
+| Area | Status | Notes |
+|---|---|---|
+| Publish outbox (`lib/ops/outbox.js`) | Working (mock_only against providers) | Authorization bound to the content hash; attempt persisted before the write; timeouts/unreadable posts become `unknown_external_state` and are never retried blindly; Pause All and the organic switch block the call; idempotent creation; cancel-after-publish refused. 11 tests, provider mocked. |
+| ProviderAdapter contract (`lib/providers/adapters.js`) | Working | `status/publish/verify`. X: coded, **mock_only** (no live post). Facebook, Instagram: not_implemented. Reddit: requires_approval (assisted mode only). |
+| Transactional quotas | Partial | Counters are read-modify-write on the store: two concurrent requests can both pass a cap by one. Needs an atomic increment (Upstash INCR / D1). |
+| Meta tracking engine, X search, Reddit assisted drafting, Product Lock video, Results from real insights | Not implemented | Next in priority order. |

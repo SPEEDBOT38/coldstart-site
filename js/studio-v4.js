@@ -119,7 +119,7 @@
     const items = await Promise.all(list.map(async (a) => `<article class="asset"><div class="asset-media">${a.kind === 'video' ? `<video src="${esc(await srcOf(a.mediaId))}" controls muted loop playsinline></video>` : `<img src="${esc(await srcOf(a.mediaId))}" alt="${esc(a.title)}">`}</div>
       <div class="asset-b"><strong>${esc(a.title)}</strong><div class="tags"><span class="chip ${a.synth ? 'warn' : 'b'}">${a.synth ? 'Synthesized product' : 'Original pixels'}</span><span class="chip ${a.approved ? 'y' : 'dash'}">${a.approved ? 'Approved' : 'Draft'}</span>${a.verified ? '<span class="chip b">Checks passed</span>' : a.synth ? '<span class="chip dash">Not verified</span>' : ''}</div>${qaHtml(a.qa)}
       ${a.rejected ? `<div class="chip warn">Rejected: ${esc(a.rejected.reason)}</div>` : ''}
-      <div class="row-btns">${a.approved ? `<button class="btn sm ghost" data-unapprove="${a.id}" type="button">Unapprove</button>` : (a.synth ? `<button class="btn sm yellow" data-compare="${a.id}" type="button">Compare and review</button>` : `<button class="btn sm yellow" data-approve="${a.id}" type="button">Approve</button>`)}<button class="btn sm ghost" data-use="${a.id}" type="button">Use as source</button><a class="btn sm ghost" href="${esc(await srcOf(a.mediaId))}" download="${esc((a.title || 'creative').replace(/\W+/g, '-'))}.${a.kind === 'video' ? 'webm' : 'png'}">Download</a><button class="btn sm ghost" data-del="${a.id}" type="button">Delete</button></div></div></article>`));
+      <div class="row-btns">${a.approved ? `<button class="btn sm ghost" data-unapprove="${a.id}" type="button">Unapprove</button>` : ((a.synth || (a.spec && a.spec.mode === 'pixel-locked')) ? `<button class="btn sm yellow" data-compare="${a.id}" type="button">Compare and review</button>` : `<button class="btn sm yellow" data-approve="${a.id}" type="button">Approve</button>`)}<button class="btn sm ghost" data-use="${a.id}" type="button">Use as source</button><a class="btn sm ghost" href="${esc(await srcOf(a.mediaId))}" download="${esc((a.title || 'creative').replace(/\W+/g, '-'))}.${a.kind === 'video' ? 'webm' : 'png'}">Download</a><button class="btn sm ghost" data-del="${a.id}" type="button">Delete</button></div></div></article>`));
     return `<div class="asset-grid">${items.join('')}</div>`;
   }
   function wireAssets(body) {
@@ -142,18 +142,20 @@
   async function shoot(body) {
     const st = store(), sel = st.sel; const sku = st.skus.find((s) => s.id === sel.sku) || st.skus[0];
     const dir = sel.dir || 'studio', ratio = sel.ratio || '1:1';
+    const lockedOk = await C.ops.get('integrations').then((r) => /^configured/.test(r.compositor || '')).catch(() => false); const mode = lockedOk && sel.mode !== 'creative' ? 'locked' : 'creative';
     body.innerHTML = `<div class="grid-main"><div class="stack"><section class="panel"><div class="panel-b" style="display:grid;gap:16px">
       ${skuSel(sku.id)}
       <div><span class="eyebrow">Visual direction</span><div class="seg" role="group">${Object.entries(DIRS).map(([k, d]) => `<button data-dir="${k}" aria-pressed="${dir === k}" type="button">${d.t}</button>`).join('')}<button data-dir="surprise" aria-pressed="${dir === 'surprise'}" type="button">Surprise me</button></div></div>
       <div><span class="eyebrow">Aspect ratio</span><div class="seg" role="group">${Object.keys(RAT).map((k) => `<button data-ratio="${k}" aria-pressed="${ratio === k}" type="button">${k}</button>`).join('')}</div></div>
       <div id="ident-gate"></div>
       <div><span class="eyebrow">What may change in this shoot?</span><div id="alter-box" class="stack" style="gap:6px"></div>
-        <div class="opt-grid three" style="grid-template-columns:1fr 1fr;margin-top:10px"><button class="opt" type="button" disabled aria-disabled="true"><span class="chip dash">Not connected</span><strong>Fidelity-first</strong><small>Locks your real product pixels and builds the scene around them. Needs the hosted cutout service (GPU). Default once connected.</small></button>
-        <button class="opt" type="button" aria-pressed="true"><span class="chip y">Available</span><strong>Creative-first</strong><small>Reference-guided edit. The whole image is regenerated, so every result is labelled synthesized and needs your comparison.</small></button></div></div>
+        <div class="opt-grid three" style="grid-template-columns:1fr 1fr;margin-top:10px"><button class="opt" type="button" id="mode-locked" ${lockedOk ? `aria-pressed="${mode === 'locked'}"` : 'disabled aria-disabled="true"'}><span class="chip ${lockedOk ? 'y' : 'dash'}">${lockedOk ? 'Available' : 'Not connected'}</span><strong>Fidelity-first</strong><small>${lockedOk ? 'Cuts your product out with a real matte, keeps its original pixels untouched and builds the scene around it. Checked from the output pixels.' : 'Needs the product compositor (COMPOSITE_API_URL). Nothing is simulated.'}</small></button>
+        <button class="opt" type="button" id="mode-creative" aria-pressed="${mode === 'creative'}"><span class="chip y">Available</span><strong>Creative-first</strong><small>Reference-guided edit. The whole image is regenerated, so every result is labelled synthesized and needs your comparison.</small></button></div></div>
       <div><button class="btn lg" id="go-shoot" type="button" ${busy ? 'disabled' : ''}>${busy ? 'Shooting… up to a minute' : 'Create product shoot →'}</button> <span class="muted small">Uses one image generation. Server caps apply.</span></div>
       <div id="shoot-err"></div></div></section></div>
       <aside class="stack"><section class="panel"><div class="panel-h"><h2>Reference</h2></div><div class="panel-b"><img class="th big" src="${esc(await srcOf((sku.refs[0] || {}).id))}" alt="${esc(sku.name)}"><p class="small muted" style="margin-top:8px">${sku.refs.length} reference${sku.refs.length > 1 ? 's' : ''}. ${sku.refs.length < 3 ? 'For new viewpoints, add side, back and close-up photos in the Library. I won’t invent unseen sides.' : 'Good coverage.'}</p></div></section></aside></div>
       <section><h2 class="disp s" style="margin-bottom:12px">Product shoots</h2>${await gallery(assetsOf('shoot'), '<strong>No shoots yet.</strong>')}</section>`;
+    if (!body.isConnected || !$('#f-sku')) return;
     $('#f-sku').onchange = (e) => { sel.sku = e.target.value; C.save(); rerender(); };
     body.querySelectorAll('[data-dir]').forEach((b) => b.onclick = () => { sel.dir = b.dataset.dir; C.save(); rerender(); });
     body.querySelectorAll('[data-ratio]').forEach((b) => b.onclick = () => { sel.ratio = b.dataset.ratio; C.save(); rerender(); });
@@ -165,11 +167,13 @@
     $('#alter-box').innerHTML = [['background', 'Background and scene'], ['relight', 'Lighting'], ['recolor', 'Product colour'], ['viewpoint', 'New viewpoint (synthesized)']].map(([k, t]) => { const allowed = ok && m.alter[k]; return `<label class="check-inline" style="${allowed ? '' : 'opacity:.55'}"><input type="checkbox" data-want="${k}" ${allowed && want[k] ? 'checked' : ''} ${allowed ? '' : 'disabled'}> ${t}${allowed ? '' : ' <small class="muted">(not allowed on this product)</small>'}</label>`; }).join('');
     body.querySelectorAll('[data-want]').forEach((i) => i.onchange = () => { want[i.dataset.want] = i.checked; C.save(); });
     $('#go-shoot').disabled = busy || !ok;
-    $('#go-shoot').onclick = () => runShoot(sku, dir, ratio, body);
+    const ml = $('#mode-locked'); if (ml && lockedOk) ml.onclick = () => { sel.mode = 'locked'; C.save(); rerender(); }; $('#mode-creative').onclick = () => { sel.mode = 'creative'; C.save(); rerender(); };
+    $('#go-shoot').onclick = () => runShoot(sku, dir, ratio, body, mode);
     wireAssets(body);
   }
-  async function runShoot(sku, dir, ratio, body) {
+  async function runShoot(sku, dir, ratio, body, mode) {
     if (busy) return;
+    if (mode === 'locked') { busy = true; rerender(); try { const { asset } = await window.Identity.generateLocked({ sku, ratio }); toast(asset.qa.rows[0][1] === 'pass' ? 'Done. Product pixels were kept. Compare, then approve.' : 'Checks need your review.'); } catch (e) { toast(e.message); } busy = false; rerender(); return; }
     const keys = Object.keys(DIRS), d = dir === 'surprise' ? keys[Math.floor(Math.random() * keys.length)] : dir, plan = DIRS[d].plan;
     const alter = Object.fromEntries(Object.entries(store().sel.alter || {}).filter(([, v]) => v));
     if (!Object.keys(alter).length) return toast('Choose what may change first.');

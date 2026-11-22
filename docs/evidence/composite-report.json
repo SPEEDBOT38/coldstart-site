@@ -1,0 +1,19 @@
+{
+  "matte_model": "u2netp",
+  "background": "procedural",
+  "reference_sha256": "ad722a6285af2f9a1e3ab02c466fc3e1f43173230b58724816d9e7033964d12c",
+  "output_sha256": "90edad2d0a1ebd133ed1f4c1ba31db8ac5dd8f1f1ce16695fa18e1830b70ddce",
+  "foreground": {
+    "x": 185,
+    "y": 318,
+    "w": 709,
+    "h": 713,
+    "resampled_once": false,
+    "scale": 1
+  },
+  "protected_pixels": 480778,
+  "protected_pixels_changed": 0,
+  "matte_coverage": 0.958,
+  "protected_pixel_equality": "pass",
+  "note": "Equality is checked against the locked (single-resample) foreground. It proves the compositor did not alter product pixels; it does not prove the matte caught every edge."
+}

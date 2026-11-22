@@ -23,7 +23,8 @@ const inc = (t, x) => String(t).toLowerCase().includes(x.toLowerCase());
 const ok = (c, m) => { if (!c) throw new Error(m || 'assertion failed'); };
 
 const worker = http.createServer((req, res) => { workerCalls++; res.writeHead(200, { 'content-type': 'image/jpeg', 'x-model': 'mock-worker' }); res.end(fs.readFileSync(FX(workerImage))); }).listen(WPORT, '127.0.0.1');
-const server = spawn('node', ['server.js'], { cwd: ROOT, env: { ...process.env, PORT, STORE: 'memory', SESSION_SECRET: 'e'.repeat(40), IMAGE_ENGINE: 'flux', IMAGE_API_URL: `http://127.0.0.1:${WPORT}`, IMAGE_API_KEY: 'k', IMAGE_DAILY_LIMIT: '500', OPENROUTER_API_KEY: '', FIRECRAWL_API_KEY: '', IMAGE_COST_EST_USD: '0.04', META_APP_ID: '', META_APP_SECRET: '' }, stdio: 'ignore' });
+const CPORT = 8913; const comp = spawn('python3', ['workers/composite/service.py'], { cwd: ROOT, env: { ...process.env, PORT: CPORT, REMBG_MODEL: 'u2netp' }, stdio: 'ignore' });
+const server = spawn('node', ['server.js'], { cwd: ROOT, env: { ...process.env, PORT, STORE: 'memory', SESSION_SECRET: 'e'.repeat(40), IMAGE_ENGINE: 'flux', IMAGE_API_URL: `http://127.0.0.1:${WPORT}`, IMAGE_API_KEY: 'k', IMAGE_DAILY_LIMIT: '500', OPENROUTER_API_KEY: '', FIRECRAWL_API_KEY: '', IMAGE_COST_EST_USD: '0.04', COMPOSITE_API_URL: `http://127.0.0.1:${CPORT}`, META_APP_ID: '', META_APP_SECRET: '' }, stdio: 'ignore' });
 for (let i = 0; i < 50; i++) { try { if ((await fetch(BASE + '/api/health')).ok) break; } catch { await new Promise(r => setTimeout(r, 200)); } }
 
 const SCAN = { mode: 'live', model: 'mock', log: [], brand: { name: 'Fern & Form', line: 'Plant-care kits for urban gardeners in India', tones: ['warm', 'plain-spoken'], colors: ['#2d5a27', '#eae7e0'], currency: 'INR', dont: ['miracle'], names: [] },
@@ -35,6 +36,7 @@ async function mocks(page) {
   await page.route('**/api/plugins/research/actions/scan', r => r.fulfill({ json: RESEARCH }));
 }
 const watch = (page, tag) => { page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) consoleErrors.push(tag + ': ' + m.text()); }); page.on('pageerror', e => consoleErrors.push(tag + ' PE: ' + e.message + ' @ ' + String(e.stack).split('\n').slice(1, 3).join(' ').trim() + ' on ' + page.url())); };
+const creativeMode = async (page) => { await page.waitForSelector('#mode-creative'); if ((await page.getAttribute('#mode-creative', 'aria-pressed')) !== 'true') { await page.click('#mode-creative'); await page.waitForSelector('#go-shoot'); } };
 const overflow = page => page.evaluate(() => { if (document.documentElement.scrollWidth <= innerWidth + 2) return false; const all = [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > innerWidth + 2); const w = all.filter((e) => !all.some((o) => o !== e && e.contains(o))).slice(0, 3).map((e) => e.tagName + '.' + e.className + '#' + e.id + ' ' + Math.round(e.getBoundingClientRect().right) + ' ' + (e.textContent || '').slice(0, 30)); const sn = all[0] && document.getElementById('f-sku') || document.querySelector('.subnav'); const chain = []; for (let e = sn; e && e !== document.body; e = e.parentElement) chain.push(e.tagName + '.' + e.className + ' w' + Math.round(e.getBoundingClientRect().width) + ' d' + getComputedStyle(e).display); window.__ovf = w.join(',') + ' CHAIN ' + chain.join(' < '); return true; });
 const S = page => page.evaluate(() => JSON.parse(localStorage.getItem('coldstart.v4') || 'null'));
 const ops = (page, action, body) => page.evaluate(async ([a, b]) => { const r = await fetch('/api/plugins/ops/actions/' + a, b === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json', 'x-coldstart': '1' }, body: JSON.stringify(b) }); return { status: r.status, json: await r.json() }; }, [action, body]);
@@ -97,7 +99,7 @@ async function suite(label, viewport) {
   await T(tag('generation: only allowed alterations; job runs on the server; real OCR QA; never auto-verified'), async () => {
     await page.goto(BASE + '/app-v4.html#/campaigns/studio'); await page.waitForSelector('#go-shoot');
     eq(await page.locator('[data-want=recolor]').isDisabled(), true, 'recolour is not allowed on this master');
-    workerImage = 'gen_ok.jpg'; await page.click('#go-shoot');
+    workerImage = 'gen_ok.jpg'; await creativeMode(page); await page.click('#go-shoot');
     await page.waitForSelector('[data-compare]', { timeout: 120000 }); await page.waitForFunction(() => !/Running OCR/.test(document.body.innerText), null, { timeout: 120000 });
     const jobs = (await ops(page, 'jobs')).json.jobs; eq(jobs.length, 1); eq(jobs[0].state, 'completed', 'matching label → QA recorded → completed'); eq(jobs[0].model, 'mock-worker'); eq(jobs[0].review.verified, false, 'segmentation/logo are unverified, so never "verified"');
     const a = (await S(page)).studio.assets[0]; ok(a.findings.find((f) => f.check === 'Packaging text').status === 'pass', 'OCR found the confirmed label text in the generated image');
@@ -117,8 +119,19 @@ async function suite(label, viewport) {
     ok((await S(page)).studio.assets[0].approved, 'asset approved');
   });
 
+  await T(tag('fidelity-first: real matte, original pixels kept, measured from output, still needs review'), async () => {
+    for (let i = 0; i < 60; i++) { try { if ((await fetch(`http://127.0.0.1:${CPORT}/health`)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 500)); }
+    await page.goto(BASE + '/app-v4.html#/campaigns/studio'); await page.waitForSelector('#mode-locked'); await page.click('#mode-locked'); await page.waitForSelector('#go-shoot');
+    const prev = (await S(page)).studio.assets.length; await page.click('#go-shoot');
+    await page.waitForFunction((n) => JSON.parse(localStorage.getItem('coldstart.v4')).studio.assets.length > n, prev, { timeout: 120000 });
+    const a = (await S(page)).studio.assets[0]; eq(a.spec.mode, 'pixel-locked'); eq(a.findings[0].status, 'pass', 'protected pixels unchanged'); ok(/ 0 changed/.test(a.findings[0].detail), a.findings[0].detail); eq(a.verified, false, 'never auto-verified'); eq(a.synth, false);
+    eq((await ops(page, 'audit')).json.events.some((e) => /Pixel-locked composite \(pass\)/.test(e.text)), true, 'recorded on the server audit log');
+    await page.waitForSelector(`[data-compare="${a.id}"]`); await page.click(`[data-compare="${a.id}"]`); await page.waitForSelector('#cp-ok'); eq(await page.locator('#cp-ok').isDisabled(), true, 'approve still gated by human comparison');
+    await page.keyboard.press('Escape');
+  });
+
   await T(tag('bad generation: OCR catches altered label text → job failed → cannot approve'), async () => {
-    workerImage = 'gen_bad.jpg'; await page.goto(BASE + '/app-v4.html#/campaigns/studio'); await page.waitForSelector('#go-shoot'); const prevId = (await S(page)).studio.assets[0].id; await page.click('#go-shoot');
+    workerImage = 'gen_bad.jpg'; await page.goto(BASE + '/app-v4.html#/campaigns/studio'); await page.waitForSelector('#go-shoot'); const prevId = (await S(page)).studio.assets[0].id; await creativeMode(page); await page.click('#go-shoot');
     await page.waitForFunction((pid) => { const a = JSON.parse(localStorage.getItem('coldstart.v4')).studio.assets[0] || {}; return a.id !== pid && a.findings; }, prevId, { timeout: 120000 });
     await page.waitForFunction(() => !/Running OCR/.test(document.body.innerText), null, { timeout: 120000 });
     const a = (await S(page)).studio.assets[0]; eq(a.findings.find((f) => f.check === 'Packaging text').status, 'fail', 'altered text must fail');
@@ -170,7 +183,7 @@ async function suite(label, viewport) {
     const m = (await ops(page, 'masters')).json.masters[0]; const body = { masterId: m.id, idempotencyKey: 'paused-try-0001', direction: 'x', prompt: 'a jar on a counter', alter: { background: true }, reference: 'data:image/png;base64,iVBORw0K' };
     eq((await ops(page, 'createJob', body)).status, 423, 'paused → 423'); await page.click('#pz'); await page.waitForSelector('text=Pause all automation');
     await page.fill('#cap-c', '1'); await page.click('#cap-save'); await page.waitForTimeout(500);
-    await page.goto(BASE + '/app-v4.html#/campaigns/studio'); await page.click('[data-tab=shoot]'); await page.waitForSelector('#go-shoot'); await page.click('#go-shoot'); await page.waitForFunction(() => /cap reached/.test(document.getElementById('toast').textContent), null, { timeout: 20000 });
+    await page.goto(BASE + '/app-v4.html#/campaigns/studio'); await page.click('[data-tab=shoot]'); await page.waitForSelector('#go-shoot'); await creativeMode(page); await page.click('#go-shoot'); await page.waitForFunction(() => /cap reached/.test(document.getElementById('toast').textContent), null, { timeout: 20000 });
     await page.goto(BASE + '/app-v4.html#/settings/usage'); await page.waitForSelector('text=Against your limits'); ok(inc(await page.locator('body').innerText(), 'Cold Start fee') && inc(await page.locator('body').innerText(), 'Ad spend'), 'three cost buckets are separate');
     await page.goto(BASE + '/app-v4.html#/settings/automations'); await page.waitForSelector('#reset'); await page.click('#reset');
   });
@@ -216,7 +229,7 @@ await T('bypass: POST without header refused; another browser cannot read or exe
   const fresh = await fetch(BASE + '/api/plugins/ops/actions/masters'); eq((await fresh.json()).masters.length, 0, 'a fresh browser has its own empty workspace');
 });
 
-await browser.close(); server.kill(); worker.close();
+await browser.close(); server.kill(); comp.kill(); worker.close();
 const fails = results.filter((r) => r[1] === 'FAIL');
 console.log(`\n${results.length - fails.length}/${results.length} passed`);
 if (consoleErrors.length) console.log('console errors:\n  ' + [...new Set(consoleErrors)].slice(0, 12).join('\n  '));
