@@ -44,3 +44,15 @@ Rule: find a maintained implementation first; write only glue. **Verification li
 
 ## Not reused on purpose
 `@imgly/background-removal` (AGPL/commercial), `ffmpeg-static` (GPL-3.0), any AGPL/GPL source in the proprietary core.
+
+## Checkpoint 5 additions
+| Component | Source | License | Use | Status |
+|---|---|---|---|---|
+| isnet-general-use (primary matte) | rembg release weights (xuebinqin/DIS) | Code Apache-2.0; weights trained on DIS5K — dataset terms NOT yet reviewed | Segmentation | In use; weight/dataset licence review pending before paid launch |
+| u2netp (second opinion) | rembg release weights (xuebinqin/U-2-Net) | Apache-2.0 code; dataset terms not reviewed | Disagreement check | In use; same pending review |
+| BiRefNet-general-lite | ZhengPeng7/BiRefNet | — | Evaluated | Rejected: OOM-killed on 8 GB, not viable on serverless |
+| bria-rmbg | BRIA | Non-commercial | — | Avoided |
+| @neondatabase/serverless | npm | MIT | Postgres store backend | In use |
+| @electric-sql/pglite | npm | Apache-2.0 | Tests only (real Postgres in WASM) | devDependency |
+
+Measured on SYNTHETIC fixtures only (not real photos): u2netp mean IoU 0.816, isnet-general-use 0.947 (thin edges 0.111 → 0.784). Real-photo harness: workers/composite/eval/real_photos.py (blocked until photos are supplied).

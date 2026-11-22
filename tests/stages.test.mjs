@@ -28,3 +28,16 @@ test('generated background is labelled ai_generated with provider/model; a compo
 test('a photo that is not in the approved master is refused before any provider call', async () => {
   const { srv, store, m, calls } = await setup(() => true); await assert.rejects(opsPlugin.actions.compositeAd.run({ store, ws: 'wsstages001', fetch }, { masterId: m.id, reference: 'data:image/png;base64,' + Buffer.from('other').toString('base64') }), /not part of the approved/); srv.closeAllConnections(); srv.close(); assert.equal(calls(), 0);
 });
+test('matteFor refuses a photo not in the master, and forwards the matte for one that is', async () => {
+  const { srv, store, m, calls } = await setup(() => true);
+  await assert.rejects(opsPlugin.actions.matteFor.run({ store, ws: 'wsstages001', fetch }, { masterId: m.id, reference: 'data:image/png;base64,' + Buffer.from('other').toString('base64') }), e => e.detail?.code === 'unknown_reference'); assert.equal(calls(), 0);
+  await opsPlugin.actions.matteFor.run({ store, ws: 'wsstages001', fetch }, { masterId: m.id, reference: png }).catch(() => {}); assert.equal(calls(), 1); srv.closeAllConnections(); srv.close();
+});
+test('a manual mask is forwarded to the compositor', async () => {
+  let body = ''; const srv = http.createServer((req, res) => { req.on('data', (c) => body += c); req.on('end', () => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ image: png, report: { matte_model: 'manual', protected_pixels_changed: 0, protected_pixels: 200000, protected_pixel_equality: 'pass', segmentation: { status: 'manual_corrected' } } })); }); }); await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  process.env.COMPOSITE_API_URL = 'http://127.0.0.1:' + srv.address().port; delete process.env.BACKGROUND_PROVIDER; const store = createStore({ STORE: 'memory' }), kv = scoped(store, 'wsstages001');
+  const m = await saveMaster(kv, { identity: { name: 'Test', sku: 'T1', refs: [{ sha256: sha, label: 'front' }], text: ['TEST'], colors: [], regions: [] } }); await approveMaster(kv, m.id, { confirmed: { text: true, colors: true, logo: true } });
+  const mask = 'data:image/png;base64,' + Buffer.from('maskbytes').toString('base64');
+  const r = await opsPlugin.actions.compositeAd.run({ store, ws: 'wsstages001', fetch }, { masterId: m.id, reference: png, mask }); srv.closeAllConnections(); srv.close();
+  assert.equal(JSON.parse(body).mask, mask); assert.equal(r.report.segmentation.status, 'manual_corrected');
+});

@@ -37,6 +37,7 @@ def case_reflective_can():
     fg = shade(W, H, (200, 200, 205)); fg = fg.filter(ImageFilter.GaussianBlur(0.5)); return fg, gt
 CASES = {'glossy_bottle': case_glossy_bottle, 'transparent_bottle': case_transparent_bottle, 'thin_edges': case_thin_edges, 'small_label_jar': case_small_label_jar, 'reflective_can': case_reflective_can}
 def build(name):
+    global rng; rng = np.random.default_rng(7 + sorted(CASES).index(name))   # deterministic per case, independent of call order
     fg, gt = CASES[name](); bg = busy_bg()
     if fg is None:                                                       # glass: 25% tinted body over the busy background, brighter rim
         tint = Image.new('RGB', (W, H), (200, 230, 240)); body = Image.composite(Image.blend(bg, tint, 0.22), bg, gt)
@@ -45,11 +46,12 @@ def build(name):
     m = gt.filter(ImageFilter.GaussianBlur(0.8)); return Image.composite(fg, bg, m), gt
 from metrics import metrics
 def enc(im): o = io.BytesIO(); im.save(o, 'PNG'); return 'data:image/png;base64,' + base64.b64encode(o.getvalue()).decode()
-out = {'note': 'SYNTHETIC stress fixtures with exact ground truth; not genuine product photographs.', 'model': service.MODEL, 'cases': {}}
-for n in CASES:
-    img, gt = build(n); alpha = remove(img, session=service.SESSION).getchannel('A'); seg = metrics(alpha, gt)
-    rep = service.composite({'reference': enc(img), 'width': 1080, 'height': 1350})['report']
-    out['cases'][n] = {'segmentation_vs_ground_truth': seg, 'protected_pixel_check': {k: rep[k] for k in ['protected_pixels', 'protected_pixels_changed', 'matte_coverage', 'protected_pixel_equality']},
-                       'reading': 'Preservation can pass while segmentation is poor: the check only proves we did not alter the pixels the matte kept.'}
-    img.save(f'/tmp/stress_{n}.png')
-json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else '/tmp/seg.json', 'w'), indent=1); print(json.dumps({k: [v['segmentation_vs_ground_truth']['iou'], v['segmentation_vs_ground_truth']['boundary_f1_2px'], v['protected_pixel_check']['protected_pixel_equality']] for k, v in out['cases'].items()}))
+if __name__ == '__main__':
+    out = {'note': 'SYNTHETIC stress fixtures with exact ground truth; not genuine product photographs.', 'model': service.MODEL, 'cases': {}}
+    for n in CASES:
+        img, gt = build(n); alpha = remove(img, session=service.SESSION).getchannel('A'); seg = metrics(alpha, gt)
+        rep = service.composite({'reference': enc(img), 'width': 1080, 'height': 1350})['report']
+        out['cases'][n] = {'segmentation_vs_ground_truth': seg, 'protected_pixel_check': {k: rep[k] for k in ['protected_pixels', 'protected_pixels_changed', 'matte_coverage', 'protected_pixel_equality']},
+                           'reading': 'Preservation can pass while segmentation is poor: the check only proves we did not alter the pixels the matte kept.'}
+        img.save(f'/tmp/stress_{n}.png')
+    json.dump(out, open(sys.argv[1] if len(sys.argv) > 1 else '/tmp/seg.json', 'w'), indent=1); print(json.dumps({k: [v['segmentation_vs_ground_truth']['iou'], v['segmentation_vs_ground_truth']['boundary_f1_2px'], v['protected_pixel_check']['protected_pixel_equality']] for k, v in out['cases'].items()}))

@@ -42,3 +42,9 @@ Costs so far: $0 of provider spend. Nothing was called against X, Reddit, Meta, 
 | `META_PAGE_ID`, `META_PUBLISH_ENABLED=1` | Facebook/Instagram publishing after App Review | blocked |
 | `META_MAX_DAILY_BUDGET` | server cap on a draft's daily budget | no extra cap beyond the approved payload |
 | `HOST` | bind address of the compositor container | 127.0.0.1 |
+
+## Checkpoint 5 environment variables
+- `DATABASE_URL` / `POSTGRES_URL` — Neon/Postgres store (set in the Vercel dashboard; never in chat). Takes priority over D1/Upstash unless `STORE=memory`.
+- `CRON_SECRET` (>=24 chars) — guards `POST /api/diag/store`, which runs the 8 durability/concurrency checks inside the deployed function.
+- `X_API_ENABLED=1` — re-enables the dormant X research adapter. Default off (paid X API out of scope; manual X post workflow instead).
+- `REMBG_MODEL` (default isnet-general-use), `REMBG_SECOND_MODEL` (default u2netp), `SEG_AGREE_MIN` (default 0.90) — compositor segmentation.

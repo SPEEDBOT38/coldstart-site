@@ -2,7 +2,7 @@
 # Build:  docker build -t coldstart-composite workers/composite
 # Run:    docker run -p 8080:8080 -e COMPOSITE_KEY=<random> coldstart-composite
 FROM python:3.12-slim
-ENV PYTHONUNBUFFERED=1 HOST=0.0.0.0 PORT=8080 REMBG_MODEL=u2netp U2NET_HOME=/models
+ENV PYTHONUNBUFFERED=1 HOST=0.0.0.0 PORT=8080 REMBG_MODEL=isnet-general-use REMBG_SECOND_MODEL=u2netp U2NET_HOME=/models
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

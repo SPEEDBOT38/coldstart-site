@@ -1,0 +1,86 @@
+{
+ "note": "SYNTHETIC fixtures with exact masks; not genuine product photographs.",
+ "models": {
+  "u2netp": {
+   "cases": {
+    "glossy_bottle": {
+     "iou": 0.996,
+     "boundary_f1_2px": 1.0,
+     "predicted_area_ratio": 1.004,
+     "ms": 704
+    },
+    "transparent_bottle": {
+     "iou": 0.986,
+     "boundary_f1_2px": 0.962,
+     "predicted_area_ratio": 1.014,
+     "ms": 719
+    },
+    "thin_edges": {
+     "iou": 0.111,
+     "boundary_f1_2px": 0.709,
+     "predicted_area_ratio": 8.783,
+     "ms": 640
+    },
+    "small_label_jar": {
+     "iou": 0.993,
+     "boundary_f1_2px": 0.999,
+     "predicted_area_ratio": 1.004,
+     "ms": 609
+    },
+    "reflective_can": {
+     "iou": 0.992,
+     "boundary_f1_2px": 1.0,
+     "predicted_area_ratio": 1.008,
+     "ms": 607
+    }
+   },
+   "mean_iou": 0.816,
+   "peak_rss_mb": 1107
+  },
+  "isnet-general-use": {
+   "cases": {
+    "glossy_bottle": {
+     "iou": 0.999,
+     "boundary_f1_2px": 1.0,
+     "predicted_area_ratio": 1.001,
+     "ms": 3298
+    },
+    "transparent_bottle": {
+     "iou": 0.953,
+     "boundary_f1_2px": 0.719,
+     "predicted_area_ratio": 0.956,
+     "ms": 3277
+    },
+    "thin_edges": {
+     "iou": 0.784,
+     "boundary_f1_2px": 0.922,
+     "predicted_area_ratio": 0.924,
+     "ms": 2828
+    },
+    "small_label_jar": {
+     "iou": 0.999,
+     "boundary_f1_2px": 1.0,
+     "predicted_area_ratio": 1.001,
+     "ms": 2869
+    },
+    "reflective_can": {
+     "iou": 1.0,
+     "boundary_f1_2px": 1.0,
+     "predicted_area_ratio": 1.0,
+     "ms": 3046
+    }
+   },
+   "mean_iou": 0.947,
+   "peak_rss_mb": 2102
+  },
+  "birefnet-general-lite": {
+   "status": "not_viable_here",
+   "note": "Process was killed (out of memory) on an 8 GB sandbox while segmenting a 900x1100 fixture on CPU; it cannot fit a 2-4 GB serverless function. Weights file 224,005,088 bytes, sha256 5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333."
+  }
+ },
+ "selected": {
+  "primary": "isnet-general-use",
+  "second_opinion": "u2netp",
+  "rule": "If the two mattes disagree (IoU < 0.90) the cutout is flagged needs_review and the person must correct or confirm it. Disagreement is an uncertainty signal, not a quality score."
+ }
+}

@@ -1,25 +1,35 @@
 {
-  "at": "2026-11-22T08:59:19.898Z",
+  "at": "2026-11-22T11:17:43.130Z",
   "results": [
     [
       "[desktop] onboarding: scan → confirm flagship (with validation) → goal → boundaries (country required) → plan → Accept plan",
       "pass",
-      2510
+      2578
     ],
     [
       "[desktop] state survives refresh; confirmed info is not asked again in the Library",
       "pass",
-      167
+      197
     ],
     [
       "[desktop] research: scan result persists; server counts it against the daily cap",
       "pass",
-      87
+      103
+    ],
+    [
+      "[desktop] social: Reddit thread (manual) → evidence → draft → Action Inbox approval → Calendar → marked posted by user, not verified",
+      "pass",
+      876
+    ],
+    [
+      "[desktop] tracking: website check form is present and refuses private/non-https addresses",
+      "pass",
+      318
     ],
     [
       "[desktop] identity: upload → read packaging text (real OCR) → confirm → approve master",
       "pass",
-      31286
+      31432
     ],
     [
       "[desktop] generation: only allowed alterations; job runs on the server; real OCR QA; never auto-verified",
@@ -29,147 +39,157 @@
     [
       "[desktop] compare: slider, synced zoom/pan, findings, approval gate",
       "pass",
-      2830
+      2827
     ],
     [
       "[desktop] fidelity-first: real matte, original pixels kept, measured from output, still needs review",
       "pass",
-      1089
+      1113
     ],
     [
       "[desktop] bad generation: OCR catches altered label text → job failed → cannot approve",
       "pass",
-      1189
+      1105
     ],
     [
       "[desktop] identity change voids approval and blocks generation until re-approved",
       "pass",
-      1666
+      1701
     ],
     [
       "[desktop] jobs tab: states, cost, model, retry/cancel controls; recovery of an unchecked job",
       "pass",
-      97
+      96
     ],
     [
       "[desktop] launch: approval bound to payload → blocked (Meta not connected) → sandbox connect → simulated → duplicate-safe",
       "pass",
-      858
+      816
     ],
     [
       "[desktop] changing the campaign voids the approval; revoke after execution is refused with an explanation",
       "pass",
-      654
+      669
     ],
     [
       "[desktop] Pause All and caps are enforced by the server",
       "pass",
-      1977
+      1919
     ],
     [
       "[desktop] inbox: Request changes uses a dialog (no prompt()), validates input",
       "pass",
-      144
+      130
     ],
     [
       "[desktop] five-item navigation preserved; no horizontal overflow on key screens",
       "pass",
-      5082
+      5068
     ],
     [
       "[desktop] accessibility: axe on key screens (serious/critical)",
       "pass",
-      6859
+      6817
     ],
     [
       "[desktop] keyboard: palette opens with Ctrl+K, Escape closes dialogs, focus lands in dialogs",
       "pass",
-      104
+      163
     ],
     [
       "[mobile] onboarding: scan → confirm flagship (with validation) → goal → boundaries (country required) → plan → Accept plan",
       "pass",
-      2086
+      2068
     ],
     [
       "[mobile] state survives refresh; confirmed info is not asked again in the Library",
       "pass",
-      158
+      167
     ],
     [
       "[mobile] research: scan result persists; server counts it against the daily cap",
       "pass",
-      77
+      110
+    ],
+    [
+      "[mobile] social: Reddit thread (manual) → evidence → draft → Action Inbox approval → Calendar → marked posted by user, not verified",
+      "pass",
+      807
+    ],
+    [
+      "[mobile] tracking: website check form is present and refuses private/non-https addresses",
+      "pass",
+      237
     ],
     [
       "[mobile] identity: upload → read packaging text (real OCR) → confirm → approve master",
       "pass",
-      31306
+      31304
     ],
     [
       "[mobile] generation: only allowed alterations; job runs on the server; real OCR QA; never auto-verified",
       "pass",
-      503
+      531
     ],
     [
       "[mobile] compare: slider, synced zoom/pan, findings, approval gate",
       "pass",
-      2773
+      2817
     ],
     [
       "[mobile] fidelity-first: real matte, original pixels kept, measured from output, still needs review",
       "pass",
-      1042
+      884
     ],
     [
       "[mobile] bad generation: OCR catches altered label text → job failed → cannot approve",
       "pass",
-      1124
+      1072
     ],
     [
       "[mobile] identity change voids approval and blocks generation until re-approved",
       "pass",
-      1662
+      1848
     ],
     [
       "[mobile] jobs tab: states, cost, model, retry/cancel controls; recovery of an unchecked job",
       "pass",
-      96
+      98
     ],
     [
       "[mobile] launch: approval bound to payload → blocked (Meta not connected) → sandbox connect → simulated → duplicate-safe",
       "pass",
-      790
+      833
     ],
     [
       "[mobile] changing the campaign voids the approval; revoke after execution is refused with an explanation",
       "pass",
-      647
+      615
     ],
     [
       "[mobile] Pause All and caps are enforced by the server",
       "pass",
-      1840
+      1864
     ],
     [
       "[mobile] inbox: Request changes uses a dialog (no prompt()), validates input",
       "pass",
-      189
+      155
     ],
     [
       "[mobile] five-item navigation preserved; no horizontal overflow on key screens",
       "pass",
-      5066
+      5048
     ],
     [
       "[mobile] keyboard: palette opens with Ctrl+K, Escape closes dialogs, focus lands in dialogs",
       "pass",
-      108
+      67
     ],
     [
       "bypass: POST without header refused; another browser cannot read or execute this workspace's records",
       "pass",
-      28
+      20
     ]
   ],
   "consoleErrors": []

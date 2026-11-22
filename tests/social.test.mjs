@@ -1,4 +1,5 @@
 // Social Intelligence pipeline. The X API is MOCKED with fixtures shaped like the official v2 responses; no live X call is made.
+process.env.X_API_ENABLED = '1';   // the X adapter is retained but off by default; these tests exercise it against mocks
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildKeywords, dedupe, cluster, detectTrend, regionOf, scoreItem, runPipeline } from '../lib/social/pipeline.js';
@@ -78,4 +79,8 @@ test('with no AI connected the draft is a labelled template that must be edited,
   for (const k of ['GEMINI_API_KEY', 'OPENROUTER_API_KEY']) delete process.env[k];
   const d = await draftFor({ opportunity: { id: 'op_1', platform: 'reddit', opportunity_type: 'participate', title: 'Soil?', excerpt: 'help', cluster: { label: 'soil' }, source_url: 'https://reddit.com/x' }, brand: { name: 'Fern & Form' }, fetch: async () => { throw new Error('no network'); } });
   assert.equal(d.mode, 'template'); assert.equal(d.needsEdit, true); assert.match(d.text, /Disclosure/);
+});
+test('X research is OFF by default (cost decision): no provider call, source reported as switched off', async () => {
+  const { xSource } = await import('../lib/social/sources.js'); const was = process.env.X_API_ENABLED; delete process.env.X_API_ENABLED; process.env.X_BEARER_TOKEN = 'tok';
+  assert.equal(xSource.status().state, 'requires_approval'); assert.match(xSource.status().reason, /switched off/); process.env.X_API_ENABLED = was;
 });

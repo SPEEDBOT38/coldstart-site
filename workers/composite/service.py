@@ -8,13 +8,14 @@ from PIL import Image, ImageFilter, ImageChops
 import numpy as np
 from rembg import remove, new_session
 
-MODEL = os.environ.get('REMBG_MODEL', 'u2netp'); KEY = os.environ.get('COMPOSITE_KEY', '')
-PINNED = {'u2netp': '309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8'}   # sha256 of u2netp.onnx; source https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx ; U-2-Net licence Apache-2.0
+MODEL = os.environ.get('REMBG_MODEL', 'isnet-general-use'); SECOND = os.environ.get('REMBG_SECOND_MODEL', 'u2netp'); AGREE_MIN = float(os.environ.get('SEG_AGREE_MIN', '0.9')); KEY = os.environ.get('COMPOSITE_KEY', '')
+PINNED = {'u2netp': '309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8', 'isnet-general-use': '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a'}   # sha256 of u2netp.onnx; source https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx ; U-2-Net licence Apache-2.0
 def _check_weights():
-    f = os.path.join(os.environ.get('U2NET_HOME', os.path.expanduser('~/.u2net')), MODEL + '.onnx')
-    if MODEL in PINNED and os.path.exists(f) and hashlib.sha256(open(f, 'rb').read()).hexdigest() != PINNED[MODEL]: raise SystemExit('model weights checksum mismatch: refusing to start')
+    for m in [x for x in (MODEL, SECOND) if x]:
+        f = os.path.join(os.environ.get('U2NET_HOME', os.path.expanduser('~/.u2net')), m + '.onnx')
+        if m in PINNED and os.path.exists(f) and hashlib.sha256(open(f, 'rb').read()).hexdigest() != PINNED[m]: raise SystemExit('model weights checksum mismatch (' + m + '): refusing to start')
 _check_weights()
-SESSION = new_session(MODEL)
+SESSION = new_session(MODEL); SESSION2 = new_session(SECOND) if SECOND and SECOND != MODEL else None
 MAX_PX = 24_000_000
 
 def dec(u):
@@ -29,10 +30,25 @@ def procedural_bg(w, h):
     y = np.linspace(0, 1, h)[:, None, None]; top = np.array([226, 220, 208]); bot = np.array([170, 160, 148])
     return Image.fromarray((top * (1 - y) + bot * y).repeat(w, 1).astype('uint8'), 'RGB')
 
+def _iou(a, b):
+    a = np.array(a) > 127; b = np.array(b) > 127; u = (a | b).sum(); return float((a & b).sum() / u) if u else 1.0
+def mattes(ref):
+    """Primary matte plus an independent second-opinion matte from a different model. Disagreement is an uncertainty signal, not a quality score."""
+    a = remove(ref, session=SESSION).getchannel('A'); b = remove(ref, session=SESSION2).getchannel('A') if SESSION2 else None
+    return a, b, (_iou(a, b) if b is not None else None)
+def matte_endpoint(req):
+    ref, ref_sha = dec(req['reference']); ref = ref.convert('RGB'); a, b, agree = mattes(ref)
+    return {'reference_sha256': ref_sha, 'size': list(ref.size), 'primary': {'model': MODEL, 'matte': enc(a)[0]}, 'second': ({'model': SECOND, 'matte': enc(b)[0]} if b is not None else None), 'agreement_iou': None if agree is None else round(agree, 3), 'agree_threshold': AGREE_MIN}
+
 def composite(req):
     ref, ref_sha = dec(req['reference']); ref = ref.convert('RGB'); W, H = int(req['width']), int(req['height'])
     if not (64 <= W <= 4096 and 64 <= H <= 4096): raise ValueError('bad size')
-    cut = remove(ref, session=SESSION).convert('RGBA')                       # rembg matte
+    seg = {'primary_model': MODEL, 'second_model': SECOND or None}
+    if req.get('mask'):                                                       # a person corrected the cutout: their mask replaces the automatic one
+        mk, mk_sha = dec(req['mask']); alpha = mk.convert('L').resize(ref.size, Image.LANCZOS); seg.update(source='manual_corrected', status='manual_corrected', mask_sha256=mk_sha, agreement_iou=None)
+    else:
+        alpha, alt, agree = mattes(ref); seg.update(source='auto', agreement_iou=None if agree is None else round(agree, 3), status=('single_model_unchecked' if agree is None else 'agree' if agree >= AGREE_MIN else 'disagree_needs_review'))
+    cut = ref.convert('RGBA'); cut.putalpha(alpha)                            # matte applied to the untouched reference pixels
     bbox = cut.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()
     if not bbox: raise ValueError('no product found in the photo')
     r_, g_, b_, a_ = cut.split(); cut = Image.merge('RGBA', (r_, g_, b_, a_.point(lambda v: 255 if v >= 200 else (0 if v < 16 else v))))   # make the product interior solid; keep a thin soft edge
@@ -54,7 +70,7 @@ def composite(req):
     m = np.array(core) > 0; o = np.array(out.crop((x, y, x + fg.width, y + fg.height)))[..., :3]; f = np.array(fg.convert('RGB'))
     px = int(m.sum()); diff = int((np.abs(o.astype(int) - f.astype(int)).max(axis=2)[m] > 0).sum()) if px else -1
     image, out_sha = enc(out)
-    report = {'matte_model': MODEL, 'background': bg_src, 'reference_sha256': ref_sha, 'output_sha256': out_sha, 'foreground': {'x': x, 'y': y, 'w': fg.width, 'h': fg.height, 'resampled_once': scale != 1.0, 'scale': round(scale, 4)},
+    report = {'matte_model': MODEL, 'segmentation': seg, 'background': bg_src, 'reference_sha256': ref_sha, 'output_sha256': out_sha, 'foreground': {'x': x, 'y': y, 'w': fg.width, 'h': fg.height, 'resampled_once': scale != 1.0, 'scale': round(scale, 4)},
               'protected_pixels': px, 'protected_pixels_changed': diff, 'matte_coverage': round(px / max(1, int((np.array(fg.getchannel('A')) > 16).sum())), 3),
               'protected_pixel_equality': ('needs_review' if px < 0.5 * int((np.array(fg.getchannel('A')) > 16).sum()) else 'pass' if diff == 0 else 'fail'),
               'note': 'Equality is checked against the locked (single-resample) foreground. It proves the compositor did not alter product pixels; it does not prove the matte caught every edge.'}
@@ -67,11 +83,11 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self): self.send(200, {'ok': True, 'matte_model': MODEL}) if self.path == '/health' else self.send(404, {'error': 'not found'})
     def do_POST(self):
         if KEY and self.headers.get('authorization') != 'Bearer ' + KEY: return self.send(401, {'error': 'unauthorized'})
-        if self.path != '/composite': return self.send(404, {'error': 'not found'})
+        if self.path not in ('/composite', '/matte'): return self.send(404, {'error': 'not found'})
         try:
             n = int(self.headers.get('content-length', 0))
             if n > 40_000_000: return self.send(413, {'error': 'too large'})
-            self.send(200, composite(json.loads(self.rfile.read(n))))
+            body = json.loads(self.rfile.read(n)); self.send(200, matte_endpoint(body) if self.path == '/matte' else composite(body))
         except (ValueError, KeyError, OSError) as e: self.send(400, {'error': str(e)[:200]})
 if __name__ == '__main__':
     ThreadingHTTPServer((os.environ.get('HOST', '127.0.0.1'), int(os.environ.get('PORT', 8920))), H).serve_forever()

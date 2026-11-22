@@ -1,8 +1,15 @@
 {
   "matte_model": "u2netp",
+  "segmentation": {
+    "primary_model": "u2netp",
+    "second_model": "u2netp",
+    "source": "auto",
+    "agreement_iou": null,
+    "status": "single_model_unchecked"
+  },
   "background": "procedural",
   "reference_sha256": "ad722a6285af2f9a1e3ab02c466fc3e1f43173230b58724816d9e7033964d12c",
-  "output_sha256": "90edad2d0a1ebd133ed1f4c1ba31db8ac5dd8f1f1ce16695fa18e1830b70ddce",
+  "output_sha256": "679ad46bbf3cb1ba63a6f10f78708e3b270acbcbd25d550ecd34047a98facfae",
   "foreground": {
     "x": 185,
     "y": 318,

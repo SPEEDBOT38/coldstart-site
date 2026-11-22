@@ -1,4 +1,5 @@
 // X source paging, caching, read caps, scheduled scans and cron auth. X is MOCKED (no live call).
+process.env.X_API_ENABLED = '1';   // the X adapter is retained but off by default; these tests exercise it against mocks
 import test from 'node:test'; import assert from 'node:assert/strict';
 import { createStore } from '../lib/store.js'; import { scoped } from '../lib/ops/kv.js'; import { setPolicy } from '../lib/ops/policy.js';
 import { runScan } from '../lib/social/scan.js'; import { setSchedule, runDueScans } from '../lib/social/schedule.js'; import { xSource } from '../lib/social/sources.js';
