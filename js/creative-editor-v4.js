@@ -16,13 +16,38 @@
     return STYLES[category(brandLine)][layout] + ' Use the exact product from the reference image: same shape, colours, packaging and printed text, no warping or distortion. Leave clear empty space for a headline. No text, no watermarks, no added logos, no prices, no model faces.';
   }
 
+  /* Three art-directed briefs. The product is never sent to the image model: the model paints only the scene, with an
+     empty, lit placement area where the compositor puts the original product pixels (Product Lock). Text sits in a
+     reserved zone that does not intersect the product box, which compose() verifies geometrically. */
+  const BRIEFS = {
+    spotlight: { name: 'Premium product hero', objective: 'Make the product the unmistakable hero and signal quality.',
+      product: { cx: 0.5, cy: 0.64, scale: 0.52 }, text: { headline: 'top-left', body: 'top-left', cta: 'top-left' },
+      camera: 'eye level, 85mm, slight downward tilt', lighting: 'large soft key from upper left, gentle rim light from behind, soft contact shadow',
+      prompt: (b) => `Empty art-directed product photography set, 4:5 vertical. A ${b.food ? 'polished dark stone plinth on a warm cream seamless backdrop, a few' : 'matte plinth on a seamless backdrop,'} ${b.food ? 'whole roasted almonds and cocoa nibs placed far at the edges' : 'minimal props at the far edges'}. The plinth top is centred in the lower half and completely EMPTY, ready for a product to be placed. Upper 40% of the frame is calm, uncluttered negative space in ${b.palette}. Camera at eye level, 85mm lens. Large soft key light from upper left, subtle rim light, realistic floor shadows. Premium, quiet, high-end advertising mood. No product, no packaging, no text, no logos.` },
+    lifestyle: { name: 'Sensory lifestyle', objective: 'Make people crave it: texture, ingredients and a real moment of enjoyment.',
+      product: { cx: 0.62, cy: 0.6, scale: 0.46 }, text: { headline: 'bottom-left', body: 'bottom-left', cta: 'bottom-left' },
+      camera: '45-degree overhead, 50mm, shallow depth of field', lighting: 'warm window light from the right, golden hour, soft natural shadows',
+      prompt: (b) => `Rich food photography scene, 4:5 vertical, 45-degree overhead angle, 50mm, shallow depth of field. ${b.food ? 'Warm walnut wood table with a linen napkin, a ceramic cup of hot chocolate, broken chocolate pieces, roasted almonds and a dusting of cocoa' : 'A styled real-life table setting with natural textures and lifestyle props'} arranged around an EMPTY clear space slightly right of centre in the middle of the frame where a product will be placed. Lower-left third is darker and less busy for text. Warm golden window light from the right, appetising, tactile textures, colour harmony with ${b.palette}. No product, no packaging, no text, no logos, no hands, no faces.` },
+    contrast: { name: 'Expressive editorial', objective: 'Stop the scroll with a bold, graphic composition and one clear benefit.',
+      product: { cx: 0.66, cy: 0.52, scale: 0.55 }, text: { headline: 'middle-left', body: 'middle-left', cta: 'bottom-left' },
+      camera: 'straight-on, 70mm, graphic and flat', lighting: 'hard directional spotlight from the right, strong sculpted shadows',
+      prompt: (b) => `Bold editorial still-life set, 4:5 vertical, straight-on camera, 70mm. Colour-blocked backdrop: a deep ${b.dark} left half and a ${b.accent} right half meeting in a clean vertical line, a single hard spotlight from the right casting one long sculpted shadow. The right half has an EMPTY plinth where a product will be placed; the left half is clean, flat and dark for large typography. Magazine-cover energy, high contrast, sophisticated. No product, no packaging, no text, no logos.` },
+  };
+  function brief(id, brand) {
+    const col = (brand && brand.colors) || [], b = BRIEFS[id];
+    const ctx = { food: category(brand && brand.line) === 'food', palette: col.slice(0, 3).join(', ') || 'warm neutrals', dark: col[3] || '#2B1A12', accent: col[2] || col[0] || '#C98B5E' };
+    return { id, ...b, scenePrompt: b.prompt(ctx) };
+  }
+
   function defaultLayout(x, colors) {
     const ink = colors[3] || '#111111', paper = colors[4] || '#FFFFFF', accent = colors[0] || ink;
-    const top = x.layout !== 'lifestyle';
+    const B = BRIEFS[x.layout] || BRIEFS.spotlight, light = x.layout === 'spotlight';
     return {
-      headline: { text: x.headline || '', position: top ? 'top-left' : 'bottom-left', size: 'huge', color: '#FFFFFF', align: 'left', bg: null, shade: true },
-      body: { text: x.body || '', position: top ? 'top-left' : 'bottom-left', size: 'small', color: '#FFFFFF', align: 'left', bg: null },
-      cta: { text: x.cta || 'Shop now', position: 'bottom-left', size: 'medium', color: paper, align: 'left', bg: accent },
+      headline: { text: x.headline || '', position: B.text.headline, size: x.layout === 'contrast' ? 'huge' : 'large', color: light ? ink : '#FFFFFF', align: 'left', bg: null, shade: x.layout === 'lifestyle' },
+      body: { text: x.body || '', position: B.text.body, size: 'small', color: light ? ink : '#FFFFFF', align: 'left', bg: null },
+      cta: { text: x.cta || 'Shop now', position: B.text.cta, size: 'medium', color: paper, align: 'left', bg: accent },
+      logo: { position: x.layout === 'contrast' ? 'top-left' : 'top-right' },
+      productBox: null,   // filled from the compositor report: {x,y,w,h}
     };
   }
 
@@ -34,11 +59,13 @@
   async function compose(baseSrc, layout, aspect, font) {
     const [W, H] = DIMS[aspect] || DIMS['4:5'], c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
     const im = await loadImg(baseSrc); const s = Math.max(W / im.width, H / im.height); g.drawImage(im, (W - im.width * s) / 2, (H - im.height * s) / 2, im.width * s, im.height * s);
-    const pad = W * 0.065, cellW = (W - pad * 2) / 3, fam = font || 'system-ui, sans-serif';
+    const pad = W * 0.065, cellW = (W - pad * 2) / 3, fam = font || 'system-ui, sans-serif', rects = [];
+    const pb = layout.productBox;   // keep text out of the product: limit width to the space beside it when they share a band
+    if (layout.logo && layout.logo.src) { try { const lg = await loadImg(layout.logo.src), lh = W * 0.06, lw = Math.min(W * 0.3, lg.width * lh / lg.height), lx = /right/.test(layout.logo.position) ? W - pad - lw : pad; g.drawImage(lg, lx, pad * 0.8, lw, lh); rects.push({ k: 'logo', x: lx, y: pad * 0.8, w: lw, h: lh }); } catch (e) { /* logo optional */ } }
     const cells = {};
     ['headline', 'body', 'cta'].forEach((k) => { const b = layout[k]; if (b && b.text) (cells[b.position] = cells[b.position] || []).push([k, b]); });
     for (const [pos, blocks] of Object.entries(cells)) {
-      const [vy, hx] = pos.split('-'), maxW = hx === 'center' ? W - pad * 2 : cellW * 2.2;
+      const [vy, hx] = pos.split('-'); let maxW = hx === 'center' ? W - pad * 2 : cellW * 2.2; if (pb && hx === 'left' && vy !== 'top') maxW = Math.max(cellW, Math.min(maxW, pb.x - pad * 1.4));
       const measured = blocks.map(([k, b]) => { const px = Math.round(W * SIZE[b.size || 'medium']); g.font = `${k === 'body' ? 500 : 800} ${px}px ${fam}`; const ls = lines(g, b.text, k === 'cta' ? W : maxW).slice(0, k === 'headline' ? 3 : 2); return { k, b, px, ls, h: ls.length * px * 1.15 + (b.bg ? px * 0.9 : 0) }; });
       const total = measured.reduce((a, m) => a + m.h, 0) + (measured.length - 1) * W * 0.02;
       let y = vy === 'top' ? pad : vy === 'middle' ? (H - total) / 2 : H - pad - total;
@@ -52,10 +79,15 @@
         g.fillStyle = m.b.color || '#fff'; g.textAlign = al;
         const tx = al === 'left' ? x0 + (m.b.bg ? m.px * 0.6 : 0) : al === 'right' ? x0 - (m.b.bg ? m.px * 0.6 : 0) : x0;
         m.ls.forEach((l, n) => g.fillText(l, tx, y + (m.b.bg ? m.px * 0.45 : 0) + n * m.px * 1.15));
+        rects.push({ k: m.k, x: al === 'left' ? x0 : al === 'right' ? x0 - width : x0 - width / 2, y, w: width + (m.b.bg ? m.px * 1.2 : 0), h: m.h });
         y += m.h + W * 0.02;
       }
     }
     g.textAlign = 'left';
+    // deterministic checks: clipping and text/product collision
+    const issues = []; const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    rects.forEach((r) => { if (r.x < 0 || r.y < 0 || r.x + r.w > W || r.y + r.h > H) issues.push(r.k + ' is clipped'); if (pb && r.k !== 'logo' && hit(r, pb)) issues.push(r.k + ' overlaps the product'); });
+    c.qa = { rects, issues };
     return c;
   }
 
@@ -87,5 +119,5 @@
     document.getElementById('ce-exp').onclick = async () => { const c = await compose(baseSrc, L, aspect, font); c.toBlob((blob) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (fileName || 'ad') + '.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png'); };
   }
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  window.CreativeEditor = { compose, open, defaultLayout, scenePrompt, DIMS };
+  window.CreativeEditor = { compose, open, defaultLayout, scenePrompt, brief, BRIEFS, DIMS };
 })();

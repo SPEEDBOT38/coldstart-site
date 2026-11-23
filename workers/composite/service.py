@@ -52,7 +52,8 @@ def composite(req):
     if req.get('background'):
         bg, _ = dec(req['background']); bg = bg.convert('RGB').resize((W, H), Image.LANCZOS); bg_src = 'provided'
     else: bg = procedural_bg(W, H); bg_src = 'procedural'
-    x, y = (W - fg.width) // 2, int(H * 0.5 - fg.height * 0.5)
+    cx, cy = min(max(float(req.get('cx', 0.5)), 0.0), 1.0), min(max(float(req.get('cy', 0.5)), 0.0), 1.0)   # art-directed placement (centre of the product, as a fraction of the canvas)
+    x = min(max(int(W * cx - fg.width / 2), 0), W - fg.width); y = min(max(int(H * cy - fg.height / 2), 0), H - fg.height)
     canvas = bg.convert('RGBA')
     a = np.array(fg.getchannel('A')).astype(np.float32) / 255
     shadow = Image.new('L', (W, H), 0); sh = Image.new('L', fg.size, 0); sh.paste(Image.fromarray((a * 90).astype('uint8')), (0, 0))
@@ -75,10 +76,7 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def send(self, code, obj):
         b = json.dumps(obj).encode(); self.send_response(code); self.send_header('content-type', 'application/json'); self.send_header('content-length', str(len(b))); self.end_headers(); self.wfile.write(b)
-    def op(self):   # local: /composite; Vercel: /api/compose/composite, or the rewritten /api/compose/[op]?op=composite
-        import urllib.parse as _u
-        q = _u.parse_qs(_u.urlsplit(self.path).query).get('op')
-        return q[0] if q else self.path.split('?')[0].rstrip('/').rsplit('/', 1)[-1]   # '/composite' locally, '/api/compose/composite' on Vercel
+    def op(self): return self.path.split('?')[0].rstrip('/').rsplit('/', 1)[-1]   # '/composite' locally, '/api/compose/composite' on Vercel
     def do_GET(self): self.send(200, {'ok': True, 'matte_model': MODEL}) if self.op() in ('health', 'compose') else self.send(404, {'error': 'not found'})
     def do_POST(self):
         if KEY and self.headers.get('authorization') != 'Bearer ' + KEY: return self.send(401, {'error': 'unauthorized'})

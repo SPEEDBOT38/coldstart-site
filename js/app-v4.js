@@ -108,7 +108,7 @@
     const items = (snap.creatives && snap.creatives.items) || [], done = items.filter((x) => x.imageState === 'rendered').length;
     if (cr) {
       cr.innerHTML = items.length ? `<div class="cr-head"><p class="small" style="margin:0">${done === 3 ? 'Three generated ads, ready for review.' : done ? done + ' of 3 generated.' : fl.image ? 'Concepts. Render them into real ad images from your product photo.' : 'Concepts. Add a product photo to render real ad images.'}</p>
-        ${fl.image && done < 3 ? `<button class="btn yellow sm" id="cr-render" type="button" ${rendering ? 'disabled' : ''}>${rendering ? 'Rendering…' : 'Render ' + (3 - done) + ' ad image' + (3 - done > 1 ? 's' : '')}</button>` : ''}</div><div id="cr-msg"></div>
+        ${fl.image ? `<button class="btn sm" id="cr-proto" type="button" ${rendering ? 'disabled' : ''}>Layout prototypes (free)</button> <button class="btn yellow sm" id="cr-render" type="button" ${rendering ? 'disabled' : ''}>${rendering ? 'Rendering…' : 'Render 3 final ads (Product Lock)'}</button>` : ''}</div><div id="cr-msg"></div>
         <div class="cr-grid" id="cr-track" role="list">${items.map((x, n) => `<article class="cr ${esc(x.layout)}" role="listitem" aria-label="${n + 1} of 3: ${esc(x.kind)}">
           ${x.imageState === 'rendered' ? `<div class="cr-art img" data-cr-img="${esc(x.id)}"><span class="muted small">Loading image…</span></div>` : `<div class="cr-art" style="${vars}"><span class="concept-tag">Concept</span><div class="hl">${esc(x.headline)}</div>${fl.image ? `<img src="${esc(fl.image)}" alt="${esc(fl.name || '')}" referrerpolicy="no-referrer">` : '<div class="ph">Add a product photo</div>'}<div><p class="small" style="margin:0 0 8px">${esc(x.body)}</p><span class="cta">${esc(x.cta)}</span></div></div>`}
           <div class="cr-meta"><div class="row"><strong>${esc(x.kind)}</strong><span class="chip dash">${esc(x.channel)}</span></div>
@@ -125,7 +125,7 @@
         else editCr(x); });
       cr.querySelectorAll('[data-cr-open]').forEach((b) => b.onclick = () => { const im = cr.querySelector(`[data-cr-img="${b.dataset.crOpen}"] img`); if (im) { const d = document.getElementById('dlg'); d.innerHTML = `<div class="dlg-b"><img src="${im.src}" alt="Generated ad" style="width:100%;max-height:80vh;object-fit:contain"></div><div class="dlg-f"><button class="btn ghost" id="dl-png" type="button">Download PNG</button><button class="btn" id="dx" type="button">Close</button></div>`; d.showModal(); $('#dx').onclick = () => d.close(); $('#dl-png').onclick = async () => { const x = items.find((y) => y.id === b.dataset.crOpen), el = cr.querySelector(`[data-cr-img="${x.id}"]`); const cv = await window.CreativeEditor.compose(el.dataset.base, x.textLayout || window.CreativeEditor.defaultLayout(x, (S.brand && S.brand.colors) || []), (x.imageMeta && x.imageMeta.aspect) || '4:5'); cv.toBlob((blob) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ((S.brand && S.brand.name) || 'ad') + '-' + x.id + '.png'; a.click(); }, 'image/png'); }; } });
       const mk = $('#cr-make'); if (mk) mk.onclick = async () => { mk.disabled = true; try { await C.ops.post('obCreatives', ctx); homeIntel(); } catch (e) { toast(e.message); mk.disabled = false; } };
-      const rb = $('#cr-render'); if (rb) rb.onclick = () => renderAds(items.filter((x) => x.imageState !== 'rendered'), ctx);
+      const rb = $('#cr-render'); if (rb) rb.onclick = () => renderAds(items, ctx); const pb = $('#cr-proto'); if (pb) pb.onclick = () => renderAds(items, ctx, { prototype: true });
     }
     const cs = ((snap.competitors && snap.competitors.items) || []), ap = cs.filter((x) => x.decision === 'approved' || x.origin === 'user_added'), sug = cs.filter((x) => x.decision === 'pending');
     const coms = ((snap.communities && snap.communities.items) || []).filter((x) => x.decision !== 'not_relevant'), saved = coms.filter((x) => x.decision === 'saved'), ads = (snap.ads && snap.ads.items) || [];
@@ -134,18 +134,39 @@
       <a class="intel-card" href="#/discover"><span class="eyebrow">Communities</span><strong>${saved.length ? saved.length + ' saved' : coms.length ? coms.length + ' suggested' : 'None found yet'}</strong><span class="pills">${(saved.length ? saved : coms).slice(0, 4).map((x) => `<i>${esc(x.name)}</i>`).join('')}</span><small>From web search results, not demand data</small></a>
       <div class="intel-card"><span class="eyebrow">Competitor ads</span><strong>${ads.length ? ads.length + ' Ad Library search' + (ads.length > 1 ? 'es' : '') : 'Waiting on approvals'}</strong><span class="pills">${ads.slice(0, 3).map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.competitor)} ↗</a>`).join('')}</span><small>${ads.length ? 'Manual review: nothing fetched automatically' : 'Approve competitors to prepare searches'}</small></div></div>`;
   }
-  async function renderAds(list, ctx) {
+  /* Product Lock: the image model paints only an empty, art-directed scene; the original product pixels are placed by the
+     Python compositor (/api/compose/composite, same origin so the Preview SSO cookie applies) with a contact shadow;
+     text and logo are drawn deterministically by CreativeEditor. If the compositor fails we stop: we never fall back to a
+     model that redraws the product. */
+  async function compose(body) {
+    const r = await fetch('/api/compose/composite', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.image) throw new Error('Product Lock compositor failed (' + r.status + '): ' + (j.error || 'no image') + '. Nothing was generated in its place.');
+    return j;
+  }
+  async function renderAds(list, ctx, opts) {
     if (rendering || !list.length) return; rendering = true; homeIntel();
-    const msg = () => $('#cr-msg'), fl = flagshipWithPhoto();
+    const msg = () => $('#cr-msg'), fl = flagshipWithPhoto(), prototypeOnly = opts && opts.prototype, colors = (S.brand && S.brand.colors) || [];
     try {
-      const ref = await shrink((await C.api('plugins/images/actions/photo', { url: fl.image })).image, 1024);
+      const ref = await shrink((await C.api('plugins/images/actions/photo', { url: fl.image })).image, 2048);
       for (const x of list) {
-        if (msg()) msg().innerHTML = `<p class="small">Rendering ${esc(x.kind)}… (about 15 s each)</p>`;
-        const t = Date.now(), aspect = x.layout === 'lifestyle' ? '9:16' : x.layout === 'contrast' ? '1:1' : '4:5';
-        const g = await C.api('plugins/images/actions/generate', { prompt: window.CreativeEditor.scenePrompt(x.layout, S.brand && S.brand.line), reference: ref, aspect, model: 'pro', palette: { colors: (S.brand && S.brand.colors) || [] } });
-        const base = await shrink(g.image, 1600), layout = window.CreativeEditor.defaultLayout(x, (S.brand && S.brand.colors) || []);
-        await C.ops.post('obEditCreative', { context: ctx, id: x.id, image: base, layout, imageMeta: { model: g.model, ms: Date.now() - t, usd: g.usd, aspect, source: 'Nano Banana (reference: your product photo); text drawn by the Cold Start editor', productImage: fl.image } });
-        C.cost('Ad image render', g.usd == null ? null : g.usd, x.kind);
+        const B = window.CreativeEditor.brief(x.layout, S.brand), t = Date.now(); let usd = 0, bg = null, model = null;
+        if (!prototypeOnly) {
+          if (msg()) msg().innerHTML = `<p class="small">${esc(B.name)}: painting the empty scene…</p>`;
+          const g = await C.api('plugins/images/actions/generate', { prompt: B.scenePrompt, aspect: '4:5', model: 'pro', palette: { colors } });   // no reference: the model never sees or draws the product
+          bg = await shrink(g.image, 1600); usd = g.usd || 0; model = g.model;
+        }
+        if (msg()) msg().innerHTML = `<p class="small">${esc(B.name)}: compositing your original product (Product Lock)…</p>`;
+        const cmp = await compose({ reference: ref, background: bg || undefined, width: 1080, height: 1350, ...B.product });
+        const f = cmp.report.foreground, layout = window.CreativeEditor.defaultLayout(x, colors);
+        layout.productBox = { x: f.x, y: f.y, w: f.w, h: f.h };
+        if (S.brand && S.brand.logo) layout.logo = { ...layout.logo, src: S.brand.logo };
+        const qa = (await window.CreativeEditor.compose(cmp.image, layout, '4:5')).qa;
+        await C.ops.post('obEditCreative', { context: ctx, id: x.id, image: await shrink(cmp.image, 1600), layout,
+          imageMeta: { stage: bg ? 'final' : 'prototype', brief: { id: B.id, name: B.name, objective: B.objective, camera: B.camera, lighting: B.lighting, product: B.product, prompt: B.scenePrompt },
+            model, usd, ms: Date.now() - t, aspect: '4:5', productLock: { report: cmp.report, protectedPixelsChanged: cmp.report.protected_pixels_changed }, qa: qa.issues, approved: false,
+            source: bg ? 'Scene by Nano Banana (no product reference); original product composited; text by the Cold Start editor' : 'Prototype: brand gradient + original product + text, no generation cost', productImage: fl.image } });
+        if (usd) C.cost('Ad scene render', usd, x.kind);
       }
       if (msg()) msg().innerHTML = '';
     } catch (e) { if (msg()) msg().innerHTML = `<div class="err">${esc(e.message)}</div>`; }
