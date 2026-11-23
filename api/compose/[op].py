@@ -6,4 +6,8 @@ sys.path.insert(0, os.path.join(ROOT, 'workers', 'composite'))
 bundled = os.path.join(ROOT, 'workers', 'composite', 'models')
 os.environ.setdefault('U2NET_HOME', bundled if os.path.isdir(bundled) and os.listdir(bundled) else '/tmp/models')
 os.environ.setdefault('ORT_THREADS', '2')
-from service import H as handler   # noqa: E402  (Vercel looks for a `handler` BaseHTTPRequestHandler subclass)
+from service import H   # noqa: E402
+
+
+class handler(H):   # Vercel detects a top-level `handler` class (an import alias is not detected)
+    pass
