@@ -43,11 +43,13 @@
     store().skus.unshift(sku); await addRef(sku.id, dataUrl); return sku;
   }
   async function importStore() {
-    const prods = (C.S.products || []).filter((p) => p.image && !store().skus.some((s) => s.name === p.name)).slice(0, 6);
+    const fl = ((C.S.flagship || {}).name || '').toLowerCase(), photo = (p) => p.image || (p.images || [])[0] || (p.enrich && p.enrich.candidates && p.enrich.candidates[0] && p.enrich.candidates[0].url);
+    const prods = (C.S.products || []).filter((p) => photo(p) && !store().skus.some((s) => s.name === p.name)).sort((a, b) => ((b.name || '').toLowerCase() === fl) - ((a.name || '').toLowerCase() === fl)).slice(0, 12);
     if (!prods.length) return toast('No new store photos to import.');
+    const box = document.getElementById('lib-auto'); if (box) box.textContent = 'Adding ' + prods.length + ' products found on your website…';
     let ok = 0;
     for (const p of prods) {
-      try { const r = await C.api('plugins/images/actions/photo', { url: p.image }); await newSku(p.name, p.price, r.image, 'store'); ok++; } catch (e) { /* skip one */ }
+      try { const r = await C.api('plugins/images/actions/photo', { url: photo(p) }); await newSku(p.name, p.price, r.image, 'store'); ok++; } catch (e) { /* skip one */ }
     }
     toast(ok ? 'Imported ' + ok + ' product photo' + (ok > 1 ? 's' : '') + '.' : 'Could not fetch those photos. Upload them instead.');
     rerender();
@@ -70,11 +72,12 @@
         <label class="field" style="flex:1;min-width:200px"><span>Product name</span><input id="up-name" type="text" placeholder="Barrier Cream 50 ml" value="${esc((C.S.flagship || {}).name || '')}"></label>
         <label class="field" style="width:130px"><span>Price</span><input id="up-price" type="number" min="0" placeholder="799" value="${esc(String((C.S.flagship || {}).price || ''))}"></label>
         <label class="btn" style="cursor:pointer">Upload product photo<input id="up-file" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
-        ${(C.S.products || []).some((p) => p.image) ? '<button class="btn ghost" id="imp" type="button">Import from my store</button>' : ''}</div>
+        ${(C.S.products || []).some((p) => p.image || (p.images || []).length || (p.enrich && p.enrich.candidates && p.enrich.candidates.length)) ? '<button class="btn ghost" id="imp" type="button">Import from my website</button>' : ''}</div><p class="small muted" id="lib-auto" aria-live="polite"></p>
         <small class="muted">JPG, PNG or WebP up to 6 MB. Stored in this browser only. One photo is enough to start.</small></div></div>
       <div class="sku-list">${cards.join('') || '<div class="empty" style="margin:0"><strong>No products yet.</strong><p>Add one photo of the product you want to advertise.</p></div>'}</div>`;
     $('#up-file').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; if (f.size > 6e6) return toast('That photo is over 6 MB.'); try { await newSku($('#up-name').value.trim() || f.name.replace(/\.[^.]+$/, ''), $('#up-price').value, await readFile(f)); toast('Saved. Original is locked.'); rerender(); } catch (er) { toast(er.message); } };
     const imp = $('#imp'); if (imp) imp.onclick = importStore;
+    if (imp && !st.skus.length && !st.autoImported) { st.autoImported = true; C.save(); importStore(); }   // first visit: list the products the scan found
     masters_().then((ms) => root.querySelectorAll('[data-ident]').forEach((n) => { const sk = st.skus.find((x) => x.id === n.dataset.ident); n.innerHTML = window.Identity.statusChip(ms.find((m) => m.id === sk.masterId)); })).catch(() => {});
     root.querySelectorAll('[data-ident-open]').forEach((b) => b.onclick = () => window.Identity.openMaster(b.dataset.identOpen));
     root.querySelectorAll('[data-add-ref]').forEach((i) => i.onchange = async () => { const f = i.files[0]; if (!f || f.size > 6e6) return toast('Pick a photo under 6 MB.'); const n = store().skus.find((s) => s.id === i.dataset.addRef).refs.length; await addRef(i.dataset.addRef, await readFile(f), ['Side', 'Back', 'Close-up', 'Detail'][n - 1] || 'Angle'); rerender(); });
