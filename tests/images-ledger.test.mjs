@@ -53,3 +53,15 @@ test('the ad pipeline is gated off in Production unless CREATIVE_PIPELINE=on', a
   process.env.VERCEL_ENV = 'preview'; delete process.env.CREATIVE_PIPELINE; assert.equal(creativePipelineOn(), true);
   Object.assign(process.env, env); if (!env.VERCEL_ENV) delete process.env.VERCEL_ENV;
 });
+
+test('workspace allowlist and $ budget bound', async () => {
+  const env = { ...process.env };
+  process.env.VERCEL_ENV = 'production'; delete process.env.CREATIVE_PIPELINE; process.env.CREATIVE_PIPELINE_WORKSPACES = 'wsA';
+  const { creativePipelineOn } = await import('../lib/plugins/images.js');
+  assert.equal(creativePipelineOn({ ws: 'wsA' }), true); assert.equal(creativePipelineOn({ ws: 'wsB' }), false); assert.equal(creativePipelineOn({}), false);
+  process.env.CREATIVE_BUDGET_USD = '0.4'; process.env.CREATIVE_EST_USD_PER_IMAGE = '0.25';
+  const store = createStore({ STORE: 'memory' }), ctx = { store, fetch: seq(ok('a', null)), ip: '1.1.1.1', ws: 'wsA' };
+  await generateImage(ctx, { prompt: 'scene one', job: 'j', raw: true });          // unknown cost counts as 0.25
+  await assert.rejects(generateImage(ctx, { prompt: 'scene two', job: 'j', raw: true }), /budget/);
+  Object.keys(process.env).forEach(k => { if (!(k in env)) delete process.env[k]; }); Object.assign(process.env, env);
+});
