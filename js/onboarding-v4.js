@@ -52,7 +52,7 @@
       <p class="ob-note" id="scan-clock">${sec}s · usually 15 to 30 seconds. Results appear as soon as the server returns them.</p></div>`;
   }
   async function startScan(domain) {
-    scanning = true; scanIdx = 0; window.__scanT0 = Date.now(); C.ops.post('obTiming', { mark: 'scan_started', at: Date.now() }).catch(() => {}); render(); const clk = setInterval(() => { const e = document.getElementById('scan-clock'); if (!scanning || !e) return clearInterval(clk); e.textContent = Math.round((Date.now() - window.__scanT0) / 1000) + 's · usually 15 to 30 seconds. Results appear as soon as the server returns them.'; }, 1000);
+    scanning = true; scanIdx = 0; window.__scanT0 = Date.now(); Promise.resolve().catch(() => {}); render(); const clk = setInterval(() => { const e = document.getElementById('scan-clock'); if (!scanning || !e) return clearInterval(clk); e.textContent = Math.round((Date.now() - window.__scanT0) / 1000) + 's · usually 15 to 30 seconds. Results appear as soon as the server returns them.'; }, 1000);
     scanTimer = null;   // no simulated progress: the list shows what the scan does, not a fake position
     const t0 = Date.now();
     try {
@@ -155,24 +155,25 @@
       const hit = (S.products || []).find((p) => p.name === name);
       S.flagship = { name, kind: (S.flagship && S.flagship.kind) || 'product', variant: $('#fl-var').value.trim(), price: price ? Number(price) : null, currency: $('#fl-cur').value || null, url, image: pickedImg || '', imageRights: 'unconfirmed', imageSource: hit && hit.enrich ? hit.enrich.productUrl : null, source: hit ? 'site_scan' : 'user', confirmedAt: new Date().toISOString() };
       S.offer = { name, price: S.flagship.price, url };
-      S.brand.line = $('#line').value.trim(); S.brand.name = $('#bname').value.trim() || S.brand.name; S.input.desc = S.brand.line; C.save(); C.ops.post('obTiming', { mark: 'product_confirmed', at: Date.now() }).catch(() => {}); go(2);
+      S.brand.line = $('#line').value.trim(); S.brand.name = $('#bname').value.trim() || S.brand.name; S.input.desc = S.brand.line; C.save(); C.ops.post('obTiming', { context: obCtx(), mark: 'product_confirmed', at: Date.now() }).catch(() => {}); go(2);
     };
   }
 
   /* ---------- 3. Outcome ---------- */
   /* ---------- 3. Competitors & communities (the person decides; suggestions are labelled) ---------- */
   const obCtx = () => ({ brand: { name: (S.brand && S.brand.name) || '', line: (S.brand && S.brand.line) || S.input.desc || '', site: S.input.site || '' }, product: S.flagship && S.flagship.name ? { name: S.flagship.name, price: S.flagship.price || null, currency: S.flagship.currency || null } : undefined, audience: ((S.icps || []).find((i) => i.on !== false) || {}).who || '', country: (S.bounds && S.bounds.country) || '' });
-  let intel = { competitors: null, communities: null, cErr: '', mErr: '', loading: false };
+  let intel = { competitors: null, communities: null, cErr: '', mErr: '', loading: false, ctx: null };
   async function loadIntel(force) {
     if (intel.loading) return; intel.loading = true; stepIntel();
-    let snap = {}; try { snap = await C.ops.get('obIntel'); } catch (e) { /* first visit */ }
+    let snap = {}; try { const cx = obCtx(); snap = await C.ops.get('obIntel', { site: cx.brand.site, brand: cx.brand.name, country: cx.country }); } catch (e) { /* first visit */ }
     intel.competitors = snap.competitors; intel.communities = snap.communities;
     const jobs = [];
-    if (force || !intel.competitors) jobs.push(C.ops.post('obCompetitors', obCtx()).then((r) => { intel.competitors = r; C.ops.post('obTiming', { mark: 'competitors_shown', at: Date.now() }).catch(() => {}); }).catch((e) => { intel.cErr = 'Couldn’t suggest competitors right now. Add the ones you know below.'; console.warn(e.message); }));
+    if (force || !intel.competitors) jobs.push(C.ops.post('obCompetitors', obCtx()).then((r) => { intel.competitors = r; C.ops.post('obTiming', { context: obCtx(), mark: 'competitors_shown', at: Date.now() }).catch(() => {}); }).catch((e) => { intel.cErr = 'Couldn’t suggest competitors right now. Add the ones you know below.'; console.warn(e.message); }));
     if (force || !intel.communities) jobs.push(C.ops.post('obCommunities', obCtx()).then((r) => { intel.communities = r; }).catch((e) => { intel.mErr = 'Couldn’t search for communities right now.'; console.warn(e.message); }));
     await Promise.all(jobs); intel.loading = false; if (S.step === 2) stepIntel();
   }
   function stepIntel() {
+    const ck = (S.input.site || '') + '|' + ((S.brand && S.brand.name) || ''); if (intel.ctx !== ck) { intel = { competitors: null, communities: null, cErr: '', mErr: '', loading: false, ctx: ck }; }
     const cs = (intel.competitors && intel.competitors.items) || [], ms = (intel.communities && intel.communities.items) || [];
     const appr = cs.filter((x) => x.decision === 'approved').length;
     const kindChip = { direct: 'Direct', indirect: 'Indirect', adjacent: 'Adjacent' };
@@ -201,7 +202,7 @@
         <div class="nav-row"><button class="btn ghost" id="back" type="button">← Back</button><button class="btn lg" id="next" type="button">${appr ? 'Continue →' : 'Continue without competitors →'}</button></div>
       </div></div>`;
     $('#back').onclick = () => go(1); $('#next').onclick = () => go(3);
-    const decide = async (action, body) => { try { const r = await C.ops.post(action, body); if (action === 'obDecideCompetitor') intel.competitors = r; else intel.communities = r; stepIntel(); } catch (e) { toast(e.message); } };
+    const decide = async (action, body) => { try { const r = await C.ops.post(action, Object.assign({ context: obCtx() }, body)); if (action === 'obDecideCompetitor') intel.competitors = r; else intel.communities = r; stepIntel(); } catch (e) { toast(e.message); } };
     root.querySelectorAll('[data-cd]').forEach((b) => b.onclick = () => decide('obDecideCompetitor', { id: b.dataset.cd, decision: b.dataset.v }));
     root.querySelectorAll('[data-md]').forEach((b) => b.onclick = () => decide('obDecideCommunity', { id: b.dataset.md, decision: b.dataset.v }));
     $('#cmp-add').onsubmit = (e) => { e.preventDefault(); const n = $('#ca-n').value.trim(), u = $('#ca-u').value.trim(); if (n.length < 2 || !u) { $('#ca-e').innerHTML = '<div class="err">Enter a name and a website.</div>'; return; } decide('obDecideCompetitor', { add: { name: n, url: u } }); };
@@ -273,7 +274,7 @@
         <div class="nav-row"><button class="btn ghost" id="back" type="button">← Adjust</button><button class="btn lg yellow" id="next" type="button">Accept plan →</button></div>
       </div></div>`;
     $('#back').onclick = () => go(4);
-    $('#next').onclick = async () => { try { await Promise.all([C.ops.post('obCreatives', obCtx()), C.ops.post('obAds', { country: (S.bounds && S.bounds.country) || '' })]); C.ops.post('obTiming', { mark: 'dashboard_ready', at: Date.now() }).catch(() => {}); } catch (e) { console.warn('workspace init', e.message); } C.finish(); C.log('onboarding', 'Accepted first plan', { items: plan.length, flagship: (S.flagship || {}).name || null }); try { await C.ops.get('workspace'); } catch (e) { /* workspace is created on first server call; retried in the app */ } location.href = 'app-v4.html#/home'; };
+    $('#next').onclick = async () => { try { await Promise.all([C.ops.post('obCreatives', obCtx()), C.ops.post('obAds', { context: obCtx() })]); C.ops.post('obTiming', { context: obCtx(), mark: 'dashboard_ready', at: Date.now() }).catch(() => {}); } catch (e) { console.warn('workspace init', e.message); } C.finish(); C.log('onboarding', 'Accepted first plan', { items: plan.length, flagship: (S.flagship || {}).name || null }); try { await C.ops.get('workspace'); } catch (e) { /* workspace is created on first server call; retried in the app */ } location.href = 'app-v4.html#/home'; };
   }
 
   let sure = false;

@@ -85,29 +85,82 @@
     view.querySelectorAll('[data-why]').forEach((x) => x.addEventListener('click', () => drawer(x.dataset.why)));
     homeLive();
   }
+  const obContext = () => ({ brand: { name: (S.brand && S.brand.name) || 'Your brand', line: (S.brand && S.brand.line) || '', site: S.input.site || '' }, product: S.flagship && S.flagship.name ? { name: S.flagship.name, price: S.flagship.price || null, currency: S.flagship.currency || null } : undefined, audience: ((S.icps || []).find((i) => i.on !== false) || {}).who || '', country: (S.bounds && S.bounds.country) || '' });
+  const SCENES = {
+    spotlight: 'Premium studio product photograph. The exact product from the reference image as the hero, centred, on a seamless backdrop in the brand colours, soft key light, subtle reflection, generous empty space in the top third for a headline.',
+    lifestyle: 'Authentic lifestyle photograph showing the exact product from the reference image in a natural real-world use, gifting or consumption moment that fits it, warm natural light, shallow depth of field, empty space at the bottom for text.',
+    contrast: 'Bold editorial still life of the exact product from the reference image, dramatic directional light, strong graphic shadows, high-contrast colour blocking in the brand colours, magazine-cover composition with space on one side for text.',
+  };
+  let crIdx = 0, rendering = false;
   async function homeIntel() {
-    const cr = $('#home-cr'), mi = $('#home-mi'); let snap = {};
-    try { snap = await C.ops.get('obIntel'); } catch (e) { if (cr) cr.innerHTML = `<div class="empty sm">Couldn’t load drafts: ${esc(e.message)}</div>`; return; }
+    const cr = $('#home-cr'), mi = $('#home-mi'), ctx = obContext(); let snap = {};
+    try { snap = await C.ops.get('obIntel', { site: ctx.brand.site, brand: ctx.brand.name, country: ctx.country }); } catch (e) { if (cr) cr.innerHTML = `<div class="empty sm">Couldn’t load drafts: ${esc(e.message)}</div>`; return; }
     const col = (S.brand && S.brand.colors) || [], fl = S.flagship || {};
     const vars = `--b1:${esc(col[4] || '#F5F5F2')};--b2:${esc(col[3] || col[0] || '#111')};--b3:${esc(col[1] || col[0] || '#ddd')}`;
-    const items = (snap.creatives && snap.creatives.items) || [];
-    if (cr) cr.innerHTML = items.length ? `<div class="cr-grid" role="list">${items.map((x) => `<article class="cr ${esc(x.layout)}" role="listitem"><div class="cr-art" style="${vars}"><div class="hl">${esc(x.headline)}</div>${fl.image ? `<img src="${esc(fl.image)}" alt="${esc(fl.name || '')}" referrerpolicy="no-referrer">` : `<div class="ph">Your product photo goes here<br>(needs a photo you have rights to)</div>`}<div><p class="small" style="margin:0 0 8px">${esc(x.body)}</p><span class="cta">${esc(x.cta)}</span></div></div>
-      <div class="cr-meta"><div class="row"><strong>${esc(x.kind)}</strong><span class="chip dash">${esc(x.channel)}</span></div><small class="muted">${esc(x.rationale)}</small><div class="row">${fl.image ? '<span class="chip y">Demo · website photo</span>' : '<span class="chip warn">Needs product photo</span>'}<span class="chip dash">${x.origin === 'edited_by_user' ? 'Edited by you' : 'Draft'}</span></div>
-      <div class="row"><button class="btn sm ghost" data-cr-edit="${esc(x.id)}" type="button">Edit text</button><a class="btn sm" href="#/campaigns/library">Add product photo</a></div></div></article>`).join('')}</div>` : `<div class="empty sm">No drafts yet. <button class="btn sm" id="cr-make" type="button">Prepare three directions</button></div>`;
-    view.querySelectorAll('[data-cr-edit]').forEach((b) => b.onclick = () => editCr(items.find((x) => x.id === b.dataset.crEdit)));
-    const mk = $('#cr-make'); if (mk) mk.onclick = async () => { mk.disabled = true; try { await C.ops.post('obCreatives', { brand: { name: (S.brand && S.brand.name) || 'Your brand', line: (S.brand && S.brand.line) || '', site: S.input.site || '' }, product: fl.name ? { name: fl.name, price: fl.price || null, currency: fl.currency || null } : undefined }); homeIntel(); } catch (e) { toast(e.message); mk.disabled = false; } };
-    const cs = ((snap.competitors && snap.competitors.items) || []), ap = cs.filter((x) => x.decision === 'approved'), coms = ((snap.communities && snap.communities.items) || []).filter((x) => x.decision !== 'not_relevant'), ads = (snap.ads && snap.ads.items) || [];
+    const items = (snap.creatives && snap.creatives.items) || [], done = items.filter((x) => x.imageState === 'rendered').length;
+    if (cr) {
+      cr.innerHTML = items.length ? `<div class="cr-head"><p class="small" style="margin:0">${done === 3 ? 'Three generated ads, ready for review.' : done ? done + ' of 3 generated.' : fl.image ? 'Concepts. Render them into real ad images from your product photo.' : 'Concepts. Add a product photo to render real ad images.'}</p>
+        ${fl.image && done < 3 ? `<button class="btn yellow sm" id="cr-render" type="button" ${rendering ? 'disabled' : ''}>${rendering ? 'Rendering…' : 'Render ' + (3 - done) + ' ad image' + (3 - done > 1 ? 's' : '')}</button>` : ''}</div><div id="cr-msg"></div>
+        <div class="cr-grid" id="cr-track" role="list">${items.map((x, n) => `<article class="cr ${esc(x.layout)}" role="listitem" aria-label="${n + 1} of 3: ${esc(x.kind)}">
+          ${x.imageState === 'rendered' ? `<div class="cr-art img" data-cr-img="${esc(x.id)}"><span class="muted small">Loading image…</span></div>` : `<div class="cr-art" style="${vars}"><span class="concept-tag">Concept</span><div class="hl">${esc(x.headline)}</div>${fl.image ? `<img src="${esc(fl.image)}" alt="${esc(fl.name || '')}" referrerpolicy="no-referrer">` : '<div class="ph">Add a product photo</div>'}<div><p class="small" style="margin:0 0 8px">${esc(x.body)}</p><span class="cta">${esc(x.cta)}</span></div></div>`}
+          <div class="cr-meta"><div class="row"><strong>${esc(x.kind)}</strong><span class="chip dash">${esc(x.channel)}</span></div>
+          <div class="row">${x.imageState === 'rendered' ? `<span class="chip b">Generated image</span><small class="muted">${esc((x.imageMeta && x.imageMeta.model || '').split('/').pop())}${x.imageMeta && x.imageMeta.ms ? ' · ' + Math.round(x.imageMeta.ms / 1000) + 's' : ''}</small>` : '<span class="chip warn">Concept, not rendered</span>'}</div>
+          <div class="row"><button class="btn sm ghost" data-cr-edit="${esc(x.id)}" type="button">Edit text</button>${x.imageState === 'rendered' ? `<button class="btn sm ghost" data-cr-open="${esc(x.id)}" type="button">Open</button>` : ''}</div></div></article>`).join('')}</div>
+        <div class="cr-nav" aria-label="Creative navigation"><button class="btn sm ghost" data-cr-step="-1" type="button" aria-label="Previous creative">←</button><span id="cr-pos" aria-live="polite">1 of 3</span><span class="dots">${items.map((_, n) => `<i data-dot="${n}"></i>`).join('')}</span><button class="btn sm ghost" data-cr-step="1" type="button" aria-label="Next creative">→</button></div>`
+        : `<div class="empty sm">No drafts for ${esc(ctx.brand.name)} yet. <button class="btn sm" id="cr-make" type="button">Prepare three directions</button></div>`;
+      cr.querySelectorAll('[data-cr-img]').forEach(async (el) => { try { const r = await C.ops.get('obImage', { id: el.dataset.crImg, site: ctx.brand.site, brand: ctx.brand.name }); el.innerHTML = r.image ? `<img src="${r.image}" alt="Generated ad">` : '<span class="small">Image missing. Render again.</span>'; } catch (e) { el.innerHTML = '<span class="small">Couldn’t load the image.</span>'; } });
+      const track = $('#cr-track'), pos = $('#cr-pos'), sync = () => { if (!track) return; const w = track.firstElementChild ? track.firstElementChild.getBoundingClientRect().width + 14 : 1; crIdx = Math.max(0, Math.min(2, Math.round(track.scrollLeft / w))); if (pos) pos.textContent = (crIdx + 1) + ' of 3'; cr.querySelectorAll('[data-dot]').forEach((d) => d.classList.toggle('on', +d.dataset.dot === crIdx)); };
+      if (track) { track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true }); sync(); }
+      cr.querySelectorAll('[data-cr-step]').forEach((b) => b.onclick = () => { const w = track.firstElementChild.getBoundingClientRect().width + 14; track.scrollTo({ left: Math.max(0, Math.min(2, crIdx + +b.dataset.crStep)) * w, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); });
+      cr.querySelectorAll('[data-cr-edit]').forEach((b) => b.onclick = () => editCr(items.find((x) => x.id === b.dataset.crEdit)));
+      cr.querySelectorAll('[data-cr-open]').forEach((b) => b.onclick = () => { const im = cr.querySelector(`[data-cr-img="${b.dataset.crOpen}"] img`); if (im) { const d = document.getElementById('dlg'); d.innerHTML = `<div class="dlg-b"><img src="${im.src}" alt="Generated ad" style="width:100%;max-height:80vh;object-fit:contain"></div><div class="dlg-f"><a class="btn ghost" download="${esc(b.dataset.crOpen)}.jpg" href="${im.src}">Download</a><button class="btn" id="dx" type="button">Close</button></div>`; d.showModal(); $('#dx').onclick = () => d.close(); } });
+      const mk = $('#cr-make'); if (mk) mk.onclick = async () => { mk.disabled = true; try { await C.ops.post('obCreatives', ctx); homeIntel(); } catch (e) { toast(e.message); mk.disabled = false; } };
+      const rb = $('#cr-render'); if (rb) rb.onclick = () => renderAds(items.filter((x) => x.imageState !== 'rendered'), ctx);
+    }
+    const cs = ((snap.competitors && snap.competitors.items) || []), ap = cs.filter((x) => x.decision === 'approved' || x.origin === 'user_added'), sug = cs.filter((x) => x.decision === 'pending');
+    const coms = ((snap.communities && snap.communities.items) || []).filter((x) => x.decision !== 'not_relevant'), saved = coms.filter((x) => x.decision === 'saved'), ads = (snap.ads && snap.ads.items) || [];
     if (mi) mi.innerHTML = `<div class="intel-grid">
-      <div><span class="eyebrow">Competitors</span>${ap.length ? ap.map((x) => `<div class="list-row"><span class="st">${x.origin === 'user_added' ? 'Added' : 'Approved'}</span><span class="lr-t">${esc(x.name)}</span><small>${esc(x.domain)}</small></div>`).join('') : `<div class="empty sm">${cs.length ? cs.length + ' suggested, none approved yet.' : 'Awaiting selection.'} <a class="link" href="onboarding-v4.html" data-ob-step="2">Choose competitors</a></div>`}</div>
-      <div><span class="eyebrow">Communities</span>${coms.length ? coms.slice(0, 5).map((x) => `<a class="list-row" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer"><span class="st">${x.decision === 'saved' ? 'Saved' : 'Suggested'}</span><span class="lr-t">${esc(x.name)}</span><small>search index</small></a>`).join('') : '<div class="empty sm">No communities found yet. Add one you know in Discover.</div>'}</div>
-      <div><span class="eyebrow">Competitor ads (Meta Ad Library)</span>${ads.length ? ads.map((x) => `<a class="list-row" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer"><span class="st">Manual review</span><span class="lr-t">${esc(x.competitor)}</span><small>open search</small></a>`).join('') + '<small class="muted">Search links only. No ads were fetched or analysed automatically.</small>' : '<div class="empty sm">Approve competitors to prepare Ad Library searches.</div>'}</div></div>`;
-    view.querySelectorAll('[data-ob-step]').forEach((a) => a.onclick = () => { S.step = 2; C.save(); });
+      <a class="intel-card" href="#/discover"><span class="eyebrow">Competitors</span><strong>${ap.length ? ap.length + ' approved' : 'None approved'}</strong><span class="pills">${ap.slice(0, 4).map((x) => `<i>${esc(x.name)}</i>`).join('')}</span><small>${sug.length ? sug.length + ' suggestion' + (sug.length > 1 ? 's' : '') + ' waiting for your decision' : cs.length ? 'All reviewed' : 'No suggestions yet'}</small></a>
+      <a class="intel-card" href="#/discover"><span class="eyebrow">Communities</span><strong>${saved.length ? saved.length + ' saved' : coms.length ? coms.length + ' suggested' : 'None found yet'}</strong><span class="pills">${(saved.length ? saved : coms).slice(0, 4).map((x) => `<i>${esc(x.name)}</i>`).join('')}</span><small>From web search results, not demand data</small></a>
+      <div class="intel-card"><span class="eyebrow">Competitor ads</span><strong>${ads.length ? ads.length + ' Ad Library search' + (ads.length > 1 ? 'es' : '') : 'Waiting on approvals'}</strong><span class="pills">${ads.slice(0, 3).map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.competitor)} ↗</a>`).join('')}</span><small>${ads.length ? 'Manual review: nothing fetched automatically' : 'Approve competitors to prepare searches'}</small></div></div>`;
+  }
+  async function renderAds(list, ctx) {
+    if (rendering || !list.length) return; rendering = true; homeIntel();
+    const msg = () => $('#cr-msg'), fl = S.flagship || {};
+    try {
+      const ref = await shrink((await C.api('plugins/images/actions/photo', { url: fl.image })).image, 1024);
+      for (const x of list) {
+        if (msg()) msg().innerHTML = `<p class="small">Rendering ${esc(x.kind)}… (about 15 s each)</p>`;
+        const t = Date.now(), aspect = x.layout === 'lifestyle' ? '9:16' : x.layout === 'contrast' ? '1:1' : '4:5';
+        const g = await C.api('plugins/images/actions/generate', { prompt: SCENES[x.layout] + ' Keep the product exactly as in the reference: same shape, colours, packaging and any printed text. Do not add any text, logos or prices to the image.', reference: ref, aspect, model: 'pro', palette: { colors: (S.brand && S.brand.colors) || [] } });
+        const img = await overlay(g.image, x, aspect);
+        await C.ops.post('obEditCreative', { context: ctx, id: x.id, image: img, imageMeta: { model: g.model, ms: Date.now() - t, usd: g.usd, aspect, source: 'nano-banana + browser text overlay', productImage: fl.image } });
+        C.cost('Ad image render', g.usd == null ? null : g.usd, x.kind);
+      }
+      if (msg()) msg().innerHTML = '';
+    } catch (e) { if (msg()) msg().innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+    rendering = false; homeIntel();
+  }
+  async function shrink(src, max) { const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Product photo did not load.')); i.src = src; }); const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.9); }
+  /* Typography is drawn on top of the generated photo, so headline and CTA stay exact and editable. */
+  async function overlay(src, x, aspect) {
+    const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Generated image did not load.')); i.src = src; });
+    const W = 1080, H = { '4:5': 1350, '9:16': 1920, '1:1': 1080 }[aspect], c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+    const s = Math.max(W / im.width, H / im.height); g.drawImage(im, (W - im.width * s) / 2, (H - im.height * s) / 2, im.width * s, im.height * s);
+    const col = (S.brand && S.brand.colors) || [], ink = col[3] || '#111111', paper = col[4] || '#FFFFFF', accent = col[0] || ink;
+    const top = x.layout !== 'lifestyle', y0 = top ? 0 : H * 0.62, h = H * 0.38, gr = g.createLinearGradient(0, top ? 0 : y0, 0, top ? h : H);
+    gr.addColorStop(top ? 0 : 1, 'rgba(0,0,0,.55)'); gr.addColorStop(top ? 1 : 0, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, top ? 0 : y0, W, h);
+    g.fillStyle = '#fff'; g.font = '800 78px system-ui, sans-serif'; g.textBaseline = 'top';
+    const wrap = (t, yy, size, max) => { g.font = (size > 40 ? '800 ' : '500 ') + size + 'px system-ui, sans-serif'; const w = String(t || '').split(/\s+/); let line = '', n = 0; for (const word of w) { const tt = line ? line + ' ' + word : word; if (g.measureText(tt).width > W - 140 && line) { g.fillText(line, 70, yy + n * size * 1.12); line = word; if (++n >= max) return n; } else line = tt; } if (line) { g.fillText(line, 70, yy + n * size * 1.12); n++; } return n; };
+    const hy = top ? 70 : H - 420, n = wrap(x.headline, hy, 76, 3); wrap(x.body, hy + n * 86 + 14, 34, 2);
+    g.font = '700 32px system-ui, sans-serif'; const cw = g.measureText(x.cta).width + 64, cy = top ? H - 140 : H - 130; g.fillStyle = accent; g.fillRect(70, cy, cw, 72); g.fillStyle = paper; g.fillText(x.cta, 102, cy + 20);
+    return c.toDataURL('image/jpeg', 0.88);
   }
   function editCr(x) {
     const d = document.getElementById('dlg'); d.setAttribute('aria-label', 'Edit draft');
-    d.innerHTML = `<div class="dlg-h"><h2 class="disp s">${esc(x.kind)}</h2><button class="btn sm ghost" id="ex" type="button">Close</button></div><div class="dlg-b" style="display:grid;gap:10px"><label class="field"><span>Headline</span><input id="e-h" maxlength="60" value="${esc(x.headline)}"></label><label class="field"><span>Supporting copy</span><textarea id="e-b" maxlength="160" rows="3">${esc(x.body)}</textarea></label><label class="field"><span>Call to action</span><input id="e-c" maxlength="24" value="${esc(x.cta)}"></label><div id="e-e"></div></div><div class="dlg-f"><button class="btn ghost" id="ec" type="button">Cancel</button><button class="btn yellow" id="es" type="button">Save</button></div>`;
+    d.innerHTML = `<div class="dlg-h"><h2 class="disp s">${esc(x.kind)}</h2><button class="btn sm ghost" id="ex" type="button">Close</button></div><div class="dlg-b" style="display:grid;gap:10px"><label class="field"><span>Headline</span><input id="e-h" maxlength="60" value="${esc(x.headline)}"></label><label class="field"><span>Supporting copy</span><textarea id="e-b" maxlength="160" rows="3">${esc(x.body)}</textarea></label><label class="field"><span>Call to action</span><input id="e-c" maxlength="24" value="${esc(x.cta)}"></label>${x.imageState === 'rendered' ? '<small class="muted">Text changes apply to the concept; render again to update the image.</small>' : ''}<div id="e-e"></div></div><div class="dlg-f"><button class="btn ghost" id="ec" type="button">Cancel</button><button class="btn yellow" id="es" type="button">Save</button></div>`;
     d.showModal(); $('#ex').onclick = $('#ec').onclick = () => d.close();
-    $('#es').onclick = async () => { try { await C.ops.post('obEditCreative', { id: x.id, headline: $('#e-h').value, body: $('#e-b').value, cta: $('#e-c').value }); d.close(); toast('Saved.'); homeIntel(); } catch (e) { $('#e-e').innerHTML = `<div class="err">${esc(e.message)}</div>`; } };
+    $('#es').onclick = async () => { try { await C.ops.post('obEditCreative', { context: obContext(), id: x.id, headline: $('#e-h').value, body: $('#e-b').value, cta: $('#e-c').value }); d.close(); toast('Saved.'); homeIntel(); } catch (e) { $('#e-e').innerHTML = `<div class="err">${esc(e.message)}</div>`; } };
   }
   async function homeLive() {
     homeIntel();

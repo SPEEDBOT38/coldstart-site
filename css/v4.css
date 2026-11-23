@@ -433,3 +433,13 @@ details.more .more-m{position:absolute;right:0;top:calc(100% + 4px);display:grid
 .intel-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media (max-width:900px){.cr-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:82%;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cr{scroll-snap-align:start}.intel-grid{grid-template-columns:1fr}}
 .logo-prev{display:flex;gap:12px;align-items:center;border:2px solid var(--ink);background:#fff;padding:12px}.logo-prev img{max-height:56px;max-width:180px;object-fit:contain}.sw b{font:10px var(--font-mono);text-transform:uppercase;margin-right:4px}
+/* creatives: header, concept tag, rendered image, carousel nav (mobile) */
+.cr-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.concept-tag{position:absolute;top:10px;right:10px;font:10px var(--font-mono);text-transform:uppercase;background:#fff;color:#111;border:1px solid #111;padding:2px 6px}
+.cr-art.img{padding:0;background:#f4f4f0;display:grid;place-items:center}.cr-art.img img{width:100%;height:100%;object-fit:cover;margin:0;background:none}
+.cr-nav{display:none;align-items:center;justify-content:center;gap:10px;margin-top:8px}.cr-nav .dots{display:flex;gap:6px}.cr-nav .dots i{width:8px;height:8px;border-radius:50%;border:1px solid var(--ink)}.cr-nav .dots i.on{background:var(--blue)}
+@media (max-width:900px){.cr-grid{grid-auto-columns:88%;gap:14px;overscroll-behavior-x:contain;scrollbar-width:none}.cr-grid::-webkit-scrollbar{display:none}.cr-nav{display:flex}}
+/* compact intelligence cards */
+a.intel-card{color:inherit;text-decoration:none}.intel-card{border:2px solid var(--ink);background:#fff;padding:14px;display:grid;gap:6px;align-content:start;min-width:0}
+a.intel-card:hover{box-shadow:4px 4px 0 var(--blue)}.intel-card strong{font-size:18px}.intel-card small{color:var(--muted,rgba(0,0,145,.74))}
+.pills{display:flex;flex-wrap:wrap;gap:4px}.pills i,.pills a{font:11px var(--font-mono);font-style:normal;border:1px solid var(--ink);padding:2px 6px;color:inherit;text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
