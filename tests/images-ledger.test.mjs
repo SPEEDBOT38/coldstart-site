@@ -38,7 +38,7 @@ test('ledger records attempts per job and the same requestId is not billed twice
   const a = await generateImage(ctx, { prompt: 'empty plinth scene', aspect: '4:5', requestId: 'req-abcdef12', job: 'cr_spotlight', raw: true });
   const n = f.calls.length;
   const b = await generateImage(ctx, { prompt: 'empty plinth scene', aspect: '4:5', requestId: 'req-abcdef12', job: 'cr_spotlight', raw: true });
-  assert.equal(f.calls.length, n, 'replay must not call the provider'); assert.equal(b.idempotent_replay, true); assert.equal(a.usd, 0.12);
+  assert.equal(f.calls.length, n, 'replay must not call the provider'); assert.equal(b.idempotent_replay, true); assert.equal(a.usd, null, 'the empty attempt e1 has no confirmed charge, so the total is unknown, not 0.12');
   const l = await ledger(ctx);
   assert.equal(l.total.attempts, 2); assert.equal(l.total.empty, 1); assert.equal(l.by_job.cr_spotlight.attempts, 2); assert.equal(l.total.unknown_cost, 1);
 });
@@ -59,9 +59,14 @@ test('workspace allowlist and $ budget bound', async () => {
   process.env.VERCEL_ENV = 'production'; delete process.env.CREATIVE_PIPELINE; process.env.CREATIVE_PIPELINE_WORKSPACES = 'wsA';
   const { creativePipelineOn } = await import('../lib/plugins/images.js');
   assert.equal(creativePipelineOn({ ws: 'wsA' }), true); assert.equal(creativePipelineOn({ ws: 'wsB' }), false); assert.equal(creativePipelineOn({}), false);
-  process.env.CREATIVE_BUDGET_USD = '0.4'; process.env.CREATIVE_EST_USD_PER_IMAGE = '0.25';
+  process.env.CREATIVE_BUDGET_USD = '1'; process.env.CREATIVE_SCENE_MAX_USD = '0.3';
   const store = createStore({ STORE: 'memory' }), ctx = { store, fetch: seq(ok('a', null)), ip: '1.1.1.1', ws: 'wsA' };
-  await generateImage(ctx, { prompt: 'scene one', job: 'j', raw: true });          // unknown cost counts as 0.25
+  await generateImage(ctx, { prompt: 'scene one', job: 'j', raw: true });          // unconfirmed: the full $0.60 reservation stays
   await assert.rejects(generateImage(ctx, { prompt: 'scene two', job: 'j', raw: true }), /budget/);
+  const store2 = createStore({ STORE: 'memory' }), ctx2 = { store: store2, fetch: seq(ok('b', 0.12)), ip: '1.1.1.1', ws: 'wsA' };
+  await generateImage(ctx2, { prompt: 'scene one', job: 'j', raw: true });         // confirmed: reservation released to $0.12
+  await generateImage(ctx2, { prompt: 'scene two', job: 'j', raw: true });
+  const st = await (await import('../lib/plugins/images.js')).default.actions.status.run(ctx2);
+  assert.equal(st.budget.bound_usd, 0.24); assert.equal(st.budget.unconfirmed, 0);
   Object.keys(process.env).forEach(k => { if (!(k in env)) delete process.env[k]; }); Object.assign(process.env, env);
 });

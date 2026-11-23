@@ -8,8 +8,10 @@
   const CE = window.CreativeEditor;
   const W = 1080, H = 1350;
 
-  async function compose(body) {   // same-origin call to the Python compositor (the Studio page carries the user's session)
-    const r = await fetch('/api/compose/composite', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) });
+  let tok = null;
+  async function token(C) { if (tok && tok.until > Date.now() + 30000) return tok.v; const r = await C.api('plugins/images/actions/composeToken', {}); tok = { v: r.token, until: Date.now() + r.expires_in * 1000 }; return tok.v; }
+  async function compose(body, C) {   // direct call to the Python compositor with a short-lived, workspace-scoped token from the API
+    const r = await fetch('/api/compose/composite', { method: 'POST', headers: { 'content-type': 'application/json', 'x-cs-compose': await token(C) }, credentials: 'same-origin', body: JSON.stringify(body) });
     const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch (e) { /* below */ }
     if (!r.ok || !j || !j.image) throw new Error('Product Lock compositor failed (' + r.status + (j && j.error ? ': ' + j.error : t ? '' : ', empty response') + '). Nothing was generated in its place.');
     return j;
@@ -44,6 +46,7 @@
   function layoutFor(x, A, box) {
     const L = (x.design && x.design.layout) ? JSON.parse(JSON.stringify(x.design.layout)) : CE.defaultLayout(x, A.colors);
     L.productBox = box;
+    for (const k of ['headline', 'body', 'cta']) if (L[k] && typeof x[k] === 'string') L[k].text = x[k];   // the draft's text is the source of truth
     if (A.logo) { L.logo = { ...(L.logo || {}), src: A.logo }; if (A.logoMono) L.logo.recolor = L.logo.tone === 'light' ? (A.colors[4] || '#FFFFFF') : (A.colors[3] || A.colors[0] || '#111111'); }
     return L;
   }
@@ -54,10 +57,20 @@
     s.softness = Math.min(0.9, Math.max(0.15, 1 - loc.light_hardness)); return s;
   };
 
+  // Free prototype backdrops that match each direction's tone (light hero, dark lifestyle, colour-blocked editorial),
+  // so the approved layout is judged against the right contrast. Brand colours only; no generation.
+  function protoBackground(id, col) {
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+    const paper = col[4] || '#FBF7F1', dark = col[3] || '#2B140C', mid = col[2] || '#6E412C', acc = col[0] || '#B8705A';
+    if (id === 'spotlight') { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, paper); gr.addColorStop(0.7, col[1] || '#E8D9C8'); gr.addColorStop(1, mid); g.fillStyle = gr; g.fillRect(0, 0, W, H); g.fillStyle = dark; g.globalAlpha = 0.85; g.fillRect(W * 0.22, H * 0.74, W * 0.56, H * 0.09); g.globalAlpha = 1; }
+    else if (id === 'lifestyle') { const gr = g.createRadialGradient(W * 0.68, H * 0.45, 40, W * 0.6, H * 0.5, W); gr.addColorStop(0, mid); gr.addColorStop(1, dark); g.fillStyle = gr; g.fillRect(0, 0, W, H); const sh = g.createLinearGradient(0, H * 0.62, 0, H); sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = sh; g.fillRect(0, 0, W, H); }
+    else { g.fillStyle = dark; g.fillRect(0, 0, W * 0.5, H); g.fillStyle = acc; g.fillRect(W * 0.5, 0, W, H); g.fillStyle = mid; g.fillRect(W * 0.62, H * 0.64, W * 0.26, H * 0.36); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, H * 0.82, W, H * 0.18); }
+    return c.toDataURL('image/png');
+  }
   async function prototype({ C, S, ctx, x, A, msg }) {
     const B = CE.brief(x.layout, S.brand); msg(B.name + ': building the layout prototype (no generation cost)…');
     const saved = x.design && x.design.mask_approved && (await C.ops.get('obImage', { id: x.id, kind: 'mask', site: ctx.brand.site, brand: ctx.brand.name })).image;
-    const cmp = await compose({ reference: A.ref, mask: saved || undefined, width: W, height: H, ...B.product, shadow: B.shadow });
+    const cmp = await compose({ reference: A.ref, mask: saved || undefined, background: protoBackground(x.layout, A.colors), width: W, height: H, ...B.product, shadow: B.shadow }, C);
     const f = cmp.report.foreground, L = layoutFor(x, A, { x: f.x, y: f.y, w: f.w, h: f.h });
     const cv = await CE.compose(cmp.image, L, '4:5', A.font);
     await C.ops.post('obEditCreative', { context: ctx, id: x.id, asset: 'prototype', data: cv.toDataURL('image/png') });
@@ -80,7 +93,7 @@
     const shadow = shadowFor(B, loc);
     msg(B.name + ': compositing your original product with a grounded shadow…');
     const mask = (await C.ops.get('obImage', { id: x.id, kind: 'mask', site: ctx.brand.site, brand: ctx.brand.name })).image;
-    const cmp = await compose({ reference: A.ref, mask: mask || undefined, background: g.image, width: W, height: H, ...P, shadow });
+    const cmp = await compose({ reference: A.ref, mask: mask || undefined, background: g.image, width: W, height: H, ...P, shadow }, C);
     const f = cmp.report.foreground, L = layoutFor(x, A, { x: f.x, y: f.y, w: f.w, h: f.h });
     const cv = await CE.compose(cmp.image, L, '4:5', A.font), png = cv.toDataURL('image/png');
     msg(B.name + ': visual review…');

@@ -39,9 +39,9 @@ test('editor typography', { skip: !chromium && 'playwright not installed' }, asy
   await b.close();
 });
 
-test('compositor mask regression (python)', async () => {
+for (const f of ['test_maskfix.py', 'test_token.py']) test('compositor python: ' + f, async () => {
   const { spawnSync } = await import('node:child_process');
-  const r = spawnSync('python3', ['workers/composite/test_maskfix.py'], { encoding: 'utf8' });
+  const r = spawnSync('python3', ['workers/composite/' + f], { encoding: 'utf8' });
   if (r.error && r.error.code === 'ENOENT') return;   // no python on this machine
   assert.equal(r.status, 0, r.stderr.slice(-2000));
 });

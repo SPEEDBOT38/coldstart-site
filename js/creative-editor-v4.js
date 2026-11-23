@@ -77,7 +77,8 @@
       const [vy, hx] = pos.split('-'); let maxW = hx === 'center' ? W - pad * 2 : cellW * 2.2; if (pb && hx === 'left' && vy !== 'top') maxW = Math.max(cellW, Math.min(maxW, pb.x - pad * 1.4));
       const measured = blocks.map(([k, b]) => {   // shrink to fit instead of silently dropping words or overflowing into the product
         const cap = k === 'headline' ? 4 : 3, wide = k === 'cta' ? W : maxW; let px = Math.round(W * SIZE[b.size || 'medium']), ls;
-        for (;;) { g.font = `${k === 'body' ? 500 : 800} ${px}px ${fam}`; ls = lines(g, b.text, wide); const fits = ls.length <= cap && ls.every((l) => g.measureText(l).width <= wide); if (fits || px <= W * 0.022) break; px = Math.round(px * 0.92); }
+        const eb = b.size === 'eyebrow', txt = eb ? String(b.text || '').toUpperCase() : b.text;
+        for (;;) { g.font = `${k === 'body' ? (eb ? 700 : 500) : 800} ${px}px ${fam}`; try { g.letterSpacing = eb ? Math.round(px * 0.12) + 'px' : '0px'; } catch (e) { /* older canvas */ } ls = lines(g, txt, wide); const fits = ls.length <= cap && ls.every((l) => g.measureText(l).width <= wide); if (fits || px <= W * 0.022) break; px = Math.round(px * 0.92); }
         return { k, b, px, ls, h: ls.length * px * 1.15 + (b.bg ? px * 0.9 : 0) }; });
       const total = measured.reduce((a, m) => a + m.h, 0) + (measured.length - 1) * W * 0.02;
       let y = vy === 'top' ? pad : vy === 'middle' ? (H - total) / 2 : H - pad - total;

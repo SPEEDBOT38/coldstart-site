@@ -63,7 +63,7 @@ def contact_shadow(W, H, alpha_np, x, y, opts):
 def composite(req):
     from maskfix import refine
     ref, ref_sha = dec(req['reference']); ref = ref.convert('RGB'); W, H = int(req['width']), int(req['height'])
-    if not (64 <= W <= 4096 and 64 <= H <= 4096): raise ValueError('bad size')
+    if not (64 <= W <= 2048 and 64 <= H <= 2048): raise ValueError('bad size')
     seg = {'primary_model': MODEL, 'second_model': SECOND or None}
     if req.get('mask'):                                                       # an approved / manually corrected mask replaces the automatic one
         mk, mk_sha = dec(req['mask']); raw = mk.convert('L').resize(ref.size, Image.LANCZOS); seg.update(source='saved_mask', status='saved_mask', mask_sha256=mk_sha, agreement_iou=None)
@@ -114,6 +114,23 @@ def composite(req):
               'note': 'protected_pixel_equality only proves the compositor did not alter the pixels the mask kept. Mask completeness is reported separately under mask; an output is never approved by these checks alone.'}
     return {'image': image, 'report': report, 'mask': mask_url}
 
+MAX_BODY = 8_000_000
+TOKEN_SECRET = os.environ.get('COMPOSE_TOKEN_SECRET') or os.environ.get('SESSION_SECRET', '')
+REQUIRE_TOKEN = os.environ.get('COMPOSE_REQUIRE_TOKEN', '1' if TOKEN_SECRET else '0') != '0'
+def verify_token(tok):
+    """App-level auth for browser calls: a short-lived token minted by the Node API (images/composeToken) only for a
+    workspace allowed to use the Creative Engine and within its compositor quota. HMAC-SHA256 over the payload."""
+    import hmac, time
+    if not REQUIRE_TOKEN: return True, 'not required'
+    try:
+        body, sig = tok.split('.', 1)
+        want = base64.urlsafe_b64encode(hmac.new(TOKEN_SECRET.encode(), body.encode(), hashlib.sha256).digest()).decode().rstrip('=')
+        if not hmac.compare_digest(want, sig): return False, 'bad signature'
+        claims = json.loads(base64.urlsafe_b64decode(body + '=' * (-len(body) % 4)))
+        if claims.get('aud') != 'compose' or float(claims.get('exp', 0)) < time.time(): return False, 'expired'
+        return True, claims.get('ws', '')
+    except Exception: return False, 'missing or malformed token'
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def send(self, code, obj):
@@ -121,11 +138,14 @@ class H(BaseHTTPRequestHandler):
     def op(self): return self.path.split('?')[0].rstrip('/').rsplit('/', 1)[-1]   # '/composite' locally, '/api/compose/composite' on Vercel
     def do_GET(self): self.send(200, {'ok': True, 'matte_model': MODEL}) if self.op() in ('health', 'compose') else self.send(404, {'error': 'not found'})
     def do_POST(self):
-        if KEY and self.headers.get('authorization') != 'Bearer ' + KEY: return self.send(401, {'error': 'unauthorized'})
+        if KEY and self.headers.get('authorization') == 'Bearer ' + KEY: pass                 # server-to-server credential
+        else:
+            ok, why = verify_token(self.headers.get('x-cs-compose', ''))
+            if not ok: return self.send(401, {'error': 'unauthorized: ' + why})
         if self.op() not in ('composite', 'matte'): return self.send(404, {'error': 'not found'})
         try:
             n = int(self.headers.get('content-length', 0))
-            if n > 40_000_000: return self.send(413, {'error': 'too large'})
+            if n > MAX_BODY: return self.send(413, {'error': 'too large'})
             body = json.loads(self.rfile.read(n)); self.send(200, matte_endpoint(body) if self.op() == 'matte' else composite(body))
         except (ValueError, KeyError, OSError) as e: self.send(400, {'error': str(e)[:200]})
 if __name__ == '__main__':
