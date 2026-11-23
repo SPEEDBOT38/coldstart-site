@@ -48,8 +48,12 @@ def contact_shadow(W, H, alpha_np, x, y, opts):
     length = min(max(float(opts.get('length', 0.25)), 0.0), 1.0)
     sh = Image.new('L', (W, H), 0); d = ImageDraw.Draw(sh)
     # contact core: thin, dark, barely blurred
-    core = Image.new('L', (W, H), 0); ImageDraw.Draw(core).ellipse([cx - bw * 0.52, gy - bw * 0.035, cx + bw * 0.52, gy + bw * 0.035], fill=int(255 * strength))
-    core = core.filter(ImageFilter.GaussianBlur(2 + 4 * soft))
+    # contact core must be visible around the base, not hidden behind it: wider than the base and mostly in front of it
+    core = Image.new('L', (W, H), 0); cd = ImageDraw.Draw(core)
+    cd.ellipse([cx - bw * 0.66, gy - bw * 0.03, cx + bw * 0.66, gy + bw * 0.075], fill=int(255 * min(1.0, strength * 0.75)))   # ambient occlusion
+    core = core.filter(ImageFilter.GaussianBlur(6 + 10 * soft))
+    tight = Image.new('L', (W, H), 0); ImageDraw.Draw(tight).ellipse([cx - bw * 0.54, gy - bw * 0.012, cx + bw * 0.54, gy + bw * 0.028], fill=int(255 * min(1.0, strength * 1.15)))
+    core = ImageChops.lighter(core, tight.filter(ImageFilter.GaussianBlur(2 + 3 * soft)))
     # cast shadow: the product silhouette squashed onto the ground plane and sheared by the light angle
     sil = Image.fromarray((alpha_np >= 128).astype('uint8') * 255, 'L')
     hgt = max(1, int(sil.height * length)); flat = sil.resize((sil.width, hgt), Image.BILINEAR).transpose(Image.FLIP_TOP_BOTTOM)
