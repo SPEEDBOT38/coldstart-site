@@ -93,8 +93,8 @@
     const gaps = (p) => [!p.image && 'photo', !p.url && 'link', !known(p) && 'price'].filter(Boolean);
     const prodList = (S.products || []).slice(0, 24).map((p, i) => { const g = gaps(p); return `<button type="button" class="prod-row ${S.flagship && S.flagship.name === p.name ? 'on' : ''}" data-prod="${i}" aria-pressed="${!!(S.flagship && S.flagship.name === p.name)}">
       ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="ph" aria-hidden="true">No photo</span>'}
-      <span class="pr-t"><strong>${esc(p.name || 'Unnamed')}</strong><small>${known(p) && b.currency ? esc(C.money(p.price, b.currency)) : known(p) ? esc(String(p.price)) + ' · currency unknown' : 'Price unknown'}${p.url ? ' · <span class="ok">link found</span>' : ''}</small></span>
-      ${g.length ? `<span class="chip dash">Missing ${esc(g.join(', '))}</span>` : '<span class="chip b">Complete</span>'}</button>`; }).join('');
+      <span class="pr-t"><strong>${esc(p.name || 'Unnamed')}</strong><small>${known(p) && (p.currency || b.currency) ? esc(C.money(p.price, p.currency || b.currency)) : known(p) ? esc(String(p.price)) + ' · currency unknown' : 'Price unknown'}${p.url ? ' · <span class="ok">link found</span>' : ''}</small></span>
+      ${p.enrich ? (p.enrich.status === 'ok' ? `<span class="chip b" title="${esc(p.enrich.message)}">Photo found${(p.enrich.candidates || []).length > 1 ? ' · ' + p.enrich.candidates.length : ''}</span>` : `<span class="chip dash" title="${esc(p.enrich.reason || '')}">${esc(p.enrich.message || 'Not checked')}</span>`) : g.length ? `<span class="chip dash">Missing ${esc(g.join(', '))}</span>` : '<span class="chip b">Complete</span>'}</button>`; }).join('');
     const sw = (b.colors || []).filter((c) => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 5);
     const fl = S.flagship || { name: '', variant: '', price: '', url: '', currency: b.currency || '', kind: 'product' };   // never assume the flagship: the person picks it
     const missing = [!b.line && 'what you sell', !(S.products || []).length && 'products', !sw.length && 'colours'].filter(Boolean);
@@ -116,7 +116,7 @@
               <div class="cols2"><label class="field"><span>${fl.kind === 'service' ? 'Package or tier (optional)' : 'Variant (size, flavour, shade)'}</span><input id="fl-var" type="text" value="${esc(fl.variant)}" maxlength="80"></label>
                 <div class="cols2" style="gap:6px"><label class="field"><span>Price</span><input id="fl-price" type="number" min="0" step="any" value="${esc(String(Number(fl.price) > 0 ? fl.price : ''))}" placeholder="Unknown"></label>
                 <label class="field"><span>Currency</span><select id="fl-cur"><option value="">Not set</option>${['INR', 'USD', 'GBP', 'EUR', 'AED', 'AUD', 'CAD', 'SGD'].map((c) => `<option ${fl.currency === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label></div></div>
-              <label class="field"><span>${fl.kind === 'service' ? 'Where people book or enquire (https)' : 'Where people buy it (product page, https)'}</span><input id="fl-url" type="url" value="${esc(fl.url || '')}" placeholder="https://…"></label><div id="fl-err"></div></fieldset>
+              <label class="field"><span>${fl.kind === 'service' ? 'Where people book or enquire (https)' : 'Where people buy it (product page, https)'}</span><input id="fl-url" type="url" value="${esc(fl.url || '')}" placeholder="https://…"></label><div id="fl-cands"></div><div id="fl-err"></div></fieldset>
             <div class="fact-row"><span>Price range</span><span>${pr ? esc(pr) : '<span class="chip dash">Not found</span>'}</span></div>
             <div class="fact-row"><span>Currency</span><span>${b.currency ? esc(b.currency) + ' <small class="muted">(from your site)</small>' : '<span class="chip dash">Not found on the site</span>'}</span></div>
             <div class="fact-row"><span>Voice</span><span>${(b.tones || []).length ? esc(b.tones.join(', ')) : '<span class="chip dash">Not found</span>'}</span></div>
@@ -137,7 +137,11 @@
       </div></div>`;
     root.querySelectorAll('[data-icp]').forEach((el) => el.addEventListener('click', () => { const i = S.icps[+el.dataset.icp]; i.on = i.on === false; C.save(); step1(); }));
     $('#back').onclick = () => go(0);
-    root.querySelectorAll('[data-prod]').forEach((el) => el.addEventListener('click', () => { const p = S.products[+el.dataset.prod]; if (!p) return; $('#fl-name').value = p.name || ''; $('#fl-price').value = Number(p.price) > 0 ? p.price : ''; $('#fl-url').value = p.url || ''; if (b.currency) $('#fl-cur').value = b.currency; root.querySelectorAll('[data-prod]').forEach((x) => { x.classList.toggle('on', x === el); x.setAttribute('aria-pressed', String(x === el)); }); $('#fl-name').focus(); }));
+    root.querySelectorAll('[data-prod]').forEach((el) => el.addEventListener('click', () => { const p = S.products[+el.dataset.prod]; if (!p) return; $('#fl-name').value = p.name || ''; $('#fl-price').value = Number(p.price) > 0 ? p.price : ''; $('#fl-url').value = p.url || ''; if (p.currency || b.currency) $('#fl-cur').value = p.currency || b.currency; root.querySelectorAll('[data-prod]').forEach((x) => { x.classList.toggle('on', x === el); x.setAttribute('aria-pressed', String(x === el)); }); drawCands(p); $('#fl-name').focus(); }));
+    let pickedImg = fl.image || '';
+    function drawCands(p) { const c = (p.enrich && p.enrich.candidates) || []; pickedImg = c[0] ? c[0].url : '';
+      $('#fl-cands').innerHTML = c.length ? `<span class="eyebrow">Is this the product? Pick the right photo</span><div class="cand-row">${c.map((x, k) => `<button type="button" class="cand ${k ? '' : 'on'}" data-cand="${esc(x.url)}" aria-pressed="${!k}"><img src="${esc(x.url)}" alt="Candidate ${k + 1}" referrerpolicy="no-referrer"><small>${esc(x.from)}</small></button>`).join('')}<button type="button" class="cand" data-cand="" aria-pressed="false"><span class="ph">None of these</span></button></div><small class="muted">Found on ${esc(new URL(p.enrich.productUrl).hostname)}. Used to recognise the product only; for ads you’ll upload a photo you have the rights to.</small>` : (p.enrich ? `<small class="muted">${esc(p.enrich.message)}. You can continue without a photo.</small>` : '');
+      root.querySelectorAll('[data-cand]').forEach((b) => b.onclick = () => { pickedImg = b.dataset.cand; root.querySelectorAll('[data-cand]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); }); }); }
     root.querySelectorAll('[data-kind]').forEach((el) => el.addEventListener('click', () => { S.flagship = Object.assign({}, fl, { name: $('#fl-name').value.trim(), variant: $('#fl-var').value.trim(), url: $('#fl-url').value.trim(), price: $('#fl-price').value.trim(), currency: $('#fl-cur').value, kind: el.dataset.kind, confirmedAt: null }); C.save(); step1(); }));
     const rs = $('#rescan'); if (rs) rs.onclick = () => { S.step = 0; C.save(); render(); };
     $('#next').onclick = () => {
@@ -148,7 +152,7 @@
       if (url) { let u = null; try { u = new URL(url); } catch (e) { /* invalid */ } if (!u || u.protocol !== 'https:') err.push('The buy link must be a full https:// address.'); }
       if (err.length) { $('#fl-err').innerHTML = '<div class="err">' + err.map(esc).join(' ') + '</div>'; $('#fl-name').focus(); return; }
       const hit = (S.products || []).find((p) => p.name === name);
-      S.flagship = { name, kind: (S.flagship && S.flagship.kind) || 'product', variant: $('#fl-var').value.trim(), price: price ? Number(price) : null, currency: $('#fl-cur').value || null, url, image: (hit && hit.image) || '', source: hit ? 'site_scan' : 'user', confirmedAt: new Date().toISOString() };
+      S.flagship = { name, kind: (S.flagship && S.flagship.kind) || 'product', variant: $('#fl-var').value.trim(), price: price ? Number(price) : null, currency: $('#fl-cur').value || null, url, image: pickedImg || '', imageRights: 'unconfirmed', imageSource: hit && hit.enrich ? hit.enrich.productUrl : null, source: hit ? 'site_scan' : 'user', confirmedAt: new Date().toISOString() };
       S.offer = { name, price: S.flagship.price, url };
       S.brand.line = $('#line').value.trim(); S.brand.name = $('#bname').value.trim() || S.brand.name; S.input.desc = S.brand.line; C.save(); go(2);
     };

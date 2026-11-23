@@ -409,3 +409,5 @@ body.app .pagehead .muted,body.app .pagehead p{font-size:15px;max-width:70ch}
 details.more{position:relative}details.more>summary{list-style:none;cursor:pointer}details.more>summary::-webkit-details-marker{display:none}
 details.more .more-m{position:absolute;right:0;top:calc(100% + 4px);display:grid;gap:4px;background:#fff;border:1px solid var(--ink);padding:6px;z-index:20;min-width:170px}
 @media (max-width:720px){.pop{left:8px!important;right:8px!important;top:auto!important;bottom:8px;max-height:70vh;overflow:auto;box-shadow:0 -8px 30px rgba(0,0,0,.25)}.pop a{min-height:48px}}
+
+.cand-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.cand{border:2px solid var(--ink);background:#fff;padding:3px;cursor:pointer;display:grid;gap:2px;width:96px}.cand img{width:86px;height:86px;object-fit:contain}.cand.on{outline:3px solid var(--blue);outline-offset:1px}.cand .ph{display:grid;place-items:center;height:86px;font:10px var(--font-mono)}.cand small{font:9px var(--font-mono)}
