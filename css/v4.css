@@ -443,3 +443,9 @@ details.more .more-m{position:absolute;right:0;top:calc(100% + 4px);display:grid
 a.intel-card{color:inherit;text-decoration:none}.intel-card{border:2px solid var(--ink);background:#fff;padding:14px;display:grid;gap:6px;align-content:start;min-width:0}
 a.intel-card:hover{box-shadow:4px 4px 0 var(--blue)}.intel-card strong{font-size:18px}.intel-card small{color:var(--muted,rgba(0,0,145,.74))}
 .pills{display:flex;flex-wrap:wrap;gap:4px}.pills i,.pills a{font:11px var(--font-mono);font-style:normal;border:1px solid var(--ink);padding:2px 6px;color:inherit;text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* creative editor */
+dialog.wide{width:min(1100px,96vw);max-width:none}.ce{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,1fr);gap:18px}
+.ce-prev canvas{width:100%;height:auto;max-height:70vh;object-fit:contain;border:1px solid var(--ink);background:#eee}.ce-ctl{display:grid;gap:10px;align-content:start}
+.pos-grid{display:grid;grid-template-columns:repeat(3,34px);gap:4px}.pos-grid button{width:34px;height:34px;border:1px solid var(--ink);background:#fff;cursor:pointer}.pos-grid button[aria-pressed=true]{background:var(--blue)}
+@media (max-width:720px){.ce{grid-template-columns:1fr}.ce-prev canvas{max-height:45vh}}
