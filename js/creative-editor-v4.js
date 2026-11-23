@@ -25,11 +25,11 @@
       camera: 'eye level, 85mm, slight downward tilt', lighting: 'large soft key from upper left, gentle rim light from behind, soft contact shadow',
       prompt: (b) => `Empty art-directed product photography set, 4:5 vertical. A ${b.food ? 'polished dark stone plinth on a warm cream seamless backdrop, a few' : 'matte plinth on a seamless backdrop,'} ${b.food ? 'whole roasted almonds and cocoa nibs placed far at the edges' : 'minimal props at the far edges'}. The plinth top is centred in the lower half and completely EMPTY, ready for a product to be placed. Upper 40% of the frame is calm, uncluttered negative space in ${b.palette}. Camera at eye level, 85mm lens. Large soft key light from upper left, subtle rim light, realistic floor shadows. Premium, quiet, high-end advertising mood. No product, no packaging, no text, no logos.` },
     lifestyle: { name: 'Sensory lifestyle', objective: 'Make people crave it: texture, ingredients and a real moment of enjoyment.',
-      product: { cx: 0.62, cy: 0.6, scale: 0.46 }, text: { headline: 'bottom-left', body: 'bottom-left', cta: 'bottom-left' },
+      product: { cx: 0.68, cy: 0.58, scale: 0.46 }, text: { headline: 'bottom-left', body: 'bottom-left', cta: 'bottom-left' },
       camera: '45-degree overhead, 50mm, shallow depth of field', lighting: 'warm window light from the right, golden hour, soft natural shadows',
       prompt: (b) => `Rich food photography scene, 4:5 vertical, 45-degree overhead angle, 50mm, shallow depth of field. ${b.food ? 'Warm walnut wood table with a linen napkin, a ceramic cup of hot chocolate, broken chocolate pieces, roasted almonds and a dusting of cocoa' : 'A styled real-life table setting with natural textures and lifestyle props'} arranged around an EMPTY clear space slightly right of centre in the middle of the frame where a product will be placed. Lower-left third is darker and less busy for text. Warm golden window light from the right, appetising, tactile textures, colour harmony with ${b.palette}. No product, no packaging, no text, no logos, no hands, no faces.` },
     contrast: { name: 'Expressive editorial', objective: 'Stop the scroll with a bold, graphic composition and one clear benefit.',
-      product: { cx: 0.66, cy: 0.52, scale: 0.55 }, text: { headline: 'middle-left', body: 'middle-left', cta: 'bottom-left' },
+      product: { cx: 0.73, cy: 0.52, scale: 0.55 }, text: { headline: 'middle-left', body: 'middle-left', cta: 'bottom-left' },
       camera: 'straight-on, 70mm, graphic and flat', lighting: 'hard directional spotlight from the right, strong sculpted shadows',
       prompt: (b) => `Bold editorial still-life set, 4:5 vertical, straight-on camera, 70mm. Colour-blocked backdrop: a deep ${b.dark} left half and a ${b.accent} right half meeting in a clean vertical line, a single hard spotlight from the right casting one long sculpted shadow. The right half has an EMPTY plinth where a product will be placed; the left half is clean, flat and dark for large typography. Magazine-cover energy, high contrast, sophisticated. No product, no packaging, no text, no logos.` },
   };
@@ -66,7 +66,10 @@
     ['headline', 'body', 'cta'].forEach((k) => { const b = layout[k]; if (b && b.text) (cells[b.position] = cells[b.position] || []).push([k, b]); });
     for (const [pos, blocks] of Object.entries(cells)) {
       const [vy, hx] = pos.split('-'); let maxW = hx === 'center' ? W - pad * 2 : cellW * 2.2; if (pb && hx === 'left' && vy !== 'top') maxW = Math.max(cellW, Math.min(maxW, pb.x - pad * 1.4));
-      const measured = blocks.map(([k, b]) => { const px = Math.round(W * SIZE[b.size || 'medium']); g.font = `${k === 'body' ? 500 : 800} ${px}px ${fam}`; const ls = lines(g, b.text, k === 'cta' ? W : maxW).slice(0, k === 'headline' ? 3 : 2); return { k, b, px, ls, h: ls.length * px * 1.15 + (b.bg ? px * 0.9 : 0) }; });
+      const measured = blocks.map(([k, b]) => {   // shrink to fit instead of silently dropping words or overflowing into the product
+        const cap = k === 'headline' ? 4 : 3, wide = k === 'cta' ? W : maxW; let px = Math.round(W * SIZE[b.size || 'medium']), ls;
+        for (;;) { g.font = `${k === 'body' ? 500 : 800} ${px}px ${fam}`; ls = lines(g, b.text, wide); const fits = ls.length <= cap && ls.every((l) => g.measureText(l).width <= wide); if (fits || px <= W * 0.022) break; px = Math.round(px * 0.92); }
+        return { k, b, px, ls, h: ls.length * px * 1.15 + (b.bg ? px * 0.9 : 0) }; });
       const total = measured.reduce((a, m) => a + m.h, 0) + (measured.length - 1) * W * 0.02;
       let y = vy === 'top' ? pad : vy === 'middle' ? (H - total) / 2 : H - pad - total;
       if (measured.some((m) => m.b.shade)) { const gr = g.createLinearGradient(0, vy === 'bottom' ? y - pad : 0, 0, vy === 'bottom' ? H : y + total + pad); gr.addColorStop(vy === 'bottom' ? 0 : 1, 'rgba(0,0,0,0)'); gr.addColorStop(vy === 'bottom' ? 1 : 0, 'rgba(0,0,0,.55)'); g.fillStyle = gr; g.fillRect(0, vy === 'bottom' ? y - pad : 0, W, vy === 'bottom' ? H - y + pad : y + total + pad); }
