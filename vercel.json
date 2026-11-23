@@ -11,6 +11,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/compose/:op",
+      "destination": "/api/compose/[op]?op=:op"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api?__p=:path*"
     }

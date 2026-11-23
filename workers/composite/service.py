@@ -75,7 +75,10 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def send(self, code, obj):
         b = json.dumps(obj).encode(); self.send_response(code); self.send_header('content-type', 'application/json'); self.send_header('content-length', str(len(b))); self.end_headers(); self.wfile.write(b)
-    def op(self): return self.path.split('?')[0].rstrip('/').rsplit('/', 1)[-1]   # '/composite' locally, '/api/compose/composite' on Vercel
+    def op(self):   # local: /composite; Vercel: /api/compose/composite, or the rewritten /api/compose/[op]?op=composite
+        import urllib.parse as _u
+        q = _u.parse_qs(_u.urlsplit(self.path).query).get('op')
+        return q[0] if q else self.path.split('?')[0].rstrip('/').rsplit('/', 1)[-1]   # '/composite' locally, '/api/compose/composite' on Vercel
     def do_GET(self): self.send(200, {'ok': True, 'matte_model': MODEL}) if self.op() in ('health', 'compose') else self.send(404, {'error': 'not found'})
     def do_POST(self):
         if KEY and self.headers.get('authorization') != 'Bearer ' + KEY: return self.send(401, {'error': 'unauthorized'})
