@@ -411,3 +411,25 @@ details.more .more-m{position:absolute;right:0;top:calc(100% + 4px);display:grid
 @media (max-width:720px){.pop{left:8px!important;right:8px!important;top:auto!important;bottom:8px;max-height:70vh;overflow:auto;box-shadow:0 -8px 30px rgba(0,0,0,.25)}.pop a{min-height:48px}}
 
 .cand-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.cand{border:2px solid var(--ink);background:#fff;padding:3px;cursor:pointer;display:grid;gap:2px;width:96px}.cand img{width:86px;height:86px;object-fit:contain}.cand.on{outline:3px solid var(--blue);outline-offset:1px}.cand .ph{display:grid;place-items:center;height:86px;font:10px var(--font-mono)}.cand small{font:9px var(--font-mono)}
+
+.bar.indet{overflow:hidden;position:relative}.bar.indet i{position:absolute;width:30%;height:100%;animation:indet 1.4s ease-in-out infinite}@keyframes indet{0%{left:-30%}100%{left:100%}}
+
+/* onboarding step 3: competitor and community cards */
+.sec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.cmp-grid,.com-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.cmp,.com{border:2px solid var(--ink);background:#fff;padding:12px;display:grid;gap:6px;align-content:start}.cmp .row,.com .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.cmp.approved,.com.saved{box-shadow:4px 4px 0 var(--blue)}.cmp.rejected,.com.not_relevant{opacity:.55}
+.cmp small,.com small{display:block}.skel-row{padding:14px;border:2px dashed var(--ink);font:12px var(--font-mono);background:#fff}
+/* Home: three creative directions; the scanned brand's colours stay inside each preview */
+.cr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.cr{border:2px solid var(--ink);background:#fff;display:grid;grid-template-rows:auto 1fr;min-width:0}
+.cr-art{aspect-ratio:4/5;position:relative;overflow:hidden;background:var(--b1,#eee);color:var(--b2,#111);padding:18px;display:flex;flex-direction:column;justify-content:space-between}
+.cr-art .hl{font:800 clamp(18px,1.8vw,26px)/1.05 var(--font-display,inherit);text-transform:none;max-width:90%}
+.cr-art .ph{flex:1;margin:12px 0;border:2px dashed currentColor;display:grid;place-items:center;font:11px var(--font-mono);text-align:center;padding:8px;background:rgba(255,255,255,.85);color:#111}
+.cr-art img{flex:1;min-height:0;object-fit:contain;margin:12px 0;background:#fff}
+.cr-art .cta{align-self:flex-start;background:var(--b2,#111);color:var(--b1,#fff);font:11px var(--font-mono);padding:7px 10px;text-transform:uppercase}
+.cr.lifestyle .cr-art{justify-content:flex-end;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.08)),var(--b3,#ddd)}.cr.contrast .cr-art{background:var(--b2,#111);color:var(--b1,#fff)}.cr.contrast .cta{background:var(--b1,#fff);color:var(--b2,#111)}
+.cr-meta{padding:12px;display:grid;gap:6px}.cr-meta .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.intel-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.cr-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:82%;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.cr{scroll-snap-align:start}.intel-grid{grid-template-columns:1fr}}
+.logo-prev{display:flex;gap:12px;align-items:center;border:2px solid var(--ink);background:#fff;padding:12px}.logo-prev img{max-height:56px;max-width:180px;object-fit:contain}.sw b{font:10px var(--font-mono);text-transform:uppercase;margin-right:4px}

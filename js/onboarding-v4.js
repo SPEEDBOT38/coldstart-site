@@ -4,18 +4,18 @@
   const C = window.CS, S = C.S, esc = C.esc;
   const root = document.getElementById('stage');
   const ticksEl = document.getElementById('ticks');
-  const NAMES = ['Business', 'Brand DNA', 'Outcome', 'Boundaries', 'First plan'];
+  const NAMES = ['Business', 'Brand & product', 'Competitors & communities', 'Outcome', 'Market & channels', 'First plan'];
   const $ = (s, r) => (r || document).querySelector(s);
   let scanning = false, scanTimer = null, scanIdx = 0, lastError = '', showDesc = false;
 
   function ticks() {
-    ticksEl.innerHTML = '<span class="ticks-label">Step ' + (S.step + 1) + ' / 5 · ' + NAMES[S.step] + '</span>' +
+    ticksEl.innerHTML = '<span class="ticks-label">Step ' + (S.step + 1) + ' / 6 · ' + NAMES[S.step] + '</span>' +
       NAMES.map((n, i) => '<i class="tick ' + (i < S.step ? 'done' : i === S.step ? 'now' : '') + '" title="' + n + '"></i>').join('');
   }
-  function go(n) { S.step = Math.max(0, Math.min(4, n)); C.save(); render(); window.scrollTo(0, 0); const h = $('h1'); h && h.focus && h.setAttribute('tabindex', '-1') && h.focus({ preventScroll: true }); }
+  function go(n) { S.step = Math.max(0, Math.min(5, n)); C.save(); render(); window.scrollTo(0, 0); const h = $('h1'); h && h.focus && h.setAttribute('tabindex', '-1') && h.focus({ preventScroll: true }); }
   function render() {
     ticks(); document.body.classList.toggle('step-later', S.step > 0);
-    ([step0, step1, step2, step3, step4][S.step])();
+    ([step0, step1, stepIntel, step2, step3, step4][S.step])();
   }
 
   /* ---------- 1. Business ---------- */
@@ -43,17 +43,17 @@
   }
 
   const SCAN_STEPS = ['Opening your site', 'Reading products and pages', 'Pulling brand colours and voice', 'Working out who buys'];
-  function renderScan() {
-    const pct = Math.min(90, 12 + scanIdx * 24);
+  function renderScan() {   // honest: an indeterminate indicator and an elapsed clock, no invented percentage
+    const sec = Math.round((Date.now() - (window.__scanT0 || Date.now())) / 1000);
     root.innerHTML = `<div class="ob-col scan" role="status" aria-live="polite">
       <div><span class="eyebrow">Studying your business</span><h1 class="disp m">Reading <b>${esc(C.parseSite(S.input.site) || 'your description')}</b></h1></div>
-      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
-      <ul class="scan-list">${SCAN_STEPS.map((t, i) => `<li class="${i < scanIdx ? 'done' : i === scanIdx ? 'now' : 'todo'}">${t}</li>`).join('')}</ul>
-      <p class="ob-note">Usually 15 to 25 seconds. The bar holds at 90% until the real answer arrives.</p></div>`;
+      <div class="bar indet" aria-hidden="true"><i></i></div>
+      <ul class="scan-list">${SCAN_STEPS.map((t) => `<li class="now">${t}</li>`).join('')}</ul>
+      <p class="ob-note" id="scan-clock">${sec}s · usually 15 to 30 seconds. Results appear as soon as the server returns them.</p></div>`;
   }
   async function startScan(domain) {
-    scanning = true; scanIdx = 0; render();
-    scanTimer = setInterval(() => { if (scanIdx < SCAN_STEPS.length - 1) { scanIdx++; renderScan(); } }, 4500);
+    scanning = true; scanIdx = 0; window.__scanT0 = Date.now(); C.ops.post('obTiming', { mark: 'scan_started', at: Date.now() }).catch(() => {}); render(); const clk = setInterval(() => { const e = document.getElementById('scan-clock'); if (!scanning || !e) return clearInterval(clk); e.textContent = Math.round((Date.now() - window.__scanT0) / 1000) + 's · usually 15 to 30 seconds. Results appear as soon as the server returns them.'; }, 1000);
+    scanTimer = null;   // no simulated progress: the list shows what the scan does, not a fake position
     const t0 = Date.now();
     try {
       const body = domain
@@ -108,6 +108,7 @@
             <label class="field ${b.line ? '' : 'uncertain'}"><span>What you sell, and to whom</span>
               <textarea id="line">${esc(b.line || S.input.desc || '')}</textarea>
               ${b.line ? '' : '<small>I couldn’t pin this down. Please write one line.</small>'}</label>
+            ${b.logo ? `<div class="logo-prev"><img src="${esc(b.logo)}" alt="${esc(b.name || 'Logo')} logo"><small class="muted">Logo found on your site</small></div>` : ''}
             <label class="field"><span>Brand name</span><input id="bname" type="text" value="${esc(b.name || '')}"></label>
             <fieldset class="flag" style="border:2px solid var(--ink);padding:12px;display:grid;gap:10px;background:#fff"><legend class="eyebrow" style="padding:0 6px">What should I lead with?</legend>
               <div class="seg" role="group" aria-label="Product or service"><button type="button" data-kind="product" aria-pressed="${fl.kind !== 'service'}">A product</button><button type="button" data-kind="service" aria-pressed="${fl.kind === 'service'}">A service or offer</button></div>
@@ -121,7 +122,7 @@
             <div class="fact-row"><span>Currency</span><span>${b.currency ? esc(b.currency) + ' <small class="muted">(from your site)</small>' : '<span class="chip dash">Not found on the site</span>'}</span></div>
             <div class="fact-row"><span>Voice</span><span>${(b.tones || []).length ? esc(b.tones.join(', ')) : '<span class="chip dash">Not found</span>'}</span></div>
             <div class="fact-row"><span>Avoid saying</span><span>${(b.dont || []).length ? esc(b.dont.join(', ')) : 'Nothing set'}</span></div>
-            ${sw.length ? `<div><span class="eyebrow">Colours I read from your site</span><div class="swatches">${sw.map((c, i) => `<span class="sw"><i style="background:${esc(c)}"></i>${esc(c)}</span>`).join('')}</div></div>` : ''}
+            ${sw.length ? `<div><span class="eyebrow">Colours I read from your site</span><div class="swatches">${sw.map((c, i) => `<span class="sw"><i style="background:${esc(c)}"></i><b>${esc((b.names || [])[i] || 'Colour')}</b> ${esc(c)}</span>`).join('')}</div><small class="muted">${b.fromSite ? 'Read from your site’s styles (Firecrawl branding).' : 'Not enough colours found on the site to build a palette.'} Roles are inferred; edit them in Settings.</small></div>` : ''}
             ${!live ? '<span class="chip warn">Website not read: built from your description</span>' : ''}
           </div>
           <div style="display:grid;gap:16px;align-content:start">
@@ -154,15 +155,66 @@
       const hit = (S.products || []).find((p) => p.name === name);
       S.flagship = { name, kind: (S.flagship && S.flagship.kind) || 'product', variant: $('#fl-var').value.trim(), price: price ? Number(price) : null, currency: $('#fl-cur').value || null, url, image: pickedImg || '', imageRights: 'unconfirmed', imageSource: hit && hit.enrich ? hit.enrich.productUrl : null, source: hit ? 'site_scan' : 'user', confirmedAt: new Date().toISOString() };
       S.offer = { name, price: S.flagship.price, url };
-      S.brand.line = $('#line').value.trim(); S.brand.name = $('#bname').value.trim() || S.brand.name; S.input.desc = S.brand.line; C.save(); go(2);
+      S.brand.line = $('#line').value.trim(); S.brand.name = $('#bname').value.trim() || S.brand.name; S.input.desc = S.brand.line; C.save(); C.ops.post('obTiming', { mark: 'product_confirmed', at: Date.now() }).catch(() => {}); go(2);
     };
   }
 
   /* ---------- 3. Outcome ---------- */
+  /* ---------- 3. Competitors & communities (the person decides; suggestions are labelled) ---------- */
+  const obCtx = () => ({ brand: { name: (S.brand && S.brand.name) || '', line: (S.brand && S.brand.line) || S.input.desc || '', site: S.input.site || '' }, product: S.flagship && S.flagship.name ? { name: S.flagship.name, price: S.flagship.price || null, currency: S.flagship.currency || null } : undefined, audience: ((S.icps || []).find((i) => i.on !== false) || {}).who || '', country: (S.bounds && S.bounds.country) || '' });
+  let intel = { competitors: null, communities: null, cErr: '', mErr: '', loading: false };
+  async function loadIntel(force) {
+    if (intel.loading) return; intel.loading = true; stepIntel();
+    let snap = {}; try { snap = await C.ops.get('obIntel'); } catch (e) { /* first visit */ }
+    intel.competitors = snap.competitors; intel.communities = snap.communities;
+    const jobs = [];
+    if (force || !intel.competitors) jobs.push(C.ops.post('obCompetitors', obCtx()).then((r) => { intel.competitors = r; C.ops.post('obTiming', { mark: 'competitors_shown', at: Date.now() }).catch(() => {}); }).catch((e) => { intel.cErr = 'Couldn’t suggest competitors right now. Add the ones you know below.'; console.warn(e.message); }));
+    if (force || !intel.communities) jobs.push(C.ops.post('obCommunities', obCtx()).then((r) => { intel.communities = r; }).catch((e) => { intel.mErr = 'Couldn’t search for communities right now.'; console.warn(e.message); }));
+    await Promise.all(jobs); intel.loading = false; if (S.step === 2) stepIntel();
+  }
+  function stepIntel() {
+    const cs = (intel.competitors && intel.competitors.items) || [], ms = (intel.communities && intel.communities.items) || [];
+    const appr = cs.filter((x) => x.decision === 'approved').length;
+    const kindChip = { direct: 'Direct', indirect: 'Indirect', adjacent: 'Adjacent' };
+    root.innerHTML = `<div class="ob-col wide">
+      <div><span class="eyebrow">Step 3 · Who you’re up against, and where buyers talk</span><h1 class="disp">Pick the competitors you <b>actually care about.</b></h1>
+      <p class="sub" style="margin-top:10px">These are suggestions. Only the ones you approve are used for research and creative. You can skip this and come back later.</p></div>
+      <div class="card-p">
+        <section aria-labelledby="cmp-h"><div class="sec-h"><h2 id="cmp-h" class="disp s">Possible competitors</h2><span class="chip ${appr ? 'b' : 'dash'}">${appr} approved</span></div>
+          ${intel.loading && !cs.length ? '<div class="skel-row" aria-busy="true">Finding competitors and checking their websites…</div>' : ''}
+          ${intel.cErr ? `<div class="err">${esc(intel.cErr)}</div>` : ''}
+          <div class="cmp-grid">${cs.map((x) => `<article class="cmp ${x.decision}"><div class="row"><strong>${esc(x.name)}</strong><span class="chip dash">${kindChip[x.kind] || 'Added'}</span></div>
+            <a class="small" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.domain)}</a>
+            ${x.overlap ? `<small>Overlap: ${esc(x.overlap)}</small>` : ''}<p class="small">${esc(x.why || '')}</p>
+            <small class="muted">${x.origin === 'user_added' ? 'Added by you' : 'AI suggestion · ' + (x.evidence && x.evidence.type === 'website_reachable' ? 'website checked: “' + esc((x.evidence.title || '').slice(0, 50)) + '”' : 'website could not be checked')} · ${esc(x.confidence)} confidence</small>
+            <div class="row">${x.decision === 'approved' ? '<span class="chip b">Approved</span>' : x.decision === 'rejected' ? '<span class="chip dash">Rejected</span>' : ''}
+              <button class="btn sm ${x.decision === 'approved' ? 'ghost' : ''}" data-cd="${esc(x.id)}" data-v="${x.decision === 'approved' ? 'pending' : 'approved'}" type="button">${x.decision === 'approved' ? 'Undo' : 'Approve'}</button>
+              ${x.decision !== 'rejected' ? `<button class="btn sm ghost" data-cd="${esc(x.id)}" data-v="rejected" type="button">Not a competitor</button>` : `<button class="btn sm ghost" data-cd="${esc(x.id)}" data-v="pending" type="button">Undo</button>`}</div></article>`).join('')}</div>
+          <form id="cmp-add" class="row" style="margin-top:10px;flex-wrap:wrap"><input id="ca-n" type="text" placeholder="Competitor name" aria-label="Competitor name" maxlength="60" style="max-width:220px"><input id="ca-u" type="text" placeholder="theirsite.com" aria-label="Competitor website" maxlength="200" style="max-width:240px"><button class="btn sm" type="submit">Add competitor</button>${cs.length ? '<button class="btn sm ghost" id="cmp-more" type="button">Suggest others</button>' : ''}</form><div id="ca-e"></div></section>
+        <section aria-labelledby="com-h" style="margin-top:22px"><div class="sec-h"><h2 id="com-h" class="disp s">Where your customers might be talking</h2><span class="chip dash">Suggestions, not demand data</span></div>
+          ${intel.loading && !ms.length ? '<div class="skel-row" aria-busy="true">Searching for relevant communities…</div>' : ''}
+          ${intel.mErr || (intel.communities && intel.communities.reason) ? `<div class="err">${esc(intel.mErr || intel.communities.reason)}</div>` : ''}
+          <div class="com-grid">${ms.map((x) => `<article class="com ${x.decision}"><div class="row"><strong>${esc(x.name)}</strong>${x.decision === 'saved' ? '<span class="chip b">Saved</span>' : ''}</div>
+            ${x.snippet ? `<p class="small">“${esc(x.snippet)}”</p>` : ''}<small class="muted">${esc(x.relevance)}</small><small class="muted">Source: ${esc(x.source)}</small>
+            <div class="row"><button class="btn sm ${x.decision === 'saved' ? 'ghost' : ''}" data-md="${esc(x.id)}" data-v="${x.decision === 'saved' ? 'suggested' : 'saved'}" type="button">${x.decision === 'saved' ? 'Unsave' : 'Save'}</button><button class="btn sm ghost" data-md="${esc(x.id)}" data-v="not_relevant" type="button">Not relevant</button><a class="btn sm ghost" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">View on Reddit</a></div></article>`).join('')}</div>
+          <form id="com-add" class="row" style="margin-top:10px"><input id="cm-n" type="text" placeholder="r/yourcommunity" aria-label="Add a subreddit" maxlength="40" style="max-width:240px"><button class="btn sm ghost" type="submit">Add community</button></form><div id="cm-e"></div></section>
+        <div class="nav-row"><button class="btn ghost" id="back" type="button">← Back</button><button class="btn lg" id="next" type="button">${appr ? 'Continue →' : 'Continue without competitors →'}</button></div>
+      </div></div>`;
+    $('#back').onclick = () => go(1); $('#next').onclick = () => go(3);
+    const decide = async (action, body) => { try { const r = await C.ops.post(action, body); if (action === 'obDecideCompetitor') intel.competitors = r; else intel.communities = r; stepIntel(); } catch (e) { toast(e.message); } };
+    root.querySelectorAll('[data-cd]').forEach((b) => b.onclick = () => decide('obDecideCompetitor', { id: b.dataset.cd, decision: b.dataset.v }));
+    root.querySelectorAll('[data-md]').forEach((b) => b.onclick = () => decide('obDecideCommunity', { id: b.dataset.md, decision: b.dataset.v }));
+    $('#cmp-add').onsubmit = (e) => { e.preventDefault(); const n = $('#ca-n').value.trim(), u = $('#ca-u').value.trim(); if (n.length < 2 || !u) { $('#ca-e').innerHTML = '<div class="err">Enter a name and a website.</div>'; return; } decide('obDecideCompetitor', { add: { name: n, url: u } }); };
+    $('#com-add').onsubmit = (e) => { e.preventDefault(); decide('obDecideCommunity', { add: $('#cm-n').value.trim() }); };
+    const more = $('#cmp-more'); if (more) more.onclick = () => { intel.competitors = null; loadIntel(true); };
+    if (!intel.competitors && !intel.loading && !intel.cErr) loadIntel();
+  }
+  const toast = (m) => { const t = document.createElement('div'); t.className = 'toast on'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); };
+
   function step2() {
     const sug = C.suggestGoal();
     root.innerHTML = `<div class="ob-col wide">
-      <div><span class="eyebrow">Step 3 · Choose the outcome</span><h1 class="disp">What would make this month a <b>win?</b></h1></div>
+      <div><span class="eyebrow">Step 4 · Choose the outcome</span><h1 class="disp">What would make this month a <b>win?</b></h1></div>
       <div class="card-p">
         <div class="opt-grid" role="group" aria-label="Goal">${C.GOALS.map((g) => `<button class="opt" type="button" data-g="${g.k}" aria-pressed="${S.goal.k === g.k}">
           ${g.k === sug ? '<span class="chip y">Suggested for you</span>' : ''}<strong>${g.t}</strong><small>${g.d}</small></button>`).join('')}</div>
@@ -171,14 +223,14 @@
       </div></div>`;
     root.querySelectorAll('[data-g]').forEach((b) => b.addEventListener('click', () => { S.goal.k = b.dataset.g; C.save(); step2(); }));
     $('#target').addEventListener('input', (e) => { S.goal.target = e.target.value; C.save(); });
-    $('#back').onclick = () => go(1); $('#next').onclick = () => go(3);
+    $('#back').onclick = () => go(2); $('#next').onclick = () => go(4);
   }
 
   /* ---------- 4. Boundaries ---------- */
   function step3() {
     const B = S.bounds;
     root.innerHTML = `<div class="ob-col wide">
-      <div><span class="eyebrow">Step 4 · Set boundaries</span><h1 class="disp">Where should we focus, and what can we <b>spend?</b></h1></div>
+      <div><span class="eyebrow">Step 5 · Set boundaries</span><h1 class="disp">Where should we focus, and what can we <b>spend?</b></h1></div>
       <div class="card-p">
         <div class="cols2">
           <div style="display:grid;gap:12px;align-content:start"><span class="eyebrow">Market</span>
@@ -199,8 +251,8 @@
     root.querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { keep(); B.regionMode = b.dataset.rm; C.save(); step3(); }));
     root.querySelectorAll('[data-ch]').forEach((b) => b.addEventListener('click', () => { keep(); B.channels = b.dataset.ch; C.save(); step3(); }));
     function keep() { const co = $('#country'); if (co) B.country = co.value; const r = $('#region'), bu = $('#budget'), a = $('#aud'); if (r) B.region = r.value.trim(); if (bu) B.budget = bu.value; if (a) { B.audience = a.value.trim(); } }
-    $('#back').onclick = () => { keep(); go(2); };
-    $('#next').onclick = () => { keep(); if (B.channels !== 'organic' && Number(B.budget) > 0 && !B.country) { $('#s3-err').innerHTML = '<div class="err">Choose the country your ads would target.</div>'; $('#country').focus(); return; } B.audienceMode = B.audience ? 'set' : 'find'; B.budgetMode = Number(B.budget) > 0 && B.channels !== 'organic' ? 'amount' : 'tbd'; if (B.regionMode === 'decide') B.region = B.region; C.save(); S.plan = C.buildPlan(); C.save(); go(4); };
+    $('#back').onclick = () => { keep(); go(3); };
+    $('#next').onclick = () => { keep(); if (B.channels !== 'organic' && Number(B.budget) > 0 && !B.country) { $('#s3-err').innerHTML = '<div class="err">Choose the country your ads would target.</div>'; $('#country').focus(); return; } B.audienceMode = B.audience ? 'set' : 'find'; B.budgetMode = Number(B.budget) > 0 && B.channels !== 'organic' ? 'amount' : 'tbd'; if (B.regionMode === 'decide') B.region = B.region; C.save(); S.plan = C.buildPlan(); C.save(); go(5); };
   }
 
   /* ---------- 5. First plan ---------- */
@@ -208,7 +260,7 @@
     const plan = C.buildPlan(); S.plan = plan; C.save();
     const g = C.GOALS.find((x) => x.k === S.goal.k) || C.GOALS[0];
     root.innerHTML = `<div class="ob-col wide">
-      <div><span class="eyebrow">Step 5 · Your first plan</span><h1 class="disp">I’ve found a few places worth <b>starting.</b></h1>
+      <div><span class="eyebrow">Step 6 · Your first plan</span><h1 class="disp">I’ve found a few places worth <b>starting.</b></h1>
       <p class="sub" style="margin-top:10px">Goal: ${g.t.toLowerCase()}${S.goal.target ? ' (' + esc(S.goal.target) + ' ' + g.unit + ')' : ''} · ${S.bounds.region ? esc(S.bounds.region) : 'region still open'} · ${S.bounds.budgetMode === 'amount' ? 'cap ' + C.money(S.bounds.budget) + '/month' : 'organic only for now'}.</p></div>
       <div class="card-p">
         <div class="plan-list">${plan.map((p, n) => `<div class="plan-item"><span class="plan-num">${n + 1}</span>
@@ -220,8 +272,8 @@
         <div class="fact-row" style="border:0;padding:0"><span>No accounts connected yet</span><span class="muted small">I’ll ask only when you want to execute something.</span></div>
         <div class="nav-row"><button class="btn ghost" id="back" type="button">← Adjust</button><button class="btn lg yellow" id="next" type="button">Accept plan →</button></div>
       </div></div>`;
-    $('#back').onclick = () => go(3);
-    $('#next').onclick = async () => { C.finish(); C.log('onboarding', 'Accepted first plan', { items: plan.length, flagship: (S.flagship || {}).name || null }); try { await C.ops.get('workspace'); } catch (e) { /* workspace is created on first server call; retried in the app */ } location.href = 'app-v4.html#/home'; };
+    $('#back').onclick = () => go(4);
+    $('#next').onclick = async () => { try { await Promise.all([C.ops.post('obCreatives', obCtx()), C.ops.post('obAds', { country: (S.bounds && S.bounds.country) || '' })]); C.ops.post('obTiming', { mark: 'dashboard_ready', at: Date.now() }).catch(() => {}); } catch (e) { console.warn('workspace init', e.message); } C.finish(); C.log('onboarding', 'Accepted first plan', { items: plan.length, flagship: (S.flagship || {}).name || null }); try { await C.ops.get('workspace'); } catch (e) { /* workspace is created on first server call; retried in the app */ } location.href = 'app-v4.html#/home'; };
   }
 
   let sure = false;

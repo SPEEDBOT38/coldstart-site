@@ -59,7 +59,7 @@
     const hour = new Date().getHours(), hi = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
     const fl = S.flagship || {};
     const lead = !fl.name ? { eyebrow: 'Setup', title: 'Choose the product to lead with', sub: 'Nothing can be created or planned until one product or offer is confirmed.', href: 'onboarding-v4.html', cta: 'Choose a product' }
-      : !(fl.image || (S.studio && (S.studio.assets || []).length) || (S.studio && S.studio.skus && S.studio.skus.length)) ? { eyebrow: 'Setup', title: 'Add a real photo of ' + fl.name, sub: (!fl.url ? 'The product link and ' : 'The ') + 'photo are missing. Creatives are built from your own product photo, so this comes first.', href: '#/campaigns/library', cta: 'Complete product setup' }
+      : !(fl.image || (S.studio && (S.studio.assets || []).length) || (S.studio && S.studio.skus && S.studio.skus.length)) ? { eyebrow: 'Setup', title: 'Add a real photo of ' + fl.name, sub: (!fl.url ? 'The product link and photo are missing.' : 'The product photo is missing.') + ' Creatives are built from your own product photo, so this comes first.', href: '#/campaigns/library', cta: 'Complete product setup' }
       : first ? { eyebrow: 'Needs your decision', title: first.title, sub: first.sub, href: '#/inbox', cta: 'Review next action' }
       : n ? { eyebrow: 'Suggested next step · not yet validated', title: n.title, sub: n.summary, href: '#/campaigns/c1', cta: 'Review this plan', why: n.id }
       : { eyebrow: 'All clear', title: 'Nothing needs you right now.', sub: 'Create something, or research a market in Discover.', href: '#/discover', cta: 'Open Discover' };
@@ -68,6 +68,8 @@
     <div class="pagehead"><div><span class="eyebrow">${esc(b.name || 'Workspace')}</span><h1 class="disp">${hi}. Here’s what’s <b>next.</b></h1></div></div>
     <section class="next-card" aria-label="Most important next action"><div><span class="eyebrow">${esc(lead.eyebrow)}</span><h2>${esc(lead.title)}</h2>${lead.sub ? `<p>${esc(lead.sub)}</p>` : ''}
       <div class="row"><a class="btn" href="${lead.href}">${esc(lead.cta)} →</a>${lead.why ? `<button class="btn ghost" data-why="${esc(lead.why)}" type="button">Why this?</button>` : ''}</div></div></section>
+    <section class="panel" aria-labelledby="h-cr" style="margin-bottom:18px"><div class="panel-h"><h2 id="h-cr">Your first three creative directions</h2><a class="link" href="#/campaigns/studio">Open Studio</a></div><div class="panel-b" id="home-cr"><div class="empty sm">Loading drafts…</div></div></section>
+    <section class="panel" aria-labelledby="h-mi" style="margin-bottom:18px"><div class="panel-h"><h2 id="h-mi">Market intelligence</h2><a class="link" href="#/discover">Open Discover</a></div><div class="panel-b" id="home-mi"><div class="empty sm">Loading…</div></div></section>
     <div class="grid-main"><div class="stack">
       <section class="panel" aria-labelledby="h-ap"><div class="panel-h"><h2 id="h-ap">Pending approvals</h2><a class="link" href="#/inbox">Open Inbox</a></div>
         ${inbox.length ? inbox.slice(0, 6).map((i) => `<a class="list-row" href="#/inbox"><i class="dot ${i.kind === 'approval' ? 'y' : ''}" aria-hidden="true"></i><span class="lr-t">${esc(i.title)}</span><small>${esc(i.sub || '')}</small></a>`).join('') : '<div class="empty sm">Nothing is waiting for you.</div>'}</section>
@@ -83,7 +85,32 @@
     view.querySelectorAll('[data-why]').forEach((x) => x.addEventListener('click', () => drawer(x.dataset.why)));
     homeLive();
   }
+  async function homeIntel() {
+    const cr = $('#home-cr'), mi = $('#home-mi'); let snap = {};
+    try { snap = await C.ops.get('obIntel'); } catch (e) { if (cr) cr.innerHTML = `<div class="empty sm">Couldn’t load drafts: ${esc(e.message)}</div>`; return; }
+    const col = (S.brand && S.brand.colors) || [], fl = S.flagship || {};
+    const vars = `--b1:${esc(col[4] || '#F5F5F2')};--b2:${esc(col[3] || col[0] || '#111')};--b3:${esc(col[1] || col[0] || '#ddd')}`;
+    const items = (snap.creatives && snap.creatives.items) || [];
+    if (cr) cr.innerHTML = items.length ? `<div class="cr-grid" role="list">${items.map((x) => `<article class="cr ${esc(x.layout)}" role="listitem"><div class="cr-art" style="${vars}"><div class="hl">${esc(x.headline)}</div>${fl.image && fl.imageRights === 'approved' ? `<img src="${esc(fl.image)}" alt="${esc(fl.name || '')}">` : `<div class="ph">Your product photo goes here<br>(needs a photo you have rights to)</div>`}<div><p class="small" style="margin:0 0 8px">${esc(x.body)}</p><span class="cta">${esc(x.cta)}</span></div></div>
+      <div class="cr-meta"><div class="row"><strong>${esc(x.kind)}</strong><span class="chip dash">${esc(x.channel)}</span></div><small class="muted">${esc(x.rationale)}</small><div class="row"><span class="chip warn">Needs product photo</span><span class="chip dash">${x.origin === 'edited_by_user' ? 'Edited by you' : 'Draft'}</span></div>
+      <div class="row"><button class="btn sm ghost" data-cr-edit="${esc(x.id)}" type="button">Edit text</button><a class="btn sm" href="#/campaigns/library">Add product photo</a></div></div></article>`).join('')}</div>` : `<div class="empty sm">No drafts yet. <button class="btn sm" id="cr-make" type="button">Prepare three directions</button></div>`;
+    view.querySelectorAll('[data-cr-edit]').forEach((b) => b.onclick = () => editCr(items.find((x) => x.id === b.dataset.crEdit)));
+    const mk = $('#cr-make'); if (mk) mk.onclick = async () => { mk.disabled = true; try { await C.ops.post('obCreatives', { brand: { name: (S.brand && S.brand.name) || 'Your brand', line: (S.brand && S.brand.line) || '', site: S.input.site || '' }, product: fl.name ? { name: fl.name, price: fl.price || null, currency: fl.currency || null } : undefined }); homeIntel(); } catch (e) { toast(e.message); mk.disabled = false; } };
+    const cs = ((snap.competitors && snap.competitors.items) || []), ap = cs.filter((x) => x.decision === 'approved'), coms = ((snap.communities && snap.communities.items) || []).filter((x) => x.decision !== 'not_relevant'), ads = (snap.ads && snap.ads.items) || [];
+    if (mi) mi.innerHTML = `<div class="intel-grid">
+      <div><span class="eyebrow">Competitors</span>${ap.length ? ap.map((x) => `<div class="list-row"><span class="st">${x.origin === 'user_added' ? 'Added' : 'Approved'}</span><span class="lr-t">${esc(x.name)}</span><small>${esc(x.domain)}</small></div>`).join('') : `<div class="empty sm">${cs.length ? cs.length + ' suggested, none approved yet.' : 'Awaiting selection.'} <a class="link" href="onboarding-v4.html" data-ob-step="2">Choose competitors</a></div>`}</div>
+      <div><span class="eyebrow">Communities</span>${coms.length ? coms.slice(0, 5).map((x) => `<a class="list-row" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer"><span class="st">${x.decision === 'saved' ? 'Saved' : 'Suggested'}</span><span class="lr-t">${esc(x.name)}</span><small>search index</small></a>`).join('') : '<div class="empty sm">No communities found yet. Add one you know in Discover.</div>'}</div>
+      <div><span class="eyebrow">Competitor ads (Meta Ad Library)</span>${ads.length ? ads.map((x) => `<a class="list-row" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer"><span class="st">Manual review</span><span class="lr-t">${esc(x.competitor)}</span><small>open search</small></a>`).join('') + '<small class="muted">Search links only. No ads were fetched or analysed automatically.</small>' : '<div class="empty sm">Approve competitors to prepare Ad Library searches.</div>'}</div></div>`;
+    view.querySelectorAll('[data-ob-step]').forEach((a) => a.onclick = () => { S.step = 2; C.save(); });
+  }
+  function editCr(x) {
+    const d = document.getElementById('dlg'); d.setAttribute('aria-label', 'Edit draft');
+    d.innerHTML = `<div class="dlg-h"><h2 class="disp s">${esc(x.kind)}</h2><button class="btn sm ghost" id="ex" type="button">Close</button></div><div class="dlg-b" style="display:grid;gap:10px"><label class="field"><span>Headline</span><input id="e-h" maxlength="60" value="${esc(x.headline)}"></label><label class="field"><span>Supporting copy</span><textarea id="e-b" maxlength="160" rows="3">${esc(x.body)}</textarea></label><label class="field"><span>Call to action</span><input id="e-c" maxlength="24" value="${esc(x.cta)}"></label><div id="e-e"></div></div><div class="dlg-f"><button class="btn ghost" id="ec" type="button">Cancel</button><button class="btn yellow" id="es" type="button">Save</button></div>`;
+    d.showModal(); $('#ex').onclick = $('#ec').onclick = () => d.close();
+    $('#es').onclick = async () => { try { await C.ops.post('obEditCreative', { id: x.id, headline: $('#e-h').value, body: $('#e-b').value, cta: $('#e-c').value }); d.close(); toast('Saved.'); homeIntel(); } catch (e) { $('#e-e').innerHTML = `<div class="err">${esc(e.message)}</div>`; } };
+  }
   async function homeLive() {
+    homeIntel();
     const jb = $('#home-jobs'), cx = $('#home-conn'), us = $('#home-usage');
     try { const jobs = ((await C.ops.get('jobs')).jobs || []).slice(0, 5); if (jb) jb.innerHTML = jobs.length ? jobs.map((j) => `<a class="list-row" href="#/campaigns/studio"><span class="st">${esc(j.state)}</span><span class="lr-t">${esc(j.kind || 'Render')}</span><small>${ago(j.updatedAt || j.createdAt)}</small></a>`).join('') : '<div class="empty sm">No creative jobs yet. Create → Ad creative.</div>'; } catch (e) { if (jb) jb.innerHTML = `<div class="empty sm">Couldn’t load jobs: ${esc(e.message)}</div>`; }
     try { const u = await C.ops.get('usage'); if (us) us.innerHTML = `<div class="fact-row"><span>Renders this month</span><span>${u.used.creativeMonth} of ${u.caps.credits || '∞'}</span></div><div class="fact-row"><span>Research today</span><span>${u.used.researchToday ?? 0} of ${u.caps.research ?? '∞'}</span></div><div class="fact-row"><span>AI/API cost reported</span><span>${u.aiApiCost && u.aiApiCost.reportedFor ? '$' + Number(u.aiApiCost.usd).toFixed(2) : 'Not reported by providers'}</span></div>`; } catch (e) { if (us) us.innerHTML = `<small class="muted">Usage unavailable: ${esc(e.message)}</small>`; }

@@ -58,6 +58,10 @@ async function suite(label, viewport) {
     await page.fill('#fl-url', 'http://not-https.test'); await page.click('#next'); ok(inc(await page.locator('#fl-err').innerText(), 'https'), 'bad buy link must be rejected');
     await page.fill('#fl-name', ''); await page.click('#next'); ok(inc(await page.locator('#fl-err').innerText(), 'Name the product'));
     await page.fill('#fl-name', 'Soil Mix 250 g'); await page.fill('#fl-var', '250 g'); await page.fill('#fl-url', 'https://fernform.test/products/soil-mix'); await page.click('#next');
+    await page.waitForSelector('#cmp-add', { timeout: 20000 }); await page.waitForFunction(() => !document.querySelector('[aria-busy=true]'), null, { timeout: 30000 });
+    await page.fill('#ca-n', 'Rival Soil'); await page.fill('#ca-u', 'rivalsoil.test'); await page.click('#cmp-add button[type=submit]'); await page.waitForSelector('.cmp.approved');
+    ok(inc(await page.locator('main').innerText(), 'Added by you'), 'user-added competitor is approved and labelled');
+    await page.click('#next');
     await page.waitForSelector('[data-g]'); await page.click('[data-g=sales]'); await page.fill('#target', '100'); await page.click('#next');
     await page.waitForSelector('[data-rm]'); await page.click('[data-rm=set]'); await page.fill('#region', 'Bengaluru, Mumbai'); await page.fill('#budget', '15000');
     ok((await page.locator('text=Always on · locked').count()) > 0, 'approval policy shown as locked');
@@ -97,7 +101,7 @@ async function suite(label, viewport) {
     jobs = (await ops(page, 'publishJobs')).json.jobs; ok(jobs[0].authorized, 'approval recorded on the server, bound to the payload');
     await page.goto(BASE + '/app-v4.html#/calendar'); await page.waitForSelector('[data-sp-man]');
     await page.click('[data-sp-man]'); await page.fill('#au', 'https://www.reddit.com/r/IndoorGarden/comments/abc123/best_soil_mix_for_balcony_herbs/def456/'); await page.click('#au-s');
-    await page.waitForFunction(() => /Posted by you/.test(document.getElementById('social-cal').textContent), null, { timeout: 8000 });
+    await page.waitForFunction(() => /Posted by you/.test((document.getElementById('social-cal') || {}).textContent || ''), null, { timeout: 8000 });
     jobs = (await ops(page, 'publishJobs')).json.jobs; eq(jobs[0].state, 'completed'); eq(jobs[0].verification, 'user_attested');
     await page.goto(BASE + '/app-v4.html#/results'); await page.waitForFunction(() => /not verified by the platform/.test((document.getElementById('res-live') || {}).textContent || ''), null, { timeout: 8000 });
     const rt = await page.locator('#res-live').innerText(); ok(inc(rt, 'Unavailable'), 'manual post engagement is shown as unavailable, not as zeros'); ok(inc(rt, 'no estimates'), 'estimates are explicitly absent');
