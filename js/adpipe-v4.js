@@ -89,13 +89,20 @@
     return { qa: cv.qa.issues, mask: cmp.report.mask };
   }
 
-  async function final({ C, S, ctx, x, A, msg }) {
+  async function final({ C, S, ctx, x, A, msg, opts }) {
     const B = CE.brief(x.layout, S.brand), t0 = Date.now(), d = x.design || {};
     if (!d.layout_approved) throw new Error(B.name + ': approve the layout prototype first.');
-    const rid = (d.scene_request && d.scene_request.status !== 'done') ? d.scene_request.id : x.id + '-' + Date.now().toString(36);
-    await C.ops.post('obEditCreative', { context: ctx, id: x.id, design: { scene_request: { id: rid, status: 'running', at: Date.now() } } });
-    msg(B.name + ': painting the empty scene (the image model never sees your product)…');
-    const g = await C.api('plugins/images/actions/generate', { prompt: B.scenePrompt, raw: true, aspect: '4:5', model: 'pro', requestId: rid, job: x.id });
+    let g = null, rid = d.scene_request && d.scene_request.id;
+    if (opts && opts.reuseScene) {   // refine placement/shadow/typography on the saved scene: no image-generation call
+      const sc = (await C.ops.get('obImage', { id: x.id, kind: 'scene', site: ctx.brand.site, brand: ctx.brand.name })).image;
+      if (!sc) throw new Error(B.name + ': no saved scene to reuse; generate it first.');
+      g = { image: sc, model: x.imageMeta && x.imageMeta.model, usd: 0, cost_known: true, generation_id: x.imageMeta && x.imageMeta.generation_id, attempts: [], reused: true };
+    } else {
+      rid = (d.scene_request && d.scene_request.status !== 'done') ? d.scene_request.id : x.id + '-' + Date.now().toString(36);
+      await C.ops.post('obEditCreative', { context: ctx, id: x.id, design: { scene_request: { id: rid, status: 'running', at: Date.now() } } });
+      msg(B.name + ': painting the empty scene (the image model never sees your product)…');
+      g = await C.api('plugins/images/actions/generate', { prompt: B.scenePrompt, raw: true, aspect: '4:5', model: 'pro', requestId: rid, job: x.id });
+    }
     msg(B.name + ': reading the scene to place the product…');
     let loc = null; try { loc = await C.api('plugins/images/actions/locate', { image: g.image, job: x.id, hint: B.camera + '. ' + B.lighting }); } catch (e) { loc = null; }
     const P = { ...B.product }; if (loc && loc.confidence >= 0.4) { P.ground_y = Math.min(Math.max(loc.surface_y, B.product.ground_y - 0.12), B.product.ground_y + 0.12); P.cx = Math.min(Math.max(loc.cx, B.product.cx - 0.15), B.product.cx + 0.15); }
@@ -113,9 +120,9 @@
       grounding: cmp.report.shadow ? 'shadow_drawn' : 'none', placement_source: loc && loc.confidence >= 0.4 ? 'vision_located' : 'brief_default', placement: loc,
       text: cv.qa.issues.length ? 'review' : 'pass', text_issues: cv.qa.issues, review_required: cmp.report.review_required, critique: crit, approved: false,
     };
-    await C.ops.post('obEditCreative', { context: ctx, id: x.id, asset: 'scene', data: g.image });
+    if (!g.reused) await C.ops.post('obEditCreative', { context: ctx, id: x.id, asset: 'scene', data: g.image });
     await C.ops.post('obEditCreative', { context: ctx, id: x.id, image: cmp.image, layout: strip(L), approve: false,
-      imageMeta: { model: g.model, usd: g.usd, cost_known: g.cost_known, generation_id: g.generation_id, attempts: g.attempts, ms: Date.now() - t0, aspect: '4:5', source: 'Scene by ' + g.model + ' (no product reference); original product composited; text by the Cold Start editor', productImage: S.flagship && S.flagship.image },
+      imageMeta: { model: g.model, usd: g.reused ? (x.imageMeta && x.imageMeta.usd) : g.usd, reused_scene: !!g.reused, cost_known: g.cost_known, generation_id: g.generation_id, attempts: g.attempts, ms: Date.now() - t0, aspect: '4:5', source: 'Scene by ' + g.model + ' (no product reference); original product composited; text by the Cold Start editor', productImage: S.flagship && S.flagship.image },
       design: { stage: 'final', layout: strip(L), placement: P, shadow, scene_request: { id: rid, status: 'done' }, prompt: B.scenePrompt, report: cmp.report, qa } });
     return { qa, usd: g.usd, png };
   }

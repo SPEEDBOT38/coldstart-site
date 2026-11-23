@@ -123,6 +123,7 @@
         ${fl.image ? (() => { const protos = items.filter((x) => x.assets && x.assets.prototype).length, appr = items.filter((x) => x.design && x.design.layout_approved).length;
           return `<button class="btn sm ghost" id="cr-copy" type="button" ${rendering ? 'disabled' : ''}>Rewrite copy with AI</button> <button class="btn sm" id="cr-proto" type="button" ${rendering ? 'disabled' : ''}>${protos ? 'Rebuild' : 'Generate'} layout prototypes (free)</button>
           ${protos === 3 && appr < 3 ? '<button class="btn sm" id="cr-approve-dirs" type="button">Approve these 3 layouts</button>' : ''}
+          ${items.filter((x) => x.assets && x.assets.scene).length ? `<button class="btn sm ghost" id="cr-replace" type="button" ${rendering ? 'disabled' : ''} title="Re-run placement, shadow, typography and review on the saved scenes. No new images are generated.">Re-place products (no new images)</button>` : ''}
           <button class="btn yellow sm" id="cr-render" type="button" ${rendering || appr < 3 ? 'disabled' : ''} title="${appr < 3 ? 'Approve the layout prototypes first' : ''}">${rendering ? 'Working…' : 'Generate 3 final ads'}</button>`; })() : ''}</div><div id="cr-msg"></div><div id="cr-ledger" class="small muted"></div>
         <div class="cr-grid" id="cr-track" role="list">${items.map((x, n) => `<article class="cr ${esc(x.layout)}" role="listitem" aria-label="${n + 1} of 3: ${esc(x.kind)}">
           ${x.imageState === 'rendered' ? `<div class="cr-art img" data-cr-img="${esc(x.id)}"><span class="muted small">Loading image…</span></div>` : x.assets && x.assets.prototype ? `<div class="cr-art img" data-cr-proto="${esc(x.id)}"><span class="muted small">Loading prototype…</span></div>` : `<div class="cr-art" style="${vars}"><span class="concept-tag">Concept</span><div class="hl">${esc(x.headline)}</div>${fl.image ? `<img src="${esc(fl.image)}" alt="${esc(fl.name || '')}" referrerpolicy="no-referrer">` : '<div class="ph">Add a product photo</div>'}<div><p class="small" style="margin:0 0 8px">${esc(x.body)}</p><span class="cta">${esc(x.cta)}</span></div></div>`}
@@ -155,7 +156,7 @@
       const cb = $('#cr-copy'); if (cb) cb.onclick = async () => { cb.disabled = true; const m = $('#cr-msg'); if (m) m.innerHTML = '<p class="small">Writing copy from your confirmed product facts…</p>'; try { await C.ops.post('obRewriteCopy', { context: ctx }); if (m) m.innerHTML = '<p class="small">New copy saved. Rebuild the prototypes to see it.</p>'; await homeIntel(); } catch (e) { if (m) m.innerHTML = `<div class="err">${esc(e.message)}</div>`; cb.disabled = false; } };
       const ad = $('#cr-approve-dirs'); if (ad) ad.onclick = async () => { ad.disabled = true; for (const x of items) await C.ops.post('obEditCreative', { context: ctx, id: x.id, design: { layout_approved: true, layout_approved_at: Date.now() } }); homeIntel(); };
       const mk = $('#cr-make'); if (mk) mk.onclick = async () => { mk.disabled = true; try { await C.ops.post('obCreatives', ctx); homeIntel(); } catch (e) { toast(e.message); mk.disabled = false; } };
-      const rb = $('#cr-render'); if (rb) rb.onclick = () => renderAds(items, ctx); const pb = $('#cr-proto'); if (pb) pb.onclick = () => renderAds(items, ctx, { prototype: true });
+      const rb = $('#cr-render'); if (rb) rb.onclick = () => renderAds(items, ctx); const rp = $('#cr-replace'); if (rp) rp.onclick = () => renderAds(items.filter((x) => x.assets && x.assets.scene && x.status !== 'approved'), ctx, { reuseScene: true }); const pb = $('#cr-proto'); if (pb) pb.onclick = () => renderAds(items, ctx, { prototype: true });
     }
     const cs = ((snap.competitors && snap.competitors.items) || []), ap = cs.filter((x) => x.decision === 'approved' || x.origin === 'user_added'), sug = cs.filter((x) => x.decision === 'pending');
     const coms = ((snap.communities && snap.communities.items) || []).filter((x) => x.decision !== 'not_relevant'), saved = coms.filter((x) => x.decision === 'saved'), ads = (snap.ads && snap.ads.items) || [];
@@ -175,7 +176,7 @@
     try {
       const A = await window.AdPipe.assets({ C, S, flagship: flagshipWithPhoto() });
       for (const x of list) {
-        try { if (opts && opts.prototype) await window.AdPipe.prototype({ C, S, ctx, x, A, msg }); else { const r = await window.AdPipe.final({ C, S, ctx, x, A, msg }); if (r.usd != null) C.cost('Ad scene', r.usd, x.kind); } }
+        try { if (opts && opts.prototype) await window.AdPipe.prototype({ C, S, ctx, x, A, msg }); else { const r = await window.AdPipe.final({ C, S, ctx, x, A, msg, opts }); if (r.usd && !(opts && opts.reuseScene)) C.cost('Ad scene', r.usd, x.kind); } }
         catch (e) { errs.push(x.kind + ': ' + e.message); }
       }
     } catch (e) { errs.push(e.message); }
