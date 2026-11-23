@@ -4,7 +4,7 @@ POST /composite  {reference:dataUrl, background?:dataUrl, width, height, scale?}
 The report is computed from the output pixels, not asserted: inside the eroded product matte the output must equal the locked foreground exactly."""
 import base64, hashlib, io, json, os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from PIL import Image, ImageFilter, ImageChops
+from PIL import Image, ImageFilter, ImageChops, ImageDraw
 import numpy as np
 from seg import Matter
 
@@ -35,42 +35,84 @@ def matte_endpoint(req):
     ref, ref_sha = dec(req['reference']); ref = ref.convert('RGB'); a, b, agree = mattes(ref)
     return {'reference_sha256': ref_sha, 'size': list(ref.size), 'primary': {'model': MODEL, 'matte': enc(a)[0]}, 'second': ({'model': SECOND, 'matte': enc(b)[0]} if b is not None else None), 'agreement_iou': None if agree is None else round(agree, 3), 'agree_threshold': AGREE_MIN}
 
+def contact_shadow(W, H, alpha_np, x, y, opts):
+    """Shadow drawn on the background *before* the product is placed (one compositing pass). Two parts:
+    a tight contact core under the base (what stops a product looking like it floats) and a soft cast shadow
+    whose direction/softness/strength come from the art direction (opts) so it can match the scene's light."""
+    from maskfix import base_extent
+    ext = base_extent(alpha_np)
+    if not ext: return Image.new('L', (W, H), 0), None
+    x0, x1, by = ext; cx = x + (x0 + x1) / 2; gy = y + by; bw = max(8, x1 - x0)
+    strength = min(max(float(opts.get('strength', 0.55)), 0.0), 1.0); soft = min(max(float(opts.get('softness', 0.5)), 0.0), 1.0)
+    ang = float(opts.get('angle', 0.0))          # degrees; 0 = shadow falls straight back, positive = to the right
+    length = min(max(float(opts.get('length', 0.25)), 0.0), 1.0)
+    sh = Image.new('L', (W, H), 0); d = ImageDraw.Draw(sh)
+    # contact core: thin, dark, barely blurred
+    core = Image.new('L', (W, H), 0); ImageDraw.Draw(core).ellipse([cx - bw * 0.52, gy - bw * 0.035, cx + bw * 0.52, gy + bw * 0.035], fill=int(255 * strength))
+    core = core.filter(ImageFilter.GaussianBlur(2 + 4 * soft))
+    # cast shadow: the product silhouette squashed onto the ground plane and sheared by the light angle
+    sil = Image.fromarray((alpha_np >= 128).astype('uint8') * 255, 'L')
+    hgt = max(1, int(sil.height * length)); flat = sil.resize((sil.width, hgt), Image.BILINEAR).transpose(Image.FLIP_TOP_BOTTOM)
+    shear = np.tan(np.radians(ang)); flat = flat.transform(flat.size, Image.AFFINE, (1, -shear, shear * hgt if shear > 0 else 0, 0, 1, 0), Image.BILINEAR) if ang else flat
+    cast = Image.new('L', (W, H), 0); cast.paste(flat.point(lambda v: int(v * 0.45 * strength)), (int(x), int(gy - hgt)), flat)
+    cast = cast.filter(ImageFilter.GaussianBlur(6 + 30 * soft))
+    out = ImageChops.lighter(core, cast)
+    return out, {'ground_y': int(gy), 'base_x': [int(x + x0), int(x + x1)], 'strength': strength, 'softness': soft, 'angle': ang, 'length': length}
+
+
 def composite(req):
+    from maskfix import refine
     ref, ref_sha = dec(req['reference']); ref = ref.convert('RGB'); W, H = int(req['width']), int(req['height'])
     if not (64 <= W <= 4096 and 64 <= H <= 4096): raise ValueError('bad size')
     seg = {'primary_model': MODEL, 'second_model': SECOND or None}
-    if req.get('mask'):                                                       # a person corrected the cutout: their mask replaces the automatic one
-        mk, mk_sha = dec(req['mask']); alpha = mk.convert('L').resize(ref.size, Image.LANCZOS); seg.update(source='manual_corrected', status='manual_corrected', mask_sha256=mk_sha, agreement_iou=None)
+    if req.get('mask'):                                                       # an approved / manually corrected mask replaces the automatic one
+        mk, mk_sha = dec(req['mask']); raw = mk.convert('L').resize(ref.size, Image.LANCZOS); seg.update(source='saved_mask', status='saved_mask', mask_sha256=mk_sha, agreement_iou=None)
     else:
-        alpha, alt, agree = mattes(ref); seg.update(source='auto', agreement_iou=None if agree is None else round(agree, 3), status=('single_model_unchecked' if agree is None else 'agree' if agree >= AGREE_MIN else 'disagree_needs_review'))
+        raw, alt, agree = mattes(ref); seg.update(source='auto', agreement_iou=None if agree is None else round(agree, 3), status=('single_model_unchecked' if agree is None else 'agree' if agree >= AGREE_MIN else 'disagree_needs_review'))
+    alpha, mask_stats = refine(raw, fill_holes=req.get('fill_holes', True) is not False, keep_boxes=req.get('keep_transparent') or None)
+    mask_url, mask_sha = enc(alpha)
     cut = ref.convert('RGBA'); cut.putalpha(alpha)                            # matte applied to the untouched reference pixels
     bbox = cut.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()
     if not bbox: raise ValueError('no product found in the photo')
-    r_, g_, b_, a_ = cut.split(); cut = Image.merge('RGBA', (r_, g_, b_, a_.point(lambda v: 255 if v >= 200 else (0 if v < 16 else v))))   # make the product interior solid; keep a thin soft edge
+    r_, g_, b_, a_ = cut.split(); cut = Image.merge('RGBA', (r_, g_, b_, a_.point(lambda v: 255 if v >= 200 else (0 if v < 16 else v))))   # solid interior, thin soft edge
     cut = cut.crop(bbox); scale = min(float(req.get('scale', 0.7)) * min(W / cut.width, H / cut.height), 1.0)
     fg = cut.resize((max(1, round(cut.width * scale)), max(1, round(cut.height * scale))), Image.LANCZOS) if scale != 1.0 else cut   # the single resample; this is the locked foreground
     if req.get('background'):
         bg, _ = dec(req['background']); bg = bg.convert('RGB').resize((W, H), Image.LANCZOS); bg_src = 'provided'
     else: bg = procedural_bg(W, H); bg_src = 'procedural'
-    cx, cy = min(max(float(req.get('cx', 0.5)), 0.0), 1.0), min(max(float(req.get('cy', 0.5)), 0.0), 1.0)   # art-directed placement (centre of the product, as a fraction of the canvas)
-    x = min(max(int(W * cx - fg.width / 2), 0), W - fg.width); y = min(max(int(H * cy - fg.height / 2), 0), H - fg.height)
+    cx = min(max(float(req.get('cx', 0.5)), 0.0), 1.0)
+    x = min(max(int(W * cx - fg.width / 2), 0), W - fg.width)
+    fa = np.array(fg.getchannel('A'))
+    if req.get('ground_y') is not None:                                       # art direction gives the surface line; the product base sits on it
+        from maskfix import base_extent
+        ext = base_extent(fa); base = ext[2] if ext else fg.height - 1
+        y = int(H * min(max(float(req['ground_y']), 0.0), 1.0) - base)
+    else:
+        cy = min(max(float(req.get('cy', 0.5)), 0.0), 1.0); y = int(H * cy - fg.height / 2)
+    y = min(max(y, 0), H - fg.height)
     canvas = bg.convert('RGBA')
-    a = np.array(fg.getchannel('A')).astype(np.float32) / 255
-    shadow = Image.new('L', (W, H), 0); sh = Image.new('L', fg.size, 0); sh.paste(Image.fromarray((a * 90).astype('uint8')), (0, 0))
-    shadow.paste(sh, (x + 6, y + 12)); shadow = shadow.filter(ImageFilter.GaussianBlur(14))
-    canvas = Image.composite(Image.new('RGBA', (W, H), (0, 0, 0, 255)), canvas, shadow.point(lambda v: min(v, 110)))   # soft contact shadow under the product
+    shadow, shadow_info = contact_shadow(W, H, fa, x, y, req.get('shadow') or {})
+    if shadow_info is not None and (req.get('shadow') or {}).get('enabled', True) is not False:
+        canvas = Image.composite(Image.new('RGBA', (W, H), (18, 8, 4, 255)), canvas, shadow)
     canvas.alpha_composite(fg, (x, y))
     out = canvas.convert('RGB')
     # QA computed from pixels: inside the matte core (alpha==255, eroded 3px) output must equal the locked foreground
-    core = Image.fromarray((np.array(fg.getchannel('A')) == 255).astype('uint8') * 255).filter(ImageFilter.MinFilter(7))
+    core = Image.fromarray((fa == 255).astype('uint8') * 255).filter(ImageFilter.MinFilter(7))
     m = np.array(core) > 0; o = np.array(out.crop((x, y, x + fg.width, y + fg.height)))[..., :3]; f = np.array(fg.convert('RGB'))
     px = int(m.sum()); diff = int((np.abs(o.astype(int) - f.astype(int)).max(axis=2)[m] > 0).sum()) if px else -1
     image, out_sha = enc(out)
-    report = {'matte_model': MODEL, 'segmentation': seg, 'background': bg_src, 'reference_sha256': ref_sha, 'output_sha256': out_sha, 'foreground': {'x': x, 'y': y, 'w': fg.width, 'h': fg.height, 'resampled_once': scale != 1.0, 'scale': round(scale, 4)},
-              'protected_pixels': px, 'protected_pixels_changed': diff, 'matte_coverage': round(px / max(1, int((np.array(fg.getchannel('A')) > 16).sum())), 3),
-              'protected_pixel_equality': ('needs_review' if px < 0.5 * int((np.array(fg.getchannel('A')) > 16).sum()) else 'pass' if diff == 0 else 'fail'),
-              'note': 'Equality is checked against the locked (single-resample) foreground. It proves the compositor did not alter product pixels; it does not prove the matte caught every edge.'}
-    return {'image': image, 'report': report}
+    review = list(mask_stats['review_reasons'])
+    if seg.get('status') == 'disagree_needs_review': review.append('the two cutout models disagree (IoU %.2f); check the cutout edges' % seg['agreement_iou'])
+    fidelity = 'pass' if diff == 0 and px > 0 else ('fail' if px > 0 else 'no_protected_pixels')
+    report = {'matte_model': MODEL, 'segmentation': seg, 'background': bg_src, 'reference_sha256': ref_sha, 'output_sha256': out_sha,
+              'foreground': {'x': x, 'y': y, 'w': fg.width, 'h': fg.height, 'resampled_once': scale != 1.0, 'scale': round(scale, 4)},
+              'mask': {**mask_stats, 'sha256': mask_sha},
+              'shadow': shadow_info,
+              'protected_pixels': px, 'protected_pixels_changed': diff,
+              'protected_pixel_equality': fidelity,
+              'review_required': review, 'approved': False,
+              'note': 'protected_pixel_equality only proves the compositor did not alter the pixels the mask kept. Mask completeness is reported separately under mask; an output is never approved by these checks alone.'}
+    return {'image': image, 'report': report, 'mask': mask_url}
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass

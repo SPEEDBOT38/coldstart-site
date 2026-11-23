@@ -449,3 +449,4 @@ dialog.wide{width:min(1100px,96vw);max-width:none}.ce{display:grid;grid-template
 .ce-prev canvas{width:100%;height:auto;max-height:70vh;object-fit:contain;border:1px solid var(--ink);background:#eee}.ce-ctl{display:grid;gap:10px;align-content:start}
 .pos-grid{display:grid;grid-template-columns:repeat(3,34px);gap:4px}.pos-grid button{width:34px;height:34px;border:1px solid var(--ink);background:#fff;cursor:pointer}.pos-grid button[aria-pressed=true]{background:var(--blue)}
 @media (max-width:720px){.ce{grid-template-columns:1fr}.ce-prev canvas{max-height:45vh}}
+details.qa{padding:6px 8px}details.qa summary{cursor:pointer;font-weight:600}details.qa ul,ul.qa{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:3px}details.qa li.ok,ul.qa li.ok{color:#0a6b2d}details.qa li.warn,ul.qa li.warn{color:#8a4b00}

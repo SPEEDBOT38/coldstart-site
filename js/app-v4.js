@@ -100,6 +100,18 @@
     contrast: 'Bold editorial still life of the exact product from the reference image, dramatic directional light, strong graphic shadows, high-contrast colour blocking in the brand colours, magazine-cover composition with space on one side for text.',
   };
   let crIdx = 0, rendering = false;
+  function qaList(x) {   // separate technical checks from the visual review; neither is an approval
+    const q = x.design && x.design.qa; if (!q) { const p = x.design && x.design.prototype_qa; return p && p.length ? `<ul class="qa small">${p.map((i) => `<li class="warn">${esc(i)}</li>`).join('')}</ul>` : ''; }
+    const row = (ok, label, detail) => `<li class="${ok ? 'ok' : 'warn'}">${ok ? '✓' : '!'} ${esc(label)}${detail ? ': ' + esc(detail) : ''}</li>`;
+    const m = q.mask || {}, c = q.critique || {}, low = (c.low_checks || []).join(', ');
+    return `<details class="qa small"><summary>${q.review_required && q.review_required.length || q.text !== 'pass' || (c.verdict && c.verdict !== 'looks_shippable_needs_human_approval') ? 'Checks: needs attention' : 'Checks passed; your approval is still needed'}</summary><ul>
+      ${row(q.mask_completeness === 'pass', 'Product cutout complete', m.enclosed_transparent_fraction ? Math.round(m.enclosed_transparent_fraction * 100) + '% filled' + (m.status !== 'ok' ? ' — confirm there is no clear window' : '') : '')}
+      ${row(q.protected_pixels === 'pass', 'Product pixels unchanged', q.protected_pixels_changed + ' changed')}
+      ${row(q.grounding === 'shadow_drawn', 'Contact shadow', q.placement_source === 'vision_located' ? 'placed on the surface found in the scene' : 'brief default placement')}
+      ${row(q.text === 'pass', 'Text layout', (q.text_issues || []).join('; '))}
+      ${c.checks ? row(!low, 'Visual review (AI, opinion)', low ? 'weak: ' + low : 'no weak checks') : row(false, 'Visual review', c.error || 'not run')}
+      ${(c.blocking_issues || []).map((i) => row(false, 'Reviewer', i)).join('')}</ul></details>`;
+  }
   async function homeIntel() {
     const cr = $('#home-cr'), mi = $('#home-mi'), ctx = obContext(); let snap = {};
     try { snap = await C.ops.get('obIntel', { site: ctx.brand.site, brand: ctx.brand.name, country: ctx.country }); } catch (e) { if (cr) cr.innerHTML = `<div class="empty sm">Couldn’t load drafts: ${esc(e.message)}</div>`; return; }
@@ -108,22 +120,35 @@
     const items = (snap.creatives && snap.creatives.items) || [], done = items.filter((x) => x.imageState === 'rendered').length;
     if (cr) {
       cr.innerHTML = items.length ? `<div class="cr-head"><p class="small" style="margin:0">${done === 3 ? 'Three generated ads, ready for review.' : done ? done + ' of 3 generated.' : fl.image ? 'Concepts. Render them into real ad images from your product photo.' : 'Concepts. Add a product photo to render real ad images.'}</p>
-        ${fl.image ? `<button class="btn sm" id="cr-proto" type="button" ${rendering ? 'disabled' : ''}>Layout prototypes (free)</button> <button class="btn yellow sm" id="cr-render" type="button" ${rendering ? 'disabled' : ''}>${rendering ? 'Rendering…' : 'Render 3 final ads (Product Lock)'}</button>` : ''}</div><div id="cr-msg"></div>
+        ${fl.image ? (() => { const protos = items.filter((x) => x.assets && x.assets.prototype).length, appr = items.filter((x) => x.design && x.design.layout_approved).length;
+          return `<button class="btn sm" id="cr-proto" type="button" ${rendering ? 'disabled' : ''}>${protos ? 'Rebuild' : 'Generate'} layout prototypes (free)</button>
+          ${protos === 3 && appr < 3 ? '<button class="btn sm" id="cr-approve-dirs" type="button">Approve these 3 layouts</button>' : ''}
+          <button class="btn yellow sm" id="cr-render" type="button" ${rendering || appr < 3 ? 'disabled' : ''} title="${appr < 3 ? 'Approve the layout prototypes first' : ''}">${rendering ? 'Working…' : 'Generate 3 final ads'}</button>`; })() : ''}</div><div id="cr-msg"></div><div id="cr-ledger" class="small muted"></div>
         <div class="cr-grid" id="cr-track" role="list">${items.map((x, n) => `<article class="cr ${esc(x.layout)}" role="listitem" aria-label="${n + 1} of 3: ${esc(x.kind)}">
-          ${x.imageState === 'rendered' ? `<div class="cr-art img" data-cr-img="${esc(x.id)}"><span class="muted small">Loading image…</span></div>` : `<div class="cr-art" style="${vars}"><span class="concept-tag">Concept</span><div class="hl">${esc(x.headline)}</div>${fl.image ? `<img src="${esc(fl.image)}" alt="${esc(fl.name || '')}" referrerpolicy="no-referrer">` : '<div class="ph">Add a product photo</div>'}<div><p class="small" style="margin:0 0 8px">${esc(x.body)}</p><span class="cta">${esc(x.cta)}</span></div></div>`}
+          ${x.imageState === 'rendered' ? `<div class="cr-art img" data-cr-img="${esc(x.id)}"><span class="muted small">Loading image…</span></div>` : x.assets && x.assets.prototype ? `<div class="cr-art img" data-cr-proto="${esc(x.id)}"><span class="muted small">Loading prototype…</span></div>` : `<div class="cr-art" style="${vars}"><span class="concept-tag">Concept</span><div class="hl">${esc(x.headline)}</div>${fl.image ? `<img src="${esc(fl.image)}" alt="${esc(fl.name || '')}" referrerpolicy="no-referrer">` : '<div class="ph">Add a product photo</div>'}<div><p class="small" style="margin:0 0 8px">${esc(x.body)}</p><span class="cta">${esc(x.cta)}</span></div></div>`}
           <div class="cr-meta"><div class="row"><strong>${esc(x.kind)}</strong><span class="chip dash">${esc(x.channel)}</span></div>
-          <div class="row">${x.imageState === 'rendered' ? `<span class="chip b">Generated image</span><small class="muted">${esc((x.imageMeta && x.imageMeta.model || '').split('/').pop())}${x.imageMeta && x.imageMeta.ms ? ' · ' + Math.round(x.imageMeta.ms / 1000) + 's' : ''}</small>` : '<span class="chip warn">Concept, not rendered</span>'}</div>
-          <div class="row"><button class="btn sm ghost" data-cr-edit="${esc(x.id)}" type="button">Edit text</button>${x.imageState === 'rendered' ? `<button class="btn sm ghost" data-cr-open="${esc(x.id)}" type="button">Open</button>` : ''}</div></div></article>`).join('')}</div>
+          <div class="row">${x.imageState === 'rendered' ? `<span class="chip ${x.status === 'approved' ? 'b' : 'warn'}">${x.status === 'approved' ? 'Approved by you' : 'Needs your review'}</span><small class="muted">${esc((x.imageMeta && x.imageMeta.model || '').split('/').pop())}${x.imageMeta && x.imageMeta.ms ? ' · ' + Math.round(x.imageMeta.ms / 1000) + 's' : ''} · ${x.imageMeta && x.imageMeta.usd != null ? '$' + Number(x.imageMeta.usd).toFixed(3) : 'cost unknown'}</small>` : x.assets && x.assets.prototype ? `<span class="chip ${x.design && x.design.layout_approved ? 'b' : 'dash'}">${x.design && x.design.layout_approved ? 'Layout approved' : 'Prototype'}</span>` : '<span class="chip warn">Concept, not rendered</span>'}</div>
+          ${qaList(x)}
+          <div class="row"><button class="btn sm ghost" data-cr-edit="${esc(x.id)}" type="button">Edit</button>${x.imageState === 'rendered' ? `<button class="btn sm ghost" data-cr-open="${esc(x.id)}" type="button">Export PNG</button><button class="btn sm ${x.status === 'approved' ? 'ghost' : ''}" data-cr-approve="${esc(x.id)}" type="button">${x.status === 'approved' ? 'Unapprove' : 'Approve'}</button>` : ''}</div></div></article>`).join('')}</div>
         <div class="cr-nav" aria-label="Creative navigation"><button class="btn sm ghost" data-cr-step="-1" type="button" aria-label="Previous creative">←</button><span id="cr-pos" aria-live="polite">1 of 3</span><span class="dots">${items.map((_, n) => `<i data-dot="${n}"></i>`).join('')}</span><button class="btn sm ghost" data-cr-step="1" type="button" aria-label="Next creative">→</button></div>`
         : `<div class="empty sm">No drafts for ${esc(ctx.brand.name)} yet. <button class="btn sm" id="cr-make" type="button">Prepare three directions</button></div>`;
-      cr.querySelectorAll('[data-cr-img]').forEach(async (el) => { try { const r = await C.ops.get('obImage', { id: el.dataset.crImg, site: ctx.brand.site, brand: ctx.brand.name }); if (!r.image) { el.innerHTML = '<span class="small">Image missing. Render again.</span>'; return; } const x = items.find((y) => y.id === el.dataset.crImg); el.dataset.base = r.image; const cv = await window.CreativeEditor.compose(r.image, x.textLayout || window.CreativeEditor.defaultLayout(x, (S.brand && S.brand.colors) || []), (x.imageMeta && x.imageMeta.aspect) || '4:5'); el.innerHTML = `<img src="${cv.toDataURL('image/jpeg', 0.85)}" alt="${esc(x.kind)} ad">`; } catch (e) { el.innerHTML = '<span class="small">Couldn’t load the image.</span>'; } });
+      const rendered = {};
+      cr.querySelectorAll('[data-cr-img]').forEach(async (el) => { const x = items.find((y) => y.id === el.dataset.crImg); try { const r = await window.AdPipe.render({ C, S, ctx, x }); if (!r) { el.innerHTML = '<span class="small">Image missing. Generate again.</span>'; return; } rendered[x.id] = r; el.innerHTML = `<img src="${r.canvas.toDataURL('image/jpeg', 0.85)}" alt="${esc(x.kind)} ad">`; } catch (e) { el.innerHTML = '<span class="small">Couldn’t load the image.</span>'; } });
+      cr.querySelectorAll('[data-cr-proto]').forEach(async (el) => { try { const r = await C.ops.get('obImage', { id: el.dataset.crProto, kind: 'prototype', site: ctx.brand.site, brand: ctx.brand.name }); el.innerHTML = r.image ? `<img src="${r.image}" alt="Layout prototype">` : '<span class="small">Prototype missing.</span>'; } catch (e) { el.innerHTML = '<span class="small">Couldn’t load the prototype.</span>'; } });
+      (async () => { const el = $('#cr-ledger'); if (!el) return; try { const l = await fetch('/api/plugins/images/actions/ledger', { credentials: 'same-origin' }).then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))); const ap = items.filter((x) => x.status === 'approved').length;
+        el.innerHTML = l.total.attempts ? `Image provider: ${l.total.attempts} request${l.total.attempts > 1 ? 's' : ''} (${l.total.failed} failed, ${l.total.empty} empty) · confirmed cost $${l.total.usd_known.toFixed(3)}${l.total.unknown_cost ? ' + ' + l.total.unknown_cost + ' not yet confirmed' : ''}${ap ? ' · per approved ad ' + (l.total.unknown_cost ? '≥ ' : '') + '$' + (l.total.usd_known / ap).toFixed(3) : ''}` : ''; } catch (e) { /* ledger is informational */ } })();
       const track = $('#cr-track'), pos = $('#cr-pos'), sync = () => { if (!track) return; const w = track.firstElementChild ? track.firstElementChild.getBoundingClientRect().width + 14 : 1; crIdx = Math.max(0, Math.min(2, Math.round(track.scrollLeft / w))); if (pos) pos.textContent = (crIdx + 1) + ' of 3'; cr.querySelectorAll('[data-dot]').forEach((d) => d.classList.toggle('on', +d.dataset.dot === crIdx)); };
       if (track) { track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true }); sync(); }
       cr.querySelectorAll('[data-cr-step]').forEach((b) => b.onclick = () => { const w = track.firstElementChild.getBoundingClientRect().width + 14; track.scrollTo({ left: Math.max(0, Math.min(2, crIdx + +b.dataset.crStep)) * w, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); });
-      cr.querySelectorAll('[data-cr-edit]').forEach((b) => b.onclick = () => { const x = items.find((y) => y.id === b.dataset.crEdit), el = cr.querySelector(`[data-cr-img="${x.id}"]`);
-        if (x.imageState === 'rendered' && el && el.dataset.base) window.CreativeEditor.open({ title: x.kind, baseSrc: el.dataset.base, aspect: (x.imageMeta && x.imageMeta.aspect) || '4:5', fileName: ((S.brand && S.brand.name) || 'ad') + '-' + x.id, layout: x.textLayout || window.CreativeEditor.defaultLayout(x, (S.brand && S.brand.colors) || []), onSave: async (L) => { await C.ops.post('obEditCreative', { context: ctx, id: x.id, layout: L, headline: L.headline.text, body: L.body.text, cta: L.cta.text }); toast('Saved.'); homeIntel(); } });
-        else editCr(x); });
-      cr.querySelectorAll('[data-cr-open]').forEach((b) => b.onclick = () => { const im = cr.querySelector(`[data-cr-img="${b.dataset.crOpen}"] img`); if (im) { const d = document.getElementById('dlg'); d.innerHTML = `<div class="dlg-b"><img src="${im.src}" alt="Generated ad" style="width:100%;max-height:80vh;object-fit:contain"></div><div class="dlg-f"><button class="btn ghost" id="dl-png" type="button">Download PNG</button><button class="btn" id="dx" type="button">Close</button></div>`; d.showModal(); $('#dx').onclick = () => d.close(); $('#dl-png').onclick = async () => { const x = items.find((y) => y.id === b.dataset.crOpen), el = cr.querySelector(`[data-cr-img="${x.id}"]`); const cv = await window.CreativeEditor.compose(el.dataset.base, x.textLayout || window.CreativeEditor.defaultLayout(x, (S.brand && S.brand.colors) || []), (x.imageMeta && x.imageMeta.aspect) || '4:5'); cv.toBlob((blob) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ((S.brand && S.brand.name) || 'ad') + '-' + x.id + '.png'; a.click(); }, 'image/png'); }; } });
+      cr.querySelectorAll('[data-cr-edit]').forEach((b) => b.onclick = async () => { const x = items.find((y) => y.id === b.dataset.crEdit);
+        if (x.imageState !== 'rendered') { editCr(x); return; }
+        const r = rendered[x.id] || await window.AdPipe.render({ C, S, ctx, x });
+        window.CreativeEditor.open({ title: x.kind, baseSrc: r.base, aspect: '4:5', font: r.font, fileName: ((S.brand && S.brand.name) || 'ad') + '-' + x.id, layout: r.layout,
+          onSave: async (L) => { const keep = window.AdPipe.strip(L); await C.ops.post('obEditCreative', { context: ctx, id: x.id, layout: keep, design: { layout: keep, editedAt: Date.now() }, headline: L.headline.text.slice(0, 60), body: L.body.text.slice(0, 160), cta: L.cta.text.slice(0, 24), approve: false }); toast('Saved. Review and approve it again.'); homeIntel(); } }); });
+      cr.querySelectorAll('[data-cr-open]').forEach((b) => b.onclick = async () => { const x = items.find((y) => y.id === b.dataset.crOpen); const r = rendered[x.id] || await window.AdPipe.render({ C, S, ctx, x });
+        r.canvas.toBlob((blob) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ((S.brand && S.brand.name) || 'ad') + '-' + x.id + '.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png'); });
+      cr.querySelectorAll('[data-cr-approve]').forEach((b) => b.onclick = async () => { const x = items.find((y) => y.id === b.dataset.crApprove); await C.ops.post('obEditCreative', { context: ctx, id: x.id, approve: x.status !== 'approved' }); homeIntel(); });
+      const ad = $('#cr-approve-dirs'); if (ad) ad.onclick = async () => { ad.disabled = true; for (const x of items) await C.ops.post('obEditCreative', { context: ctx, id: x.id, design: { layout_approved: true, layout_approved_at: Date.now() } }); homeIntel(); };
       const mk = $('#cr-make'); if (mk) mk.onclick = async () => { mk.disabled = true; try { await C.ops.post('obCreatives', ctx); homeIntel(); } catch (e) { toast(e.message); mk.disabled = false; } };
       const rb = $('#cr-render'); if (rb) rb.onclick = () => renderAds(items, ctx); const pb = $('#cr-proto'); if (pb) pb.onclick = () => renderAds(items, ctx, { prototype: true });
     }
@@ -134,43 +159,23 @@
       <a class="intel-card" href="#/discover"><span class="eyebrow">Communities</span><strong>${saved.length ? saved.length + ' saved' : coms.length ? coms.length + ' suggested' : 'None found yet'}</strong><span class="pills">${(saved.length ? saved : coms).slice(0, 4).map((x) => `<i>${esc(x.name)}</i>`).join('')}</span><small>From web search results, not demand data</small></a>
       <div class="intel-card"><span class="eyebrow">Competitor ads</span><strong>${ads.length ? ads.length + ' Ad Library search' + (ads.length > 1 ? 'es' : '') : 'Waiting on approvals'}</strong><span class="pills">${ads.slice(0, 3).map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.competitor)} ↗</a>`).join('')}</span><small>${ads.length ? 'Manual review: nothing fetched automatically' : 'Approve competitors to prepare searches'}</small></div></div>`;
   }
-  /* Product Lock: the image model paints only an empty, art-directed scene; the original product pixels are placed by the
-     Python compositor (/api/compose/composite, same origin so the Preview SSO cookie applies) with a contact shadow;
-     text and logo are drawn deterministically by CreativeEditor. If the compositor fails we stop: we never fall back to a
-     model that redraws the product. */
-  async function compose(body) {
-    const r = await fetch('/api/compose/composite', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.image) throw new Error('Product Lock compositor failed (' + r.status + '): ' + (j.error || 'no image') + '. Nothing was generated in its place.');
-    return j;
-  }
+  /* Product Lock pipeline (js/adpipe-v4.js): prototypes → a person approves the directions → scenes → compositor → typography → QA.
+     Nothing here approves an ad; the Approve button on each card is the only approval. */
   async function renderAds(list, ctx, opts) {
-    if (rendering || !list.length) return; rendering = true; homeIntel();
-    const msg = () => $('#cr-msg'), fl = flagshipWithPhoto(), prototypeOnly = opts && opts.prototype, colors = (S.brand && S.brand.colors) || [];
+    if (rendering || !list.length) return;
+    if (!opts || !opts.prototype) { try { const st = await fetch('/api/plugins/images/actions/status').then((r) => r.json()); if (st.creative_pipeline === false) { const m = $('#cr-msg'); if (m) m.innerHTML = '<div class="err">Ad generation is paused while the new product-accurate pipeline is validated.</div>'; return; } } catch (e) { /* server enforces it too */ } }
+    rendering = true; homeIntel();
+    const msg = (t) => { const m = $('#cr-msg'); if (m) m.innerHTML = t ? `<p class="small" aria-live="polite">${esc(t)}</p>` : ''; };
+    const errs = [];
     try {
-      const ref = await shrink((await C.api('plugins/images/actions/photo', { url: fl.image })).image, 2048);
+      const A = await window.AdPipe.assets({ C, S, flagship: flagshipWithPhoto() });
       for (const x of list) {
-        const B = window.CreativeEditor.brief(x.layout, S.brand), t = Date.now(); let usd = 0, bg = null, model = null;
-        if (!prototypeOnly) {
-          if (msg()) msg().innerHTML = `<p class="small">${esc(B.name)}: painting the empty scene…</p>`;
-          const g = await C.api('plugins/images/actions/generate', { prompt: B.scenePrompt, aspect: '4:5', model: 'pro', palette: { colors } });   // no reference: the model never sees or draws the product
-          bg = await shrink(g.image, 1600); usd = g.usd || 0; model = g.model;
-        }
-        if (msg()) msg().innerHTML = `<p class="small">${esc(B.name)}: compositing your original product (Product Lock)…</p>`;
-        const cmp = await compose({ reference: ref, background: bg || undefined, width: 1080, height: 1350, ...B.product });
-        const f = cmp.report.foreground, layout = window.CreativeEditor.defaultLayout(x, colors);
-        layout.productBox = { x: f.x, y: f.y, w: f.w, h: f.h };
-        if (S.brand && S.brand.logo) layout.logo = { ...layout.logo, src: S.brand.logo };
-        const qa = (await window.CreativeEditor.compose(cmp.image, layout, '4:5')).qa;
-        await C.ops.post('obEditCreative', { context: ctx, id: x.id, image: await shrink(cmp.image, 1600), layout,
-          imageMeta: { stage: bg ? 'final' : 'prototype', brief: { id: B.id, name: B.name, objective: B.objective, camera: B.camera, lighting: B.lighting, product: B.product, prompt: B.scenePrompt },
-            model, usd, ms: Date.now() - t, aspect: '4:5', productLock: { report: cmp.report, protectedPixelsChanged: cmp.report.protected_pixels_changed }, qa: qa.issues, approved: false,
-            source: bg ? 'Scene by Nano Banana (no product reference); original product composited; text by the Cold Start editor' : 'Prototype: brand gradient + original product + text, no generation cost', productImage: fl.image } });
-        if (usd) C.cost('Ad scene render', usd, x.kind);
+        try { if (opts && opts.prototype) await window.AdPipe.prototype({ C, S, ctx, x, A, msg }); else { const r = await window.AdPipe.final({ C, S, ctx, x, A, msg }); if (r.usd != null) C.cost('Ad scene', r.usd, x.kind); } }
+        catch (e) { errs.push(x.kind + ': ' + e.message); }
       }
-      if (msg()) msg().innerHTML = '';
-    } catch (e) { if (msg()) msg().innerHTML = `<div class="err">${esc(e.message)}</div>`; }
-    rendering = false; homeIntel();
+    } catch (e) { errs.push(e.message); }
+    rendering = false; await homeIntel();
+    const m = $('#cr-msg'); if (m) m.innerHTML = errs.length ? `<div class="err">${errs.map(esc).join('<br>')}</div>` : '';
   }
   async function shrink(src, max) { const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Product photo did not load.')); i.src = src; }); const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.9); }
   /* Typography is drawn on top of the generated photo, so headline and CTA stay exact and editable. */
