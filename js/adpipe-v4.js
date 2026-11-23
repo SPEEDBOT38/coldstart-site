@@ -22,6 +22,7 @@
     const k = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = Math.round(i.width * k); c.height = Math.round(i.height * k);
     c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); return c.toDataURL('image/png');
   }
+  async function viaCanvas(src) { const i = await img(src); const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; c.getContext('2d').drawImage(i, 0, 0); return c.toDataURL('image/png'); }
   async function monochrome(src) {   // a single-colour logo can be recoloured for dark/light backgrounds without changing the brand mark
     try { const i = await img(src), c = document.createElement('canvas'); c.width = 64; c.height = Math.max(1, Math.round(64 * i.height / i.width)); const g = c.getContext('2d'); g.drawImage(i, 0, 0, c.width, c.height);
       const d = g.getImageData(0, 0, c.width, c.height).data, seen = []; for (let k = 0; k < d.length; k += 4) { if (d[k + 3] < 128) continue; seen.push([d[k], d[k + 1], d[k + 2]]); }
@@ -37,7 +38,11 @@
   }
 
   async function assets({ C, S, flagship }) {
-    const ref = await limitPng((await C.api('plugins/images/actions/photo', { url: flagship.image })).image, 2048);
+    // Full-resolution original: drop CDN resize parameters (Shopify &width=…), then load it directly when the host allows CORS
+    // (most product CDNs do); fall back to the same-origin proxy. Either way the pixels are the store's own photo.
+    let src = flagship.image; try { const u = new URL(src); ['width', 'height', 'crop'].forEach((k) => u.searchParams.delete(k)); src = u.href; } catch (e) { /* keep */ }
+    let ref = null; try { ref = await limitPng(await viaCanvas(src), 2048); } catch (e) { ref = null; }
+    if (!ref) ref = await limitPng((await C.api('plugins/images/actions/photo', { url: src })).image, 2048);
     let logo = null, logoMono = false;
     if (S.brand && S.brand.logo) { try { logo = /^data:/.test(S.brand.logo) ? S.brand.logo : (await C.api('plugins/images/actions/photo', { url: S.brand.logo })).image; logoMono = await monochrome(logo); } catch (e) { logo = null; } }
     const font = await loadFont(S.brand && S.brand.fonts && S.brand.fonts[0]);
