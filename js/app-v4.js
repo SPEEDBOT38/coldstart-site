@@ -59,7 +59,7 @@
     const hour = new Date().getHours(), hi = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
     const fl = S.flagship || {};
     const lead = !fl.name ? { eyebrow: 'Setup', title: 'Choose the product to lead with', sub: 'Nothing can be created or planned until one product or offer is confirmed.', href: 'onboarding-v4.html', cta: 'Choose a product' }
-      : !(fl.image || (S.studio && (S.studio.assets || []).length) || (S.studio && S.studio.skus && S.studio.skus.length)) ? { eyebrow: 'Setup', title: 'Add a real photo of ' + fl.name, sub: (!fl.url ? 'The product link and photo are missing.' : 'The product photo is missing.') + ' Creatives are built from your own product photo, so this comes first.', href: '#/campaigns/library', cta: 'Complete product setup' }
+      : !((fl.image && fl.imageRights === 'approved') || (S.studio && (S.studio.assets || []).length) || (S.studio && S.studio.skus && S.studio.skus.length)) ? { eyebrow: 'Setup', title: 'Add a real photo of ' + fl.name, sub: (!fl.url ? 'The product link and photo are missing.' : 'The product photo is missing.') + ' Creatives are built from your own product photo, so this comes first.', href: '#/campaigns/library', cta: 'Complete product setup' }
       : first ? { eyebrow: 'Needs your decision', title: first.title, sub: first.sub, href: '#/inbox', cta: 'Review next action' }
       : n ? { eyebrow: 'Suggested next step · not yet validated', title: n.title, sub: n.summary, href: '#/campaigns/c1', cta: 'Review this plan', why: n.id }
       : { eyebrow: 'All clear', title: 'Nothing needs you right now.', sub: 'Create something, or research a market in Discover.', href: '#/discover', cta: 'Open Discover' };
