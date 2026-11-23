@@ -22,12 +22,11 @@
     let opps = []; try { opps = (await C.ops.get('opportunities')).opportunities; } catch (e) { /* offline */ }
     const draw = (msg) => {
       if (!el.isConnected) return;
-      el.innerHTML = `<div class="pagehead" style="margin-bottom:14px"><h2 class="disp s" id="so-h">Real conversations to join</h2><span class="muted small">From X and Reddit evidence only. Nothing here is invented, and each item links to its source.</span></div>
-      <div class="tags" style="margin-bottom:10px">${src.map((s) => `<span class="chip ${s.state === 'ready' ? 'b' : 'warn'}" title="${esc(s.reason || '')}">${esc(s.platform === 'x' ? 'X' : 'Reddit')}: ${esc(s.state.replace('_', ' '))}</span>`).join('')}</div>
-      ${src.filter((s) => s.state !== 'ready').map((s) => `<p class="small muted">${esc(s.platform === 'x' ? 'X' : 'Reddit')}: ${esc(s.reason)}</p>`).join('')}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn" id="so-scan" type="button">Find opportunities</button><button class="btn ghost" id="so-reddit" type="button">Add a Reddit thread I found</button></div>${msg ? `<div class="err" style="color:var(--ink)">${esc(msg)}</div>` : ''}
-      <div class="opp-grid">${opps.length ? opps.map(oppCard).join('') : '<div class="empty"><strong>No opportunities yet.</strong><p>Run a scan once X access is connected, or add a Reddit thread you found yourself.</p></div>'}</div>`;
-      $('#so-scan', el).onclick = scan; $('#so-reddit', el).onclick = redditDialog; el.querySelectorAll('[data-sdraft]').forEach((b) => b.onclick = () => draft(opps.find((o) => o.id === b.dataset.sdraft)));
+      const live = src.filter((x) => x.state === 'ready');
+      el.innerHTML = `<div class="pagehead" style="margin-bottom:14px"><h2 class="disp s" id="so-h">Community threads</h2><span class="muted small">Threads you found yourself. Cold Start does not scrape Reddit or X; it helps you check community rules and draft a reply you post yourself.</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button class="btn" id="so-reddit" type="button">Add a Reddit thread I found</button>${live.length ? `<button class="btn ghost" id="so-scan" type="button">Search connected sources (${esc(live.map((x) => x.platform).join(', '))})</button>` : ''}</div>${msg ? `<div class="err" style="color:var(--ink)">${esc(msg)}</div>` : ''}
+      <div class="opp-grid">${opps.length ? opps.map(oppCard).join('') : '<div class="empty"><strong>No threads yet.</strong><p>Paste a Reddit thread where your buyer is asking for help. I’ll check the subreddit’s rules and draft a disclosed, useful reply for your approval.</p></div>'}</div>`;
+      if ($('#so-scan', el)) $('#so-scan', el).onclick = scan; $('#so-reddit', el).onclick = redditDialog; el.querySelectorAll('[data-sdraft]').forEach((b) => b.onclick = () => draft(opps.find((o) => o.id === b.dataset.sdraft)));
     };
     async function scan() {
       const b = $('#so-scan', el); if (!b) return; b.disabled = true; b.textContent = 'Scanning…';

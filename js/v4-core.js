@@ -41,7 +41,16 @@
     v = String(v || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0];
     return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v) ? v : '';
   };
-  const money = (n, cur) => (cur === 'USD' ? '$' : '₹') + Number(n || 0).toLocaleString(cur === 'USD' ? 'en-US' : 'en-IN');
+  /* Currency is never assumed. It comes from the confirmed product, the site scan, or the target country, in that order. */
+  const COUNTRY_CUR = { IN: 'INR', US: 'USD', GB: 'GBP', AE: 'AED' };
+  const currency = () => (S.flagship && S.flagship.currency) || (S.brand && S.brand.currency) || COUNTRY_CUR[(S.bounds || {}).country] || null;
+  const money = (n, cur) => {
+    if (n == null || n === '' || !isFinite(Number(n))) return 'Unknown';
+    const c = cur === undefined ? currency() : cur;
+    if (!c) return Number(n).toLocaleString('en') + ' (currency not set)';
+    try { return new Intl.NumberFormat(c === 'INR' ? 'en-IN' : 'en', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(Number(n)); } catch (e) { return c + ' ' + Number(n).toLocaleString('en'); }
+  };
+  const curSymbol = (c) => { c = c === undefined ? currency() : c; if (!c) return ''; try { return new Intl.NumberFormat('en', { style: 'currency', currency: c }).formatToParts(0).find((x) => x.type === 'currency').value; } catch (e) { return c; } };
 
   /* Goal suggestion: based on what was read, never asked up front. */
   function suggestGoal() {
@@ -83,9 +92,9 @@
     if (paidOk) {
       out.push({
         id: 'p-meta', ch: 'meta', title: 'Meta paid test, ' + region,
-        kind: 'Paid · Regional', summary: 'One small test of two creatives against one audience, capped at ' + money(B.budget, (S.brand && S.brand.currency) || 'INR') + ' a month.',
+        kind: 'Paid · Regional', summary: 'One small test of two creatives against one audience, capped at ' + money(B.budget) + ' a month.',
         audience: (ig[0] || S.icps[0] || {}).who || 'To be confirmed.', evidence: ev(ig.length ? ig : S.icps.slice(0, 1)), conf: confidence(ig.length),
-        cost: 'Your cap: ' + money(B.budget, (S.brand && S.brand.currency) || 'INR') + '/month. Nothing runs without your approval.',
+        cost: 'Your cap: ' + money(B.budget) + '/month. Nothing runs without your approval.',
         geo: B.region ? 'Targeting follows the region you chose.' : 'No region chosen yet.', competition: 'Not measured yet.', next: 'Prepare test plan',
         needs: g === 'sales' || g === 'signups' ? 'A verified conversion event. Without it the launch review warns you and offers a traffic test instead.' : 'Meta ad account connection.'
       });
@@ -151,5 +160,5 @@
     try { localStorage.setItem('coldstart.handoff.v1', JSON.stringify(data)); } catch (e) { /* storage blocked */ }
   }
 
-  window.CS = { ops, hash, log, cost, get S() { return S; }, set S(v) { S = v; }, save, fresh, api, esc, parseSite, money, GOALS, suggestGoal, buildPlan, makeCampaign, seedInbox, finish, writeHandoff, reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); } };
+  window.CS = { currency, curSymbol, COUNTRY_CUR, ops, hash, log, cost, get S() { return S; }, set S(v) { S = v; }, save, fresh, api, esc, parseSite, money, GOALS, suggestGoal, buildPlan, makeCampaign, seedInbox, finish, writeHandoff, reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); } };
 })();

@@ -47,7 +47,7 @@
     "api/index.js": {
       "maxDuration": 60
     },
-    "api/compose/[op].py": {
+    "api/compose/*.py": {
       "maxDuration": 60,
       "includeFiles": "workers/composite/**",
       "excludeFiles": "{node_modules/**,tests/**,docs/**,assets/**,workers/composite/eval/**}"

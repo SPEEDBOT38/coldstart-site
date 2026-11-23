@@ -38,15 +38,15 @@
     const b = $('#inbox-badge'); if (b) { b.textContent = open; b.hidden = !open; }
     const w = $('#ws-switch'); if (w) w.textContent = (S().brand && S().brand.name) || 'Your workspace';
     const ct = document.querySelector('[data-nav=home] .ct'); if (ct) ct.remove();
-    const pa = $('#pause-flag'); if (pa) pa.hidden = !(S().policy && S().policy.paused);
+    const paused = !!(S().policy && S().policy.paused), pb = $('#btn-pause'); if (pb) { pb.textContent = paused ? 'Paused · Resume' : 'Pause all'; pb.setAttribute('aria-pressed', String(paused)); pb.classList.toggle('warn', paused); }
   }
   function wireHeader() {
     $('#btn-search').onclick = openPalette;
     $('#btn-assist').onclick = () => (assistOpen() ? closeAssist() : openAssist());
-    $('#btn-add').onclick = (e) => { const el = pop(e.currentTarget, '<a href="#/campaigns/library">Add a product</a><a href="#/campaigns/studio">Create a creative</a><button data-a type="button">Ask Cold Start…</button>'); el.querySelector('[data-a]').onclick = () => { closePop(); openAssist(); }; el.querySelectorAll('a').forEach((a) => a.addEventListener('click', closePop)); };
-    $('#btn-bell').onclick = (e) => { const ev = (S().audit || []).slice(0, 5); pop(e.currentTarget, `<div class="pop-h">Notifications</div>${ev.map((x) => `<div class="pop-r"><b>${esc(x.text)}</b><small>${fmt(x.at)}</small></div>`).join('') || '<div class="pop-r">Nothing yet.</div>'}<a href="#/settings/audit" class="pop-f">Open activity log</a>`); };
-    $('#ws-switch').onclick = (e) => pop(e.currentTarget, `<div class="pop-h">Workspace</div><div class="pop-r"><b>${esc((S().brand && S().brand.name) || 'Your workspace')}</b><small>Owner · this browser</small></div><div class="pop-r"><small>Only one workspace per browser in this build.</small></div><a href="onboarding-v4.html" class="pop-f">Start another business setup</a>`);
-    $('#btn-pause').onclick = () => { setPause(true); };
+    $('#btn-add').onclick = (e) => { const el = pop(e.currentTarget, '<div class="pop-h">Create</div><a href="#/campaigns/library" role="menuitem"><b>Product shoot</b><small>Upload a product photo and approve its identity</small></a><a href="#/campaigns/studio" role="menuitem"><b>Ad creative</b><small>Put your real product in a new scene</small></a><a href="#/calendar/new" role="menuitem"><b>Social post</b><small>Draft, preview and schedule a post</small></a><a href="#/campaigns/c1" role="menuitem"><b>Campaign</b><small>Goal, audience, budget and creatives, then review</small></a>'); el.querySelectorAll('a').forEach((a) => a.addEventListener('click', closePop)); };
+    $('#btn-account').onclick = (e) => { const el = pop(e.currentTarget, `<div class="pop-h">${esc((S().brand && S().brand.name) || 'Your workspace')}</div><a href="#/settings" role="menuitem">Settings</a><a href="#/settings/connections" role="menuitem">Connections and tracking</a><a href="#/settings/automations" role="menuitem">Automations and limits</a><a href="#/settings/audit" role="menuitem">Activity log</a><a href="onboarding-v4.html" class="pop-f" role="menuitem">Set up another business</a>`); el.querySelectorAll('a').forEach((a) => a.addEventListener('click', closePop)); };
+    $('#ws-switch').onclick = (e) => pop(e.currentTarget, `<div class="pop-h">Workspace</div><div class="pop-r"><b>${esc((S().brand && S().brand.name) || 'Your workspace')}</b><small>Owner · this browser session</small></div><div class="pop-r"><small>One workspace per browser in this build.</small></div><a href="onboarding-v4.html" class="pop-f">Set up another business</a>`);
+    $('#btn-pause').onclick = (e) => { const paused = !!(S().policy && S().policy.paused); const el = pop(e.currentTarget, paused ? '<div class="pop-h">Resume automation?</div><div class="pop-r"><small>Generations, research and approved launches can run again. Everything still needs your approval.</small></div><div class="pop-r"><button class="btn sm" data-go type="button">Resume</button></div>' : '<div class="pop-h">Pause everything?</div><div class="pop-r"><small>The server will refuse new generations, research and launches until you resume. Nothing already published is deleted.</small></div><div class="pop-r"><button class="btn sm warn" data-go type="button">Pause all</button></div>'); el.querySelector('[data-go]').onclick = () => { closePop(); setPause(!paused); }; };
     syncPolicy();
     document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); } if (e.key === 'Escape') { closePop(); closeAssist(); } });
   }
@@ -105,7 +105,7 @@
       d.showModal(); $('#rc-n').focus(); $('#rc-x').onclick = () => d.close();
       $('#rc-s').onclick = () => { const n = $('#rc-n').value.trim(); if (n.length < 3) { $('#rc-e').innerHTML = '<div class="err">Say what should change (at least a few words).</div>'; return; } d.close(); act(b.dataset.chg, (x) => { x.note = n.slice(0, 200); }, 'Requested changes', 'changes'); };
     });
-    $('#bulk').onclick = () => { const picked = [...sel].map((id) => S().inbox.find((x) => x.id === id)).filter(Boolean); if (picked.some((i) => i.kind === 'approval')) return toast('Approvals can’t be bulk approved. Review each one.'); picked.forEach((i) => C.log('inbox', 'Bulk approved: ' + i.title, { item: i.id })); S().inbox = S().inbox.filter((i) => !sel.has(i.id)); sel.clear(); C.save(); route(); };
+    $('#bulk').onclick = () => { const picked = [...sel].map((id) => S().inbox.find((x) => x.id === id)).filter(Boolean); if (picked.some((i) => i.kind === 'approval' || i.kind === 'post' || i.jobId || i.hash)) return toast('Paid and public actions can’t be bulk approved. Review each one.'); picked.forEach((i) => C.log('inbox', 'Bulk approved: ' + i.title, { item: i.id })); S().inbox = S().inbox.filter((i) => !sel.has(i.id)); sel.clear(); C.save(); route(); };
   }
 
   /* ---------- Settings hub ---------- */
@@ -153,8 +153,9 @@
     const rows = CONNS.map((c) => [...c]);
     el.innerHTML = `<section class="panel"><div class="panel-h"><h2>Connections</h2><span class="muted small">Never asks for passwords or card details. Meta holds ad payment.</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Account</th><th>Status</th><th>Read</th><th>Draft</th><th>Publish</th><th>Manage ads</th><th></th></tr></thead><tbody>
       ${rows.map((c, i) => { const k = cap(c, i), p = by[c[5]], conn = p && p.connection; return `<tr><td><strong>${c[0]}</strong><br><small class="muted">${c[1]}</small></td><td>${state(c)}${p && p.mode === 'sandbox' && c[0] !== 'Reddit' ? '<br><small class="muted">App credentials not configured on the server: ' + esc((p.missingEnv || []).join(', ')) + '</small>' : ''}</td><td>${yes(k.read)}</td><td>${yes(k.draft)}</td><td>${yes(k.publish)}</td><td>${yes(k.ads)}</td><td style="white-space:nowrap"><button class="btn sm ghost" data-perm="${i}" type="button">View permissions</button> ${c[0] === 'Reddit' ? '<a class="btn sm" href="#/discover">Open research</a>' : conn ? `<button class="btn sm ghost" data-disc="${c[5]}" type="button">Disconnect</button>` : `<a class="btn sm" href="/api/plugins/${c[5]}/connect">${p && p.mode === 'live' ? 'Connect' : 'Connect (sandbox)'}</a>`}</td></tr>`; }).join('')}</tbody></table></div></section>
-      <section class="panel"><div class="panel-h"><h2>Tracking and events</h2><a class="btn sm" href="app-v3.html#/tracking">Open tracking wizard</a></div><div class="panel-b"><p class="small">Status: <span class="chip warn">Unverified</span> A conversion event stays unverified until a real signal arrives. Automatic installation is not promised for every site.</p></div></section>
+      ${trackingPanel()}
       <p class="small muted">A sandbox connection is a simulator: launches against it are labelled “Simulated” and nothing reaches Meta, X or Facebook. Real OAuth needs production app keys and platform review.</p>`;
+    wireTracking(el);
     el.querySelectorAll('[data-disc]').forEach((b) => b.onclick = async () => { try { await fetch(`/api/plugins/${b.dataset.disc}/disconnect`, { method: 'POST', headers: { 'x-coldstart': '1', 'content-type': 'application/json' }, body: '{}' }); C.log('connection', 'Disconnected ' + b.dataset.disc, null); toast('Disconnected.'); connections(el); } catch (e) { fail(e); } });
     el.querySelectorAll('[data-perm]').forEach((b) => b.onclick = () => { const c = CONNS[+b.dataset.perm], d = document.getElementById('dlg'); d.setAttribute('aria-label', c[0] + ' permissions'); d.innerHTML = `<div class="dlg-h"><h2 class="disp s">${c[0]} permissions</h2><button class="btn sm ghost" id="dx" type="button">Close</button></div><div class="dlg-b"><p class="small">${esc(c[4])}</p>${c[3].length ? '<span class="eyebrow">Would be requested</span><div class="tags">' + c[3].map((p) => `<span class="chip dash">${p}</span>`).join('') + '</div>' : '<p class="small">No permissions: Reddit stays manual.</p>'}<p class="small muted">You can revoke access at any time, and drafts stay if a connection fails.</p></div>`; d.showModal(); $('#dx').onclick = () => d.close(); });
   }
@@ -235,6 +236,24 @@
     $('#del').onclick = async () => { try { const w = (await C.ops.get('workspace')).workspace; await C.ops.post('deleteWorkspace', { confirm: w.slice(0, 6) }); } catch (e) { /* server data may already be gone */ } try { await new Promise((r) => { const q = indexedDB.deleteDatabase('coldstart-v4-media'); q.onsuccess = q.onerror = q.onblocked = r; }); localStorage.removeItem('coldstart.v4'); localStorage.removeItem('coldstart.handoff.v1'); } catch (e) { /* ignore */ } location.href = 'onboarding-v4.html'; };
   }
 
-  window.Ops = { syncPolicy, guard, refresh, inbox, settings, openAssist, closeAssist, wire: wireHeader };
+  /* ---------- tracking (v4, no v3 hand-off) ---------- */
+  function trackingPanel() {
+    const t = S().tracking || {}, site = S().input && S().input.site;
+    return `<section class="panel" id="trk"><div class="panel-h"><h2>Tracking and events</h2><span class="chip ${t.verified ? 'b' : 'warn'}">${t.verified ? 'Verified' : 'Unverified'}</span></div><div class="panel-b" style="display:grid;gap:10px">
+      <p class="small">A Pixel or tag on the page is only a starting point. Conversions count as verified when Meta reports a real event from your live site.</p>
+      <label class="field"><span>Page to check</span><input id="trk-url" type="url" value="${esc(t.url || (site ? (/^https?:/.test(site) ? site : 'https://' + site) : ''))}" placeholder="https://yourstore.com"></label>
+      <div class="row"><button class="btn sm" id="trk-go" type="button">Check this page</button>${t.at ? `<small class="muted">Last checked ${fmt(t.at)}</small>` : ''}</div>
+      <div id="trk-out">${t.result ? trackingResult(t.result) : ''}</div></div></section>`;
+  }
+  function trackingResult(r) {
+    return `<div class="fact-row"><span>Platform</span><span>${esc(r.platform || 'unknown')}</span></div><div class="fact-row"><span>Meta Pixel IDs in the page</span><span>${(r.pixelIds || []).length ? esc(r.pixelIds.join(', ')) : '<span class="chip dash">None found</span>'}</span></div><div class="fact-row"><span>Google Tag Manager</span><span>${(r.gtmContainers || []).length ? esc(r.gtmContainers.join(', ')) : '<span class="chip dash">None found</span>'}</span></div>${(r.issues || []).map((i) => `<div class="err">${esc(i)}</div>`).join('')}${(r.guidance || []).map((g) => `<p class="small">${esc(g)}</p>`).join('')}<p class="small muted">Read from the page markup only (${esc(r.confidence || 'markup_only')}). This does not prove events reach Meta.</p>`;
+  }
+  function wireTracking(root) {
+    const b = root.querySelector('#trk-go'); if (!b) return;
+    b.onclick = async () => { const url = root.querySelector('#trk-url').value.trim(); if (!/^https:\/\//.test(url)) return toast('Enter a full https:// address.'); b.disabled = true; b.textContent = 'Checking…';
+      try { const r = await C.ops.post('trackingInspect', { url }); const res = Object.assign({}, r.inspection || r, { guidance: r.guidance || [] }); S().tracking = Object.assign(S().tracking || {}, { url, at: new Date().toISOString(), result: res }); C.save(); root.querySelector('#trk-out').innerHTML = trackingResult(res); }
+      catch (e) { root.querySelector('#trk-out').innerHTML = '<div class="err">' + esc(e.message) + '</div>'; } finally { b.disabled = false; b.textContent = 'Check this page'; } };
+  }
+  window.Ops = { trackingPanel, wireTracking, syncPolicy, guard, refresh, inbox, settings, openAssist, closeAssist, wire: wireHeader };
   document.addEventListener('DOMContentLoaded', () => {});
 })();

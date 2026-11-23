@@ -9,6 +9,10 @@ app-stage-backup.html
 workspace-shell.html
 .env
 .env.*
-/workers/
+/workers/pipeline/
+/workers/image/
+/workers/composite/eval/
+/workers/composite/Dockerfile
 /docs/
-/scripts/
+/scripts/*
+!/scripts/fetch-models.sh

@@ -6,7 +6,7 @@
   let S = C.S;
   const view = document.getElementById('view'), crumb = document.getElementById('crumb');
   const $ = (s, r) => (r || document).querySelector(s);
-  const cur = () => (S.brand && S.brand.currency) || 'INR';
+  const cur = () => C.currency();
   const m = (n) => C.money(n, cur());
   const ago = (iso) => { if (!iso) return 'never'; const d = (Date.now() - new Date(iso)) / 60000; return d < 1 ? 'just now' : d < 60 ? Math.round(d) + ' min ago' : d < 1440 ? Math.round(d / 60) + ' h ago' : Math.round(d / 1440) + ' d ago'; };
   const toastEl = document.getElementById('toast'); let tt;
@@ -54,37 +54,37 @@
   /* ---------------- HOME ---------------- */
   function next() { return (S.plan || []).find((p) => !p.dismissed); }
   function home() {
-    const b = S.brand || {}, n = next(), c = camp();
-    const sched = c ? c.steps.filter((s) => s.state === 'scheduled').length : 0;
-    const needApproval = approvals().length + (c ? c.steps.filter((s) => !s.approved && (c.status === 'approved')).length : 0);
-    const active = (S.campaigns || []).filter((x) => x.status === 'live').length;
-    const mode = c && c.status === 'approved' ? 1 : S.research ? 1 : 0;
-    const summary = needApproval ? `Your marketing is prepared. ${needApproval} decision${needApproval > 1 ? 's' : ''} need${needApproval > 1 ? '' : 's'} you.` : 'Nothing needs you right now.';
+    const b = S.brand || {}, n = next(), c = camp(), inbox = (S.inbox || []).filter((i) => !(i.snoozeUntil && i.snoozeUntil > Date.now()));
+    const first = inbox.find((i) => i.kind === 'approval') || inbox[0];
+    const hour = new Date().getHours(), hi = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const lead = first ? { eyebrow: 'Needs your decision', title: first.title, sub: first.sub, href: '#/inbox', cta: 'Review next action' }
+      : n ? { eyebrow: 'Suggested next step · not yet validated', title: n.title, sub: n.summary, href: '#/campaigns/c1', cta: 'Review this plan', why: n.id }
+      : { eyebrow: 'All clear', title: 'Nothing needs you right now.', sub: 'Create something, or research a market in Discover.', href: '#/discover', cta: 'Open Discover' };
+    const campRows = (S.campaigns || []).map((x) => `<a class="list-row" href="#/campaigns/${esc(x.id)}"><span class="st st-${esc(x.status)}">${esc(x.status === 'live' ? 'Active' : x.status === 'approved' ? 'Approved' : 'Draft')}</span><span class="lr-t">${esc(x.name)}</span><small>${(x.steps || []).length} channel${(x.steps || []).length === 1 ? '' : 's'}</small></a>`).join('');
     view.innerHTML = `
-    <div class="pagehead"><div><span class="eyebrow">${esc(b.name || 'Workspace')} / Workspace</span><h1 class="disp">Here’s where we <b>stand.</b></h1><p class="muted">${esc(summary)}</p></div>
-      <span class="status-pill"><i></i>${['Researching', 'Preparing', 'Monitoring'][mode]}</span></div>
-    ${n ? `<section class="hero" aria-label="Your next best move"><span class="checker" aria-hidden="true"></span><div>
-      <span class="eyebrow" style="color:#c5c5ff">Your next best move · Suggested</span>
-      <h2>${esc(n.title)}</h2><p>${esc(n.summary)} ${esc(n.cost)}</p>
-      <div class="row"><a class="btn paper" href="#/campaigns/c1">Review test plan →</a><button class="btn ghost" data-why="${n.id}" type="button" style="color:var(--paper)">Why this?</button></div></div>
-      <img src="assets/mascot/idle_stand.poster.webp" alt="" width="200" height="200"></section>` : `<section class="hero"><span class="checker"></span><div><h2>No open moves.</h2><p>You dismissed every suggestion. Open Discover to explore more places.</p><a class="btn paper" href="#/discover">Open Discover</a></div></section>`}
-    <div class="stats"><div class="stat"><strong>${sched}</strong><span>Scheduled</span></div><div class="stat"><strong>${needApproval}</strong><span>Need approval</span></div><div class="stat"><strong>${active}</strong><span>Active test</span></div></div>
+    <div class="pagehead"><div><span class="eyebrow">${esc(b.name || 'Workspace')}</span><h1 class="disp">${hi}. Here’s what’s <b>next.</b></h1></div></div>
+    <section class="next-card" aria-label="Most important next action"><div><span class="eyebrow">${esc(lead.eyebrow)}</span><h2>${esc(lead.title)}</h2>${lead.sub ? `<p>${esc(lead.sub)}</p>` : ''}
+      <div class="row"><a class="btn" href="${lead.href}">${esc(lead.cta)} →</a>${lead.why ? `<button class="btn ghost" data-why="${esc(lead.why)}" type="button">Why this?</button>` : ''}</div></div></section>
     <div class="grid-main"><div class="stack">
-      <section class="panel" aria-labelledby="inb"><div class="panel-h"><h2 id="inb">Action Inbox</h2><span class="chip y">${(S.inbox || []).length} open</span></div>
-        ${(S.inbox || []).length ? S.inbox.map((i) => `<div class="inbox-row"><i class="dot ${i.kind === 'approval' ? 'y' : ''}"></i><div><strong>${esc(i.title)}</strong><small>${esc(i.sub)}</small></div><div style="display:flex;gap:8px"><a class="btn sm" href="${esc(i.to)}">${i.kind === 'approval' ? 'Review' : 'Check'}</a><button class="btn sm ghost" data-clear="${esc(i.id)}" type="button">Done</button></div></div>`).join('') : '<div class="empty"><strong>Inbox is clear.</strong><p>Anything that needs your approval will appear here, so you don’t have to keep checking.</p></div>'}
-      </section>
-      <section class="panel" aria-labelledby="wk"><div class="panel-h"><h2 id="wk">What I’ve been working on</h2></div>
-        ${(S.activity || []).slice(0, 6).map((a) => `<div class="work-row"><i class="dot"></i><div>${esc(a.text)}<small>${ago(a.t)}</small></div></div>`).join('') || '<div class="empty">Nothing yet.</div>'}</section>
+      <section class="panel" aria-labelledby="h-ap"><div class="panel-h"><h2 id="h-ap">Pending approvals</h2><a class="link" href="#/inbox">Open Inbox</a></div>
+        ${inbox.length ? inbox.slice(0, 6).map((i) => `<a class="list-row" href="#/inbox"><i class="dot ${i.kind === 'approval' ? 'y' : ''}" aria-hidden="true"></i><span class="lr-t">${esc(i.title)}</span><small>${esc(i.sub || '')}</small></a>`).join('') : '<div class="empty sm">Nothing is waiting for you.</div>'}</section>
+      <section class="panel" aria-labelledby="h-cp"><div class="panel-h"><h2 id="h-cp">Campaigns</h2><a class="link" href="#/campaigns">All campaigns</a></div>${campRows || '<div class="empty sm">No campaigns yet. Use Create → Campaign.</div>'}</section>
+      <section class="panel" aria-labelledby="h-jb"><div class="panel-h"><h2 id="h-jb">Creative jobs</h2><a class="link" href="#/campaigns/studio">Open Studio</a></div><div id="home-jobs"><div class="empty sm">Loading jobs from the server…</div></div></section>
     </div><div class="stack">
-      <section class="panel"><div class="panel-h"><h2>Agent mode</h2></div><div class="modes">${[['Researching', 'Compares audiences and communities.'], ['Preparing', 'Drafts plans, budgets and schedules.'], ['Monitoring', 'Checks delivery and data quality.']].map((x, i) => `<div class="${i === mode ? 'on' : ''}"><b>${x[0]}</b>${x[1]}</div>`).join('')}</div></section>
-      <section class="panel"><div class="panel-b"><span class="eyebrow">Your boundaries</span>
-        <div class="fact-row"><span>Goal</span><span>${esc((C.GOALS.find((g) => g.k === S.goal.k) || {}).t || '')}${S.goal.target ? ' · ' + esc(S.goal.target) : ''}</span></div>
-        <div class="fact-row"><span>Region</span><span>${esc(S.bounds.region || 'Open')}</span></div>
-        <div class="fact-row"><span>Ad cap</span><span>${S.bounds.budgetMode === 'amount' ? m(S.bounds.budget) + '/mo' : 'Organic only'}</span></div>
-        <div style="margin-top:12px"><a class="link" href="#/settings">Change in Settings</a></div></div></section>
+      <section class="panel" aria-labelledby="h-cx"><div class="panel-h"><h2 id="h-cx">Connections</h2><a class="link" href="#/settings/connections">Manage</a></div><div id="home-conn"><div class="empty sm">Checking…</div></div></section>
+      <section class="panel" aria-labelledby="h-us"><div class="panel-h"><h2 id="h-us">Limits and costs</h2></div><div id="home-usage" class="panel-b"><small class="muted">Loading…</small></div>
+        <div class="panel-b"><div class="fact-row"><span>Goal</span><span>${esc((C.GOALS.find((g) => g.k === S.goal.k) || {}).t || 'Not set')}${S.goal.target ? ' · ' + esc(S.goal.target) : ''}</span></div><div class="fact-row"><span>Market</span><span>${esc(S.bounds.region || ({ IN: 'India', US: 'United States', GB: 'United Kingdom', AE: 'United Arab Emirates' })[S.bounds.country] || 'Not chosen')}</span></div><div class="fact-row"><span>Ad cap</span><span>${S.bounds.budgetMode === 'amount' ? m(S.bounds.budget) + '/mo' : 'Organic only'}</span></div></div></section>
+      <section class="panel" aria-labelledby="h-ac"><div class="panel-h"><h2 id="h-ac">Recent activity</h2><a class="link" href="#/settings/audit">Log</a></div>
+        ${(S.activity || []).slice(0, 5).map((a) => `<div class="work-row"><i class="dot" aria-hidden="true"></i><div>${esc(a.text)}<small>${ago(a.t)}</small></div></div>`).join('') || '<div class="empty sm">Nothing yet.</div>'}</section>
     </div></div>`;
-    view.querySelectorAll('[data-why]').forEach((b) => b.addEventListener('click', () => drawer(b.dataset.why)));
-    view.querySelectorAll('[data-clear]').forEach((b) => b.addEventListener('click', () => { S.inbox = S.inbox.filter((i) => i.id !== b.dataset.clear); C.save(); route(); }));
+    view.querySelectorAll('[data-why]').forEach((x) => x.addEventListener('click', () => drawer(x.dataset.why)));
+    homeLive();
+  }
+  async function homeLive() {
+    const jb = $('#home-jobs'), cx = $('#home-conn'), us = $('#home-usage');
+    try { const jobs = ((await C.ops.get('jobs')).jobs || []).slice(0, 5); if (jb) jb.innerHTML = jobs.length ? jobs.map((j) => `<a class="list-row" href="#/campaigns/studio"><span class="st">${esc(j.state)}</span><span class="lr-t">${esc(j.kind || 'Render')}</span><small>${ago(j.updatedAt || j.createdAt)}</small></a>`).join('') : '<div class="empty sm">No creative jobs yet. Create → Ad creative.</div>'; } catch (e) { if (jb) jb.innerHTML = `<div class="empty sm">Couldn’t load jobs: ${esc(e.message)}</div>`; }
+    try { const u = await C.ops.get('usage'); if (us) us.innerHTML = `<div class="fact-row"><span>Renders this month</span><span>${u.used.creativeMonth} of ${u.caps.credits || '∞'}</span></div><div class="fact-row"><span>Research today</span><span>${u.used.researchToday ?? 0} of ${u.caps.research ?? '∞'}</span></div><div class="fact-row"><span>AI/API cost reported</span><span>${u.aiApiCost && u.aiApiCost.reportedFor ? '$' + Number(u.aiApiCost.usd).toFixed(2) : 'Not reported by providers'}</span></div>`; } catch (e) { if (us) us.innerHTML = `<small class="muted">Usage unavailable: ${esc(e.message)}</small>`; }
+    try { const r = await C.ops.get('integrations'); const list = Object.entries(r.integrations || r || {}).filter(([, v]) => v && typeof v === 'object'); if (cx) cx.innerHTML = list.length ? list.map(([k, v]) => `<div class="list-row"><span class="st ${v.state === 'ready' ? 'st-live' : ''}">${esc(String(v.state || 'unknown').replace(/_/g, ' '))}</span><span class="lr-t">${esc(k)}</span><small>${esc(v.reason || '')}</small></div>`).join('') : '<div class="empty sm">No connections reported.</div>'; } catch (e) { if (cx) cx.innerHTML = `<div class="empty sm">Couldn’t check connections: ${esc(e.message)}</div>`; }
   }
 
   /* ---------------- DISCOVER ---------------- */
@@ -104,11 +104,11 @@
   function discover() {
     const regs = regions(), comms = communities();
     view.innerHTML = `
-    <div class="pagehead"><div><span class="eyebrow">Discover</span><h1 class="disp">Find where your next customers <b>might be.</b></h1><p class="muted">Rank regions and communities by audience fit, channel feasibility and evidence. I only rank when there’s enough evidence.</p></div>
+    <div class="pagehead"><div><span class="eyebrow">Discover</span><h1 class="disp">Find where your next customers <b>might be.</b></h1><p class="muted">Markets, audience hypotheses and community threads, each with where it came from. Nothing is ranked without evidence.</p></div>
       <div class="seg" role="group" aria-label="View"><button data-v="market" aria-pressed="${dView === 'market'}" type="button">Market view</button><button data-v="community" aria-pressed="${dView === 'community'}" type="button">Community view</button></div></div>
-    <div class="filters"><span class="chip dash">${esc(S.bounds.region || 'Any region')}</span><span class="chip dash">English${(S.brand && S.brand.currency === 'INR') || !S.brand ? ' + Hindi' : ''}</span><span class="chip dash">${S.bounds.channels === 'organic' ? 'Organic' : S.bounds.channels === 'paid' ? 'Paid' : 'All channels'}</span></div>
+    <div class="filters"><span class="chip dash">${esc(S.bounds.region || 'Any region')}</span><span class="chip dash">${esc(({ IN: 'India', US: 'United States', GB: 'United Kingdom', AE: 'UAE' })[S.bounds.country] || 'Country not chosen')}</span><span class="chip dash">${S.bounds.channels === 'organic' ? 'Organic' : S.bounds.channels === 'paid' ? 'Paid' : 'All channels'}</span></div>
     ${dView === 'market' ? marketView(regs) : communityView(comms)}
-    <section aria-labelledby="po"><div class="pagehead" style="margin-bottom:14px"><h2 class="disp s" id="po">Potential opportunities</h2><span class="muted small">Illustrative structure comes from your own site read. Real ranking needs source evidence, dates and eligibility checks.</span></div>
+    <section aria-labelledby="po"><div class="pagehead" style="margin-bottom:14px"><h2 class="disp s" id="po">Suggested starting points</h2><span class="muted small">Hypotheses built from your website and your goal. Not validated by market data yet: treat them as tests, not findings.</span></div>
       <div class="opp-grid">${(S.plan || []).map(oppCard).join('') || '<div class="empty">No opportunities yet. Add a channel preference in Settings.</div>'}</div></section>`;
     view.querySelectorAll('[data-v]').forEach((b) => b.addEventListener('click', () => { dView = b.dataset.v; discover(); bindAfter(); }));
     view.querySelectorAll('[data-why]').forEach((b) => b.addEventListener('click', () => drawer(b.dataset.why)));
@@ -126,18 +126,19 @@
   }
   function marketView(regs) {
     if (!regs.length) return `<section class="focus-card"><h2>Where should we focus?</h2><p>You asked me to help decide. Name one or two places you’d like to compare, and I’ll show the evidence for each. Until then I won’t rank anything.</p>
-      <form id="set-region" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><input id="rg" type="text" placeholder="Bengaluru, Mumbai" style="max-width:340px" aria-label="Regions to compare"><button class="btn yellow" type="submit">Compare these</button></form></section>`;
-    return `<section class="focus-card"><h2>Where should we focus?</h2><p>Not enough evidence to rank these regions yet. Run research to see what people actually say. I won’t invent a score.</p></section>
+      <form id="set-region" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><input id="rg" type="text" placeholder="Bengaluru, Mumbai" style="max-width:340px" aria-label="Regions to compare"><button class="btn yellow" type="submit">Compare these</button></form></section>${audienceHyp()}`;
+    return `<section class="focus-card"><h2>Where should we focus?</h2><p>These regions are unranked. Automated market research from permitted sources (search results, competitor sites and your own analytics) isn’t connected in this build, so I won’t invent a score.</p></section>
       <div class="regions">${regs.map((r) => `<div class="region"><strong>${esc(r)}</strong><div class="meter" aria-hidden="true"></div><span class="small muted">Evidence: none yet. Audience fit, competition and cost are unmeasured.</span><span class="chip dash" style="justify-self:start">Unranked</span></div>`).join('')}</div>
-      <div><button class="btn" id="run-research" type="button" ${dBusy ? 'disabled' : ''}>${dBusy ? 'Reading Reddit and X…' : S.research ? 'Refresh research' : 'Run research'}</button> <span class="muted small">${researchMeta()}</span></div>${dErr ? `<div class="err" style="margin-top:8px;color:var(--ink)">${esc(dErr)}</div>` : ''}`;
+      ${audienceHyp()}`;
   }
   function researchMeta() { return S.research ? 'Last updated ' + ago(S.research.at) + ' · ' + (S.research.signals || []).length + ' posts · showing saved results first, refresh costs a small scan' : 'One scan across Reddit and X. Takes up to a minute.'; }
-  function communityView(comms) {
-    const head = `<section class="focus-card"><h2>Where can we meaningfully participate?</h2><p>Communities are topics, not places, so there’s no map here. Relevant is not the same as allowed: check each community’s rules before posting.</p></section>`;
-    if (!comms.length) return head + `<div class="empty" style="margin:0"><strong>No research yet.</strong><p>Run one scan to see which communities talk about your buyer’s problem.</p><button class="btn" id="run-research" type="button" ${dBusy ? 'disabled' : ''} style="margin-top:12px">${dBusy ? 'Reading Reddit and X…' : 'Run research'}</button>${dErr ? `<div class="err" style="margin-top:10px">${esc(dErr)}</div>` : ''}</div>`;
-    return head + `<div class="panel"><div class="panel-h"><h2>Ranked by verified posts</h2><span class="muted small">${researchMeta()}</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Community</th><th>Posts</th><th>Verified</th><th>Rules</th></tr></thead><tbody>
-      ${comms.map((c) => `<tr><td><strong>${esc(c.name)}</strong><br><small class="muted">${esc((c.sample[0] && (c.sample[0].title || c.sample[0].text) || '').slice(0, 90))}</small></td><td>${c.n}</td><td>${c.verified}</td><td><span class="chip warn">Not checked</span></td></tr>`).join('')}</tbody></table></div></div>
-      <div><button class="btn" id="run-research" type="button" ${dBusy ? 'disabled' : ''}>${dBusy ? 'Reading Reddit and X…' : 'Refresh research'}</button></div>${dErr ? `<div class="err">${esc(dErr)}</div>` : ''}`;
+  function audienceHyp() {
+    const ic = (S.icps || []).filter((i) => i.on !== false);
+    if (!ic.length) return '';
+    return `<section class="panel" aria-labelledby="ah"><div class="panel-h"><h2 id="ah">Audience hypotheses</h2><span class="muted small">From your website copy. Not verified audience data.</span></div>${ic.map((i) => `<div class="list-row"><span class="st">${i.evidence ? 'Site evidence' : 'Inference'}</span><span class="lr-t"><strong>${esc(i.name)}</strong> · ${esc(i.who || '')}</span><small>${esc(i.pain || '')}</small></div>`).join('')}</section>`;
+  }
+  function communityView() {
+    return `<section class="focus-card"><h2>Where can we meaningfully participate?</h2><p>Communities are topics, not places. Paste threads you found; I check each community’s rules before drafting anything. Relevant is not the same as allowed.</p></section>`;
   }
   async function runResearch() {
     if (dBusy) return;
@@ -222,7 +223,7 @@
     for (const a of st.filter((x) => x.approved && (x.kind === 'shoot' || x.kind === 'ad'))) { const v = await window.Studio.media.get(a.mediaId); if (v) creatives.push({ assetId: a.id, sha256: await window.Studio.sha(v), ...(a.jobId ? { jobId: a.jobId } : {}) }); }
     const url = S.offer && S.offer.url ? S.offer.url : (C.parseSite(S.input.site) ? 'https://' + C.parseSite(S.input.site) : undefined);
     return { campaignId: c.id, name: c.name, objective: ['sales', 'signups'].includes(c.goal) ? 'sales' : c.goal === 'traffic' ? 'traffic' : 'awareness', channels: chs,
-      budget: c.cap ? { mode: 'amount', amount: c.cap, currency: 'INR', period: 'month' } : { mode: 'none', amount: 0, currency: 'INR', period: 'day' },
+      budget: c.cap ? { mode: 'amount', amount: c.cap, currency: C.currency() || 'INR', period: 'month' } : { mode: 'none', amount: 0, currency: C.currency() || 'INR', period: 'day' },
       audience: { countries: S.bounds.country ? [S.bounds.country] : [], regions: String(c.region || '').split(',').map((x) => x.trim()).filter(Boolean) },
       destination: { ...(url ? { url } : {}), ...(S.bounds.adAccount ? { adAccountId: S.bounds.adAccount } : {}) }, creatives, copy: c.steps.map((x) => x.text).slice(0, 30) };
   }
@@ -298,16 +299,85 @@
 
   /* ---------------- CALENDAR ---------------- */
   const stLabel = (s) => (s.state === 'published_manual' ? 'Published · manual' : s.ch === 'reddit' ? statesLabel.manual : 'Held · needs connection');
-  function calendar() {
-    const c = camp(), appr = c && c.status === 'approved' ? c.steps : [];
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-    const manual = appr.filter((s) => s.ch === 'reddit' && s.state !== 'published_manual').length, pubM = appr.filter((s) => s.state === 'published_manual').length;
-    view.innerHTML = `<div class="pagehead"><div><span class="eyebrow">Calendar</span><h1 class="disp">What’s going out, and <b>when?</b></h1><p class="muted">Scheduled, published, failed and awaiting-manual-posting stay distinct. “Published” appears only when the platform confirms it or you say you posted it yourself.</p></div></div>
-    ${appr.length ? `<div class="week">${days.map((d, i) => `<div class="wday"><h3>${d}</h3>${appr.map((s, n) => [s, n]).filter(([, n]) => n % 5 === i).map(([s, n]) => `<button class="slot" data-slot="${n}" type="button" style="text-align:left;width:calc(100% - 20px)"><strong>${CH[s.ch]}</strong>${esc(s.text)}<span class="chip ${s.state === 'published_manual' ? 'b' : s.ch === 'reddit' ? 'y' : 'dash'}">${stLabel(s)}</span></button>`).join('')}</div>`).join('')}</div>
-      <p class="muted small">Proposed slots only. Connect accounts in Settings to schedule. Nothing is scheduled by the app right now.</p>` : `<div class="empty" style="margin:0"><strong>Nothing to schedule yet.</strong><p>Approve a campaign plan first. Approved work appears here with its real status.</p><a class="btn" href="#/campaigns/c1" style="margin-top:12px">Open campaign</a></div>`}
-    <div class="panel"><div class="panel-b" style="display:flex;gap:14px;flex-wrap:wrap"><span class="chip dash">Scheduled · 0</span><span class="chip ${pubM ? 'b' : 'dash'}">Published · ${pubM}</span><span class="chip dash">Failed · 0</span><span class="chip y">Awaiting manual posting · ${manual}</span></div></div>`;
-    view.querySelectorAll('[data-slot]').forEach((b) => b.addEventListener('click', () => slotDialog(appr[+b.dataset.slot])));
+  /* Calendar: items sit on their real stored date (server publish jobs). Suggestions without a date are never shown as scheduled. */
+  const cal = { view: innerWidth < 720 ? 'agenda' : 'week', at: new Date(), ch: '', st: '' };
+  const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
+  const CALST = { requested: ['Awaiting approval', 'y'], authorized: ['Approved', 'b'], queued: ['Queued', 'b'], executing: ['Publishing', 'b'], blocked: ['Held', 'warn'], failed: ['Failed', 'warn'], unknown_external_state: ['Unknown external state', 'warn'], cancelled: ['Cancelled', 'dash'] };
+  const calLabel = (j) => j.state === 'completed' ? (j.verification === 'user_attested' ? ['Published manually', 'b'] : ['Provider verified', 'b']) : j.state === 'authorized' && j.payload.scheduledAt && new Date(j.payload.scheduledAt) > new Date() ? ['Scheduled', 'b'] : (CALST[j.state] || [j.state, 'dash']);
+  const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const startOfWeek = (d) => { const x = new Date(d); const k = (x.getDay() + 6) % 7; x.setDate(x.getDate() - k); x.setHours(0, 0, 0, 0); return x; };
+  const PLAT = { x: 'X', facebook: 'Facebook', instagram: 'Instagram', reddit: 'Reddit' };
+  async function calendar(sub) {
+    view.innerHTML = `<div class="pagehead"><div><span class="eyebrow">Calendar</span><h1 class="disp">What’s going out, and <b>when?</b></h1><p class="muted">Every item sits on the date it is stored with. Times in ${esc(TZ)}.</p></div><button class="btn" id="cal-new" type="button">+ New post</button></div><div id="cal-body"><p class="muted">Loading…</p></div>`;
+    $('#cal-new').onclick = () => composePost();
+    let jobs = []; try { jobs = (await C.ops.get('publishJobs')).jobs || []; } catch (e) { $('#cal-body').innerHTML = `<div class="err">Couldn’t load posts from the server: ${esc(e.message)}</div>`; return; }
+    const draw = () => {
+      if (innerWidth < 720) cal.view = 'agenda';   // mobile: agenda, not a shrunken grid
+      const items = jobs.filter((j) => (!cal.ch || j.provider === cal.ch) && (!cal.st || calLabel(j)[0] === cal.st));
+      const dated = items.filter((j) => j.payload && j.payload.scheduledAt), undated = items.filter((j) => !(j.payload && j.payload.scheduledAt));
+      const byDay = {}; dated.forEach((j) => { const k = dayKey(new Date(j.payload.scheduledAt)); (byDay[k] = byDay[k] || []).push(j); });
+      const card = (j) => { const L = calLabel(j); return `<button class="cal-item" data-job="${esc(j.id)}" type="button"><span class="ci-p">${esc(PLAT[j.provider] || j.provider)}${j.payload.scheduledAt ? ' · ' + new Date(j.payload.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span><span class="ci-t">${esc(j.payload.text.slice(0, 70))}</span><span class="chip ${L[1]}">${esc(L[0])}</span></button>`; };
+      const t0 = cal.view === 'month' ? new Date(cal.at.getFullYear(), cal.at.getMonth(), 1) : startOfWeek(cal.at);
+      let grid = '';
+      if (cal.view === 'agenda') {
+        const days = Object.keys(byDay).sort();
+        grid = days.length ? days.map((k) => `<div class="agenda-day"><h3>${new Date(k + 'T00:00').toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}</h3>${byDay[k].sort((a, b) => a.payload.scheduledAt.localeCompare(b.payload.scheduledAt)).map(card).join('')}</div>`).join('') : '<div class="empty sm">Nothing has a date yet.</div>';
+      } else {
+        const start = cal.view === 'month' ? startOfWeek(t0) : t0, n = cal.view === 'month' ? 42 : 7, today = dayKey(new Date());
+        grid = `<div class="cal-grid ${cal.view}">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => `<div class="cal-dow">${d}</div>`).join('')}${Array.from({ length: n }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); const k = dayKey(d), out = cal.view === 'month' && d.getMonth() !== cal.at.getMonth();
+          return `<div class="cal-day ${k === today ? 'today' : ''} ${out ? 'out' : ''}"><button class="cal-date" data-day="${k}" type="button" aria-label="New post on ${d.toDateString()}">${d.getDate()}</button>${(byDay[k] || []).map(card).join('')}</div>`; }).join('')}</div>`;
+      }
+      const title = cal.view === 'month' ? cal.at.toLocaleDateString([], { month: 'long', year: 'numeric' }) : cal.view === 'week' ? 'Week of ' + t0.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) : 'Upcoming and past';
+      const c = camp(), sugg = c ? (c.steps || []).filter((x) => !x.dismissed) : [];
+      $('#cal-body').innerHTML = `<div class="cal-bar"><div class="seg ${innerWidth < 720 ? 'hide-sm' : ''}" role="group" aria-label="Calendar view">${['week', 'month', 'agenda'].map((v) => `<button type="button" data-cv="${v}" aria-pressed="${cal.view === v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}</div>
+        ${cal.view !== 'agenda' ? `<div class="row"><button class="btn sm ghost" data-nav-d="-1" type="button" aria-label="Previous">←</button><button class="btn sm ghost" data-nav-d="0" type="button">Today</button><button class="btn sm ghost" data-nav-d="1" type="button" aria-label="Next">→</button><strong class="cal-title">${esc(title)}</strong></div>` : ''}
+        <div class="row"><label class="sr-only" for="cal-ch">Platform</label><select id="cal-ch"><option value="">All platforms</option>${Object.entries(PLAT).map(([k, v]) => `<option value="${k}" ${cal.ch === k ? 'selected' : ''}>${v}</option>`).join('')}</select><label class="sr-only" for="cal-st">Status</label><select id="cal-st"><option value="">All statuses</option>${['Awaiting approval', 'Approved', 'Scheduled', 'Publishing', 'Provider verified', 'Published manually', 'Failed', 'Unknown external state', 'Held', 'Cancelled'].map((v) => `<option ${cal.st === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
+        ${grid}
+        <section class="panel"><div class="panel-h"><h2>Not scheduled</h2><span class="muted small">Drafts without a date. They are not scheduled.</span></div>${undated.length ? undated.map((j) => `<div class="list-row">${card(j)}</div>`).join('') : '<div class="empty sm">No undated drafts.</div>'}</section>
+        ${sugg.length ? `<section class="panel"><div class="panel-h"><h2>Campaign suggestions</h2><a class="link" href="#/campaigns/c1">Open campaign</a></div>${sugg.map((x) => `<div class="list-row"><span class="st">Suggestion</span><span class="lr-t">${esc(CH[x.ch] || x.ch)} · ${esc(x.text)}</span><small>No date · not scheduled</small></div>`).join('')}</section>` : ''}`;
+      view.querySelectorAll('[data-cv]').forEach((b) => b.onclick = () => { cal.view = b.dataset.cv; draw(); });
+      view.querySelectorAll('[data-nav-d]').forEach((b) => b.onclick = () => { const d = +b.dataset.navD; if (!d) cal.at = new Date(); else if (cal.view === 'month') cal.at = new Date(cal.at.getFullYear(), cal.at.getMonth() + d, 1); else { cal.at = new Date(cal.at); cal.at.setDate(cal.at.getDate() + 7 * d); } draw(); });
+      $('#cal-ch').onchange = (e) => { cal.ch = e.target.value; draw(); }; $('#cal-st').onchange = (e) => { cal.st = e.target.value; draw(); };
+      view.querySelectorAll('[data-day]').forEach((b) => b.onclick = () => composePost(b.dataset.day));
+      view.querySelectorAll('[data-job]').forEach((b) => b.onclick = () => jobDialog(jobs.find((j) => j.id === b.dataset.job)));
+    };
+    draw();
     if (window.Social) window.Social.calendarSection(view);
+    if (sub === 'new') { history.replaceState(null, '', '#/calendar'); composePost(); }
+  }
+  function jobDialog(j) {
+    const d = document.getElementById('dlg'), L = calLabel(j); d.setAttribute('aria-label', 'Post details');
+    d.innerHTML = `<div class="dlg-h"><h2 class="disp s">${esc(PLAT[j.provider] || j.provider)} post</h2><button class="btn sm ghost" id="jx" type="button">Close</button></div><div class="dlg-b" style="display:grid;gap:10px">
+      <div class="tags"><span class="chip ${L[1]}">${esc(L[0])}</span>${j.url ? `<a class="chip dash" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">Open post</a>` : ''}</div>
+      <div class="post-preview ${esc(j.provider)}"><b>${esc((S.brand && S.brand.name) || 'You')}</b><p>${esc(j.payload.text)}</p></div>
+      <div class="fact-row"><span>When</span><span>${j.payload.scheduledAt ? esc(new Date(j.payload.scheduledAt).toLocaleString()) + ' (' + esc(TZ) + ')' : 'Not scheduled'}</span></div>
+      ${j.state === 'requested' ? `<label class="field"><span>Reschedule</span><input id="jw" type="datetime-local"></label><p class="small muted">Changing the text or time creates a new version; any earlier approval no longer applies.</p>` : ''}
+      <p class="small muted">Approve it in the Action Inbox. Copy for manual posting appears below the calendar once it is approved.</p></div>
+      <div class="dlg-f"><a class="btn ghost" href="#/inbox">Review in Inbox</a><button class="btn ghost" id="jcp" type="button">Copy text</button>${j.state === 'requested' ? '<button class="btn yellow" id="jrs" type="button">Save new time</button>' : ''}</div>`;
+    d.showModal(); $('#jx').onclick = () => d.close(); $('#jcp').onclick = async () => { try { await navigator.clipboard.writeText(j.payload.text); toast('Copied.'); } catch (e) { toast('Copy failed.'); } };
+    const rs = $('#jrs'); if (rs) rs.onclick = async () => { const v = $('#jw').value; if (!v) return toast('Pick a date and time.'); try { const r = await C.ops.post('editPublish', { id: j.id, payload: Object.assign({}, j.payload, { scheduledAt: new Date(v).toISOString() }) }); S.inbox = (S.inbox || []).map((i) => i.jobId === j.id ? Object.assign(i, { hash: r.job.payloadHash, sub: 'Rescheduled. Needs approval of this exact version.' }) : i); C.save(); d.close(); toast('Rescheduled. It needs your approval again.'); route(); } catch (e) { toast(e.message); } };
+  }
+  /* New post: platform-aware editor beside a simple preview. Sends to the Inbox; nothing is published from here. */
+  function composePost(day) {
+    const d = document.getElementById('dlg'); d.setAttribute('aria-label', 'New post');
+    const LIM = { x: 280, facebook: 2000, instagram: 2200, reddit: 3000 };
+    d.innerHTML = `<div class="dlg-h"><h2 class="disp s">New post</h2><button class="btn sm ghost" id="np-x" type="button">Close</button></div><div class="dlg-b compose-grid">
+      <div style="display:grid;gap:10px"><label class="field"><span>Platform</span><select id="np-ch">${Object.entries(PLAT).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
+        <label class="field"><span>Text</span><textarea id="np-t" rows="7" maxlength="3000"></textarea><small id="np-n">0 characters</small></label>
+        <label class="field"><span>Publish at (${esc(TZ)}, optional)</span><input id="np-w" type="datetime-local" value="${day ? day + 'T10:00' : ''}"></label><div id="np-e"></div></div>
+      <div><span class="eyebrow">Preview</span><div class="post-preview" id="np-p"><b>${esc((S.brand && S.brand.name) || 'You')}</b><p class="muted">Your text appears here.</p></div><p class="small muted" id="np-h"></p></div></div>
+      <div class="dlg-f"><button class="btn ghost" id="np-c" type="button">Cancel</button><button class="btn yellow" id="np-s" type="button">Send for approval</button></div>`;
+    d.showModal();
+    const upd = () => { const ch = $('#np-ch').value, t = $('#np-t').value; $('#np-n').textContent = t.length + ' / ' + LIM[ch] + ' characters'; $('#np-p').className = 'post-preview ' + ch; $('#np-p').innerHTML = `<b>${esc((S.brand && S.brand.name) || 'You')}</b><p>${esc(t) || '<span class="muted">Your text appears here.</span>'}</p>`; $('#np-h').textContent = ch === 'reddit' ? 'Reddit: you post it yourself after a rules check. Nothing is posted by Cold Start.' : ch === 'x' ? 'X: manual posting (Open X to post) unless an X account is connected.' : 'Needs the account connected in Settings to publish automatically; otherwise you post it yourself.'; };
+    $('#np-ch').onchange = upd; $('#np-t').oninput = upd; upd();
+    $('#np-x').onclick = $('#np-c').onclick = () => d.close();
+    $('#np-s').onclick = async () => { const ch = $('#np-ch').value, t = $('#np-t').value.trim(), w = $('#np-w').value; if (t.length < 2) { $('#np-e').innerHTML = '<div class="err">Write the post first.</div>'; return; } if (t.length > LIM[ch]) { $('#np-e').innerHTML = `<div class="err">Too long for ${PLAT[ch]}.</div>`; return; }
+      const when = w ? new Date(w).toISOString() : undefined; if (when && new Date(when) < new Date()) { $('#np-e').innerHTML = '<div class="err">Pick a time in the future.</div>'; return; }
+      try { const { job } = await C.ops.post('createPublish', { payload: { channel: ch, text: t, ...(when ? { scheduledAt: when } : {}) }, idempotencyKey: 'pub-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now()) });
+        S.social = S.social || { posts: [] }; S.social.posts = S.social.posts || []; S.social.posts.unshift({ id: job.id, hash: job.payloadHash, platform: ch, text: t, scheduledAt: when || null, sourceUrl: '' });
+        S.inbox = S.inbox || []; S.inbox.unshift({ id: 'sp-' + job.id, kind: 'post', title: PLAT[ch] + ' post: ' + t.slice(0, 60), sub: (when ? 'For ' + new Date(when).toLocaleString() + '. ' : 'No time set. ') + 'Nothing is sent until you approve it.', to: '#/calendar', jobId: job.id, hash: job.payloadHash, at: new Date().toISOString() });
+        C.log('social', 'Post sent for approval', { job: job.id, channel: ch }); C.save(); d.close(); toast('Sent to your Inbox for approval.'); if (location.hash === '#/calendar') route(); else location.hash = '#/calendar'; }
+      catch (e) { $('#np-e').innerHTML = `<div class="err">${esc(e.message)}</div>`; } };
   }
   function slotDialog(s) {
     const d = document.getElementById('dlg'), manualOk = s.ch === 'reddit';
@@ -328,7 +398,7 @@
     view.innerHTML = `<div class="pagehead"><div><span class="eyebrow">Results</span><h1 class="disp">Here’s what <b>changed.</b></h1><p class="muted">Built around your goal: ${esc(g.t.toLowerCase())}${S.goal.target ? ', target ' + esc(S.goal.target) + ' ' + g.unit : ''}. Activity (impressions, likes) never outranks outcomes.</p></div></div>
     <div class="empty" style="margin:0"><strong>No results yet.</strong><p>No campaign has run, so there are no numbers. I show nothing rather than zeros dressed up as data. When results exist they will state the attribution window, data completeness and conversion source. Reddit and X traffic will be shown as tracked traffic and assisted conversions, separate from directly attributed ${esc(g.unit)}.</p></div>
     <section class="panel" id="res-live"><div class="panel-h"><h2>What we can actually see</h2><span class="muted small">Observed, unavailable and estimated data are kept apart.</span></div><div class="panel-b"><p class="muted">Loading…</p></div></section>
-    ${conv ? `<section class="panel"><div class="panel-h"><h2>Measurement checklist</h2><a class="btn sm" href="app-v3.html#/tracking">Open tracking</a></div><div class="check-list">${steps.map((s) => `<div class="check-row"><span class="box ${s[1] ? 'ok' : ''}">${s[1] ? '✓' : ''}</span><span>${s[0]}</span><span class="chip ${s[1] ? 'b' : 'dash'}">${s[1] ? 'Done' : 'Pending'}</span></div>`).join('')}</div></section>` : `<div class="panel"><div class="panel-b">Traffic and awareness goals don’t need a pixel. Tag your links and I’ll track visits once a campaign runs.</div></div>`}`;
+    ${conv ? `<section class="panel"><div class="panel-h"><h2>Measurement checklist</h2><a class="btn sm" href="#/settings/connections">Open tracking</a></div><div class="check-list">${steps.map((s) => `<div class="check-row"><span class="box ${s[1] ? 'ok' : ''}">${s[1] ? '✓' : ''}</span><span>${s[0]}</span><span class="chip ${s[1] ? 'b' : 'dash'}">${s[1] ? 'Done' : 'Pending'}</span></div>`).join('')}</div></section>` : `<div class="panel"><div class="panel-b">Traffic and awareness goals don’t need a pixel. Tag your links and I’ll track visits once a campaign runs.</div></div>`}`;
     liveResults();
   }
   async function liveResults() {

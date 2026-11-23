@@ -82,16 +82,21 @@
   function priceRange() {
     const ps = (S.products || []).map((p) => Number(p.price)).filter((x) => x > 0);
     if (!ps.length) return null;
-    const cur = (S.brand && S.brand.currency) || 'INR';
+    const cur = S.brand && S.brand.currency; if (!cur) return null;   // no verified currency: don't show a range in a guessed one
     const lo = Math.min(...ps), hi = Math.max(...ps);
     return lo === hi ? C.money(lo, cur) : C.money(lo, cur) + ' to ' + C.money(hi, cur);
   }
   function step1() {
     const b = S.brand || {}, live = S.scan && S.scan.mode === 'live';
     const pr = priceRange();
-    const prodStrip = (S.products || []).slice(0, 10).map((p) => p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" referrerpolicy="no-referrer">` : `<span class="ph">${esc((p.name || '').slice(0, 14))}</span>`).join('');
+    const known = (p) => Number(p.price) > 0;
+    const gaps = (p) => [!p.image && 'photo', !p.url && 'link', !known(p) && 'price'].filter(Boolean);
+    const prodList = (S.products || []).slice(0, 24).map((p, i) => { const g = gaps(p); return `<button type="button" class="prod-row ${S.flagship && S.flagship.name === p.name ? 'on' : ''}" data-prod="${i}" aria-pressed="${!!(S.flagship && S.flagship.name === p.name)}">
+      ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="ph" aria-hidden="true">No photo</span>'}
+      <span class="pr-t"><strong>${esc(p.name || 'Unnamed')}</strong><small>${known(p) && b.currency ? esc(C.money(p.price, b.currency)) : known(p) ? esc(String(p.price)) + ' · currency unknown' : 'Price unknown'}${p.url ? ' · <span class="ok">link found</span>' : ''}</small></span>
+      ${g.length ? `<span class="chip dash">Missing ${esc(g.join(', '))}</span>` : '<span class="chip b">Complete</span>'}</button>`; }).join('');
     const sw = (b.colors || []).filter((c) => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 5);
-    const fl = S.flagship || (S.products && S.products[0] ? { name: S.products[0].name, variant: '', price: S.products[0].price || '', url: S.products[0].url || '', image: S.products[0].image || '' } : { name: '', variant: '', price: '', url: '' });
+    const fl = S.flagship || { name: '', variant: '', price: '', url: '', currency: b.currency || '', kind: 'product' };   // never assume the flagship: the person picks it
     const missing = [!b.line && 'what you sell', !(S.products || []).length && 'products', !sw.length && 'colours'].filter(Boolean);
     root.innerHTML = `<div class="ob-col wide">
       <div><span class="eyebrow">Step 2 · Confirm what I understood</span><h1 class="disp">Here’s what I <b>found.</b></h1>
@@ -104,13 +109,16 @@
               <textarea id="line">${esc(b.line || S.input.desc || '')}</textarea>
               ${b.line ? '' : '<small>I couldn’t pin this down. Please write one line.</small>'}</label>
             <label class="field"><span>Brand name</span><input id="bname" type="text" value="${esc(b.name || '')}"></label>
-            <fieldset class="flag" style="border:2px solid var(--ink);padding:12px;display:grid;gap:10px;background:#fff"><legend class="eyebrow" style="padding:0 6px">Flagship product I should lead with</legend>
-              ${(S.products || []).length > 1 ? `<label class="field"><span>Pick from your store</span><select id="fl-pick"><option value="">Something else…</option>${S.products.slice(0, 8).map((p, i) => `<option value="${i}" ${p.name === fl.name ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
-              <label class="field"><span>Product name</span><input id="fl-name" type="text" value="${esc(fl.name)}" maxlength="120"></label>
-              <div class="cols2"><label class="field"><span>Variant (size, flavour, shade)</span><input id="fl-var" type="text" value="${esc(fl.variant)}" maxlength="80" placeholder="250 g"></label><label class="field"><span>Price (${(b.currency) === 'USD' ? '$' : '₹'})</span><input id="fl-price" type="number" min="0" step="any" value="${esc(String(fl.price || ''))}"></label></div>
-              <label class="field"><span>Where people buy it (checkout or product page, https)</span><input id="fl-url" type="url" value="${esc(fl.url || '')}" placeholder="https://yourstore.com/products/…"></label><div id="fl-err"></div></fieldset>
+            <fieldset class="flag" style="border:2px solid var(--ink);padding:12px;display:grid;gap:10px;background:#fff"><legend class="eyebrow" style="padding:0 6px">What should I lead with?</legend>
+              <div class="seg" role="group" aria-label="Product or service"><button type="button" data-kind="product" aria-pressed="${fl.kind !== 'service'}">A product</button><button type="button" data-kind="service" aria-pressed="${fl.kind === 'service'}">A service or offer</button></div>
+              <small class="muted">${(S.products || []).length ? 'Pick one from the list on the right, or type it here. I won’t choose for you.' : 'Type the product or offer you want to sell first.'}</small>
+              <label class="field"><span>${fl.kind === 'service' ? 'Service or offer' : 'Product name'}</span><input id="fl-name" type="text" value="${esc(fl.name)}" maxlength="120"></label>
+              <div class="cols2"><label class="field"><span>${fl.kind === 'service' ? 'Package or tier (optional)' : 'Variant (size, flavour, shade)'}</span><input id="fl-var" type="text" value="${esc(fl.variant)}" maxlength="80"></label>
+                <div class="cols2" style="gap:6px"><label class="field"><span>Price</span><input id="fl-price" type="number" min="0" step="any" value="${esc(String(Number(fl.price) > 0 ? fl.price : ''))}" placeholder="Unknown"></label>
+                <label class="field"><span>Currency</span><select id="fl-cur"><option value="">Not set</option>${['INR', 'USD', 'GBP', 'EUR', 'AED', 'AUD', 'CAD', 'SGD'].map((c) => `<option ${fl.currency === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label></div></div>
+              <label class="field"><span>${fl.kind === 'service' ? 'Where people book or enquire (https)' : 'Where people buy it (product page, https)'}</span><input id="fl-url" type="url" value="${esc(fl.url || '')}" placeholder="https://…"></label><div id="fl-err"></div></fieldset>
             <div class="fact-row"><span>Price range</span><span>${pr ? esc(pr) : '<span class="chip dash">Not found</span>'}</span></div>
-            <div class="fact-row"><span>Language</span><span>${(b.currency || 'INR') === 'INR' ? 'English (India)' : 'English'}</span></div>
+            <div class="fact-row"><span>Currency</span><span>${b.currency ? esc(b.currency) + ' <small class="muted">(from your site)</small>' : '<span class="chip dash">Not found on the site</span>'}</span></div>
             <div class="fact-row"><span>Voice</span><span>${(b.tones || []).length ? esc(b.tones.join(', ')) : '<span class="chip dash">Not found</span>'}</span></div>
             <div class="fact-row"><span>Avoid saying</span><span>${(b.dont || []).length ? esc(b.dont.join(', ')) : 'Nothing set'}</span></div>
             ${sw.length ? `<div><span class="eyebrow">Colours I read from your site</span><div class="swatches">${sw.map((c, i) => `<span class="sw"><i style="background:${esc(c)}"></i>${esc(c)}</span>`).join('')}</div></div>` : ''}
@@ -118,7 +126,7 @@
           </div>
           <div style="display:grid;gap:16px;align-content:start">
             <div><span class="eyebrow">Products${(S.products || []).length ? ' · ' + S.products.length + ' found' : ''}</span>
-              ${(S.products || []).length ? `<div class="prod-strip">${prodStrip}</div>` : '<div class="chip dash">No products found. That’s fine for a service or app.</div>'}</div>
+              ${(S.products || []).length ? `<div class="prod-list" role="list">${prodList}</div><small class="muted">Read from ${esc(S.input.site || 'your site')}${S.sources && S.sources.shopify && S.sources.shopify.status === 'not_shopify' ? ' (not a Shopify store, so prices and photos are often missing)' : ''}. Unknown values stay unknown.</small>` : '<div class="chip dash">No products found. That’s fine for a service or app.</div>'}</div>
             <div><span class="eyebrow">Likely customers · tap to drop one</span>
               <div class="icp-list">${(S.icps || []).length ? S.icps.map((i, n) => `<button class="icp ${i.on === false ? 'off' : ''}" data-icp="${n}" type="button" aria-pressed="${i.on !== false}" style="text-align:left">
                 <div class="row"><strong>${esc(i.name)}</strong><span class="chip ${i.evidence ? 'b' : 'dash'}">${i.evidence ? 'Evidence from your site' : 'Needs your check'}</span></div>
@@ -129,16 +137,18 @@
       </div></div>`;
     root.querySelectorAll('[data-icp]').forEach((el) => el.addEventListener('click', () => { const i = S.icps[+el.dataset.icp]; i.on = i.on === false; C.save(); step1(); }));
     $('#back').onclick = () => go(0);
-    const pick = $('#fl-pick'); if (pick) pick.onchange = () => { const p = S.products[+pick.value]; if (p) { $('#fl-name').value = p.name || ''; $('#fl-price').value = p.price || ''; $('#fl-url').value = p.url || ''; } };
+    root.querySelectorAll('[data-prod]').forEach((el) => el.addEventListener('click', () => { const p = S.products[+el.dataset.prod]; if (!p) return; $('#fl-name').value = p.name || ''; $('#fl-price').value = Number(p.price) > 0 ? p.price : ''; $('#fl-url').value = p.url || ''; if (b.currency) $('#fl-cur').value = b.currency; root.querySelectorAll('[data-prod]').forEach((x) => { x.classList.toggle('on', x === el); x.setAttribute('aria-pressed', String(x === el)); }); $('#fl-name').focus(); }));
+    root.querySelectorAll('[data-kind]').forEach((el) => el.addEventListener('click', () => { S.flagship = Object.assign({}, fl, { name: $('#fl-name').value.trim(), variant: $('#fl-var').value.trim(), url: $('#fl-url').value.trim(), price: $('#fl-price').value.trim(), currency: $('#fl-cur').value, kind: el.dataset.kind, confirmedAt: null }); C.save(); step1(); }));
     const rs = $('#rescan'); if (rs) rs.onclick = () => { S.step = 0; C.save(); render(); };
     $('#next').onclick = () => {
       const name = $('#fl-name').value.trim(), url = $('#fl-url').value.trim(), price = $('#fl-price').value.trim(), err = [];
       if (!name) err.push('Name the product you want to lead with.');
-      if (price && !(Number(price) >= 0)) err.push('Price must be a number.');
+      if (price && !(Number(price) > 0)) err.push('Price must be a positive number, or leave it blank if unknown.');
+      if (price && !$('#fl-cur').value) err.push('Choose the currency for that price.');
       if (url) { let u = null; try { u = new URL(url); } catch (e) { /* invalid */ } if (!u || u.protocol !== 'https:') err.push('The buy link must be a full https:// address.'); }
       if (err.length) { $('#fl-err').innerHTML = '<div class="err">' + err.map(esc).join(' ') + '</div>'; $('#fl-name').focus(); return; }
       const hit = (S.products || []).find((p) => p.name === name);
-      S.flagship = { name, variant: $('#fl-var').value.trim(), price: price ? Number(price) : null, url, image: (hit && hit.image) || '', confirmedAt: new Date().toISOString() };
+      S.flagship = { name, kind: (S.flagship && S.flagship.kind) || 'product', variant: $('#fl-var').value.trim(), price: price ? Number(price) : null, currency: $('#fl-cur').value || null, url, image: (hit && hit.image) || '', source: hit ? 'site_scan' : 'user', confirmedAt: new Date().toISOString() };
       S.offer = { name, price: S.flagship.price, url };
       S.brand.line = $('#line').value.trim(); S.brand.name = $('#bname').value.trim() || S.brand.name; S.input.desc = S.brand.line; C.save(); go(2);
     };
@@ -173,7 +183,7 @@
             ${B.regionMode === 'set' ? `<label class="field"><span>City, country, or a few</span><input id="region" type="text" placeholder="Bengaluru, Mumbai" value="${esc(B.region)}"></label>` : '<small class="muted">I’ll compare regions in Discover and only rank them when there’s evidence.</small>'}</div>
           <div style="display:grid;gap:12px;align-content:start"><span class="eyebrow">Channels</span>
             <div class="seg" role="group" aria-label="Channels"><button type="button" data-ch="both" aria-pressed="${B.channels === 'both'}">Both</button><button type="button" data-ch="organic" aria-pressed="${B.channels === 'organic'}">Organic only</button><button type="button" data-ch="paid" aria-pressed="${B.channels === 'paid'}">Paid only</button></div>
-            ${B.channels === 'organic' ? '<small class="muted">No ad budget needed.</small>' : `<label class="field"><span>Monthly ad budget (${(S.brand && S.brand.currency) === 'USD' ? '$' : '₹'})</span><input id="budget" type="number" min="0" inputmode="numeric" placeholder="10000" value="${esc(B.budget)}"><small>Leave blank to continue with organic research only. This is a cap, never a target.</small></label>`}</div>
+            ${B.channels === 'organic' ? '<small class="muted">No ad budget needed.</small>' : `<label class="field"><span>Monthly ad budget${C.currency() ? ' (' + esc(C.currency()) + ')' : ' (in the target country’s currency)'}</span><input id="budget" type="number" min="0" inputmode="numeric" placeholder="10000" value="${esc(B.budget)}"><small>Leave blank to continue with organic research only. This is a cap, never a target.</small></label>`}</div>
         </div>
         <label class="field ${B.audienceMode === 'find' && !B.audience ? 'uncertain' : ''}"><span>Primary audience</span>
           <textarea id="aud" placeholder="One short description, or leave it and I’ll find it">${esc(B.audience)}</textarea>
@@ -195,7 +205,7 @@
     const g = C.GOALS.find((x) => x.k === S.goal.k) || C.GOALS[0];
     root.innerHTML = `<div class="ob-col wide">
       <div><span class="eyebrow">Step 5 · Your first plan</span><h1 class="disp">I’ve found a few places worth <b>starting.</b></h1>
-      <p class="sub" style="margin-top:10px">Goal: ${g.t.toLowerCase()}${S.goal.target ? ' (' + esc(S.goal.target) + ' ' + g.unit + ')' : ''} · ${S.bounds.region ? esc(S.bounds.region) : 'region still open'} · ${S.bounds.budgetMode === 'amount' ? 'cap ' + C.money(S.bounds.budget, (S.brand && S.brand.currency) || 'INR') + '/month' : 'organic only for now'}.</p></div>
+      <p class="sub" style="margin-top:10px">Goal: ${g.t.toLowerCase()}${S.goal.target ? ' (' + esc(S.goal.target) + ' ' + g.unit + ')' : ''} · ${S.bounds.region ? esc(S.bounds.region) : 'region still open'} · ${S.bounds.budgetMode === 'amount' ? 'cap ' + C.money(S.bounds.budget) + '/month' : 'organic only for now'}.</p></div>
       <div class="card-p">
         <div class="plan-list">${plan.map((p, n) => `<div class="plan-item"><span class="plan-num">${n + 1}</span>
           <div><h3>${esc(p.title)}</h3><p>${esc(p.summary)}</p>

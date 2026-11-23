@@ -51,7 +51,9 @@ async function suite(label, viewport) {
   await T(tag('onboarding: scan → confirm flagship (with validation) → goal → boundaries (country required) → plan → Accept plan'), async () => {
     await page.goto(BASE + '/onboarding-v4.html');
     await page.fill('#site', 'fernform.test'); await page.click('#f0 button'); await page.waitForSelector('#fl-name', { timeout: 20000 });
-    eq(await page.inputValue('#fl-name'), 'Soil Mix 250 g', 'flagship prefilled from the scan'); eq(await page.inputValue('#fl-price'), '499');
+    eq(await page.inputValue('#fl-name'), '', 'flagship is never assumed: the person picks it');
+    await page.click('[data-prod]:has-text("Soil Mix 250 g")'); eq(await page.inputValue('#fl-name'), 'Soil Mix 250 g', 'picked from the scanned list'); eq(await page.inputValue('#fl-price'), '499');
+    if (!(await page.inputValue('#fl-cur'))) await page.selectOption('#fl-cur', 'INR');
     ok(!(await overflow(page)), 'overflow on brand step');
     await page.fill('#fl-url', 'http://not-https.test'); await page.click('#next'); ok(inc(await page.locator('#fl-err').innerText(), 'https'), 'bad buy link must be rejected');
     await page.fill('#fl-name', ''); await page.click('#next'); ok(inc(await page.locator('#fl-err').innerText(), 'Name the product'));
@@ -61,24 +63,25 @@ async function suite(label, viewport) {
     ok((await page.locator('text=Always on · locked').count()) > 0, 'approval policy shown as locked');
     await page.click('#next'); ok(inc(await page.locator('#s3-err').innerText(), 'country'), 'paid budget without country is refused');
     await page.selectOption('#country', 'IN'); await page.click('#next'); await page.waitForSelector('.plan-item');
-    eq((await page.locator('#next').textContent()).trim(), 'Accept plan →'); await page.click('#next'); await page.waitForSelector('.hero', { timeout: 15000 });
+    eq((await page.locator('#next').textContent()).trim(), 'Accept plan →'); await page.click('#next'); await page.waitForSelector('.next-card', { timeout: 15000 });
     const s = await S(page); eq(s.flagship.name, 'Soil Mix 250 g'); eq(s.flagship.variant, '250 g'); eq(s.offer.url, 'https://fernform.test/products/soil-mix'); eq(s.bounds.country, 'IN');
   });
 
   await T(tag('state survives refresh; confirmed info is not asked again in the Library'), async () => {
-    await page.reload(); await page.waitForSelector('.hero'); const s = await S(page); eq(s.done, true);
+    await page.reload(); await page.waitForSelector('.next-card'); const s = await S(page); eq(s.done, true);
     await page.goto(BASE + '/app-v4.html#/campaigns/library'); await page.waitForSelector('#up-name');
     eq(await page.inputValue('#up-name'), 'Soil Mix 250 g', 'name prefilled from the confirmed flagship'); eq(await page.inputValue('#up-price'), '499');
   });
 
-  await T(tag('research: scan result persists; server counts it against the daily cap'), async () => {
-    await page.goto(BASE + '/app-v4.html#/discover'); await page.waitForSelector('#run-research'); await page.click('#run-research'); await page.waitForFunction(() => JSON.parse(localStorage.getItem('coldstart.v4')).research, null, { timeout: 15000 });
-    const s = await S(page); eq(s.research.signals.length, 1);
+  await T(tag('discover: no Reddit/X scanning; regions stay unranked without evidence; hypotheses are labelled'), async () => {
+    await page.goto(BASE + '/app-v4.html#/discover'); await page.waitForSelector('#so-reddit');
+    eq(await page.locator('#run-research').count(), 0, 'no Reddit/X research button'); eq(await page.locator('#so-scan').count(), 0, 'no scan of unconnected sources');
+    const t = await page.locator('main').innerText(); ok(inc(t, 'unranked'), 'regions unranked'); ok(inc(t, 'Not validated'), 'suggestions are hypotheses');
   });
 
   await T(tag('social: Reddit thread (manual) → evidence → draft → Action Inbox approval → Calendar → marked posted by user, not verified'), async () => {
     await page.goto(BASE + '/app-v4.html#/discover'); await page.waitForSelector('#so-reddit');
-    ok(inc(await page.locator('#social-sec').innerText(), 'X: requires'), 'X is shown as needing credentials, not as live');
+    ok(inc(await page.locator('#social-sec').innerText(), 'does not scrape Reddit or X'), 'states that nothing is scraped');
     await page.click('#so-reddit'); await page.fill('#rd-u', 'https://www.reddit.com/r/IndoorGarden/comments/abc123/best_soil_mix_for_balcony_herbs/'); await page.fill('#rd-t', 'Best soil mix for balcony herbs in Pune?'); await page.fill('#rd-x', 'My basil keeps dying on a sunny balcony. Looking for a potting soil mix that drains well and holds some water.'); await page.click('#rd-s');
     await page.waitForSelector('[data-sdraft]', { timeout: 10000 });
     ok(inc(await page.locator('#social-sec .opp').first().innerText(), 'Supplied by you'), 'manual evidence is labelled as supplied by the user');
@@ -98,6 +101,16 @@ async function suite(label, viewport) {
     jobs = (await ops(page, 'publishJobs')).json.jobs; eq(jobs[0].state, 'completed'); eq(jobs[0].verification, 'user_attested');
     await page.goto(BASE + '/app-v4.html#/results'); await page.waitForFunction(() => /not verified by the platform/.test((document.getElementById('res-live') || {}).textContent || ''), null, { timeout: 8000 });
     const rt = await page.locator('#res-live').innerText(); ok(inc(rt, 'Unavailable'), 'manual post engagement is shown as unavailable, not as zeros'); ok(inc(rt, 'no estimates'), 'estimates are explicitly absent');
+  });
+
+  await T(tag('calendar: new post on a real date, placed by its stored time, awaiting approval (not scheduled)'), async () => {
+    await page.goto(BASE + '/app-v4.html#/calendar/new'); await page.waitForSelector('#np-t');
+    const d = new Date(Date.now() + 2 * 86400000), day = d.toISOString().slice(0, 10);
+    await page.selectOption('#np-ch', 'facebook'); await page.fill('#np-t', 'Calendar test post'); await page.fill('#np-w', day + 'T10:00'); await page.click('#np-s');
+    await page.waitForFunction(() => !document.getElementById('dlg').open, null, { timeout: 8000 });
+    const j = (await ops(page, 'publishJobs')).json.jobs.find((x) => x.payload.text === 'Calendar test post'); ok(j && j.payload.scheduledAt, 'stored with a date'); eq(j.state, 'requested');
+    await page.goto(BASE + '/app-v4.html#/calendar'); await page.waitForSelector('.cal-item:has-text("Calendar test post")');
+    ok(inc(await page.locator('.cal-item:has-text("Calendar test post")').first().innerText(), 'Awaiting approval'), 'not labelled scheduled before approval');
   });
 
   await T(tag('tracking: website check form is present and refuses private/non-https addresses'), async () => {
