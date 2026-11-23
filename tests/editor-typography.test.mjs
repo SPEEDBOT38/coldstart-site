@@ -39,7 +39,7 @@ test('editor typography', { skip: !chromium && 'playwright not installed' }, asy
   await b.close();
 });
 
-for (const f of ['test_maskfix.py', 'test_token.py']) test('compositor python: ' + f, async () => {
+for (const f of ['test_maskfix.py', 'test_token.py', 'test_ground.py']) test('compositor python: ' + f, async () => {
   const { spawnSync } = await import('node:child_process');
   const r = spawnSync('python3', ['workers/composite/' + f], { encoding: 'utf8' });
   if (r.error && r.error.code === 'ENOENT') return;   // no python on this machine

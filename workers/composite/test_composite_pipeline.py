@@ -25,7 +25,7 @@ class Pipeline(unittest.TestCase):
     def setUpClass(cls):
         bg = Image.new('RGB', (1080, 1350), (60, 40, 30))
         cls.r = service.composite({'reference': url(photo()), 'background': url(bg), 'width': 1080, 'height': 1350, 'cx': 0.5, 'ground_y': 0.8, 'scale': 0.5,
-                                   'shadow': {'strength': 0.6, 'softness': 0.4, 'angle': 20}})
+                                   'shadow': {'light_from': 'left', 'light_hardness': 0.5, 'camera': 'eye_level'}})
         cls.rep = cls.r['report']; cls.out = Image.open(io.BytesIO(base64.b64decode(cls.r['image'].split(',')[1]))).convert('RGB')
 
     def test_mask_reported_separately(self):
@@ -42,8 +42,8 @@ class Pipeline(unittest.TestCase):
         self.assertEqual(self.rep['protected_pixels_changed'], 0); self.assertEqual(self.rep['protected_pixel_equality'], 'pass')
 
     def test_grounded(self):
-        s = self.rep['shadow']; self.assertIsNotNone(s); self.assertAlmostEqual(s['ground_y'], int(1350 * 0.8), delta=2)
-        y = s['ground_y'] + 3; x = (s['base_x'][0] + s['base_x'][1]) // 2
+        s = self.rep['shadow']; self.assertIsNotNone(s); self.assertAlmostEqual(s['support_line_y'], int(1350 * 0.8), delta=2); self.assertTrue(s['contact_visible'])
+        y = s['support_line_y'] + 3; x = (s['base_x'][0] + s['base_x'][1]) // 2
         self.assertLess(int(np.array(self.out)[y, x].sum()), 60 * 3 - 20, 'no contact shadow under the base')
 
 

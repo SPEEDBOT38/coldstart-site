@@ -80,6 +80,14 @@ def composite(req):
     if not bbox: raise ValueError('no product found in the photo')
     r_, g_, b_, a_ = cut.split(); cut = Image.merge('RGBA', (r_, g_, b_, a_.point(lambda v: 255 if v >= 200 else (0 if v < 16 else v))))   # solid interior, thin soft edge
     cut = cut.crop(bbox); scale = min(float(req.get('scale', 0.7)) * min(W / cut.width, H / cut.height), 1.0)
+    fit = None; sx = (req.get('shadow') or {}).get('support_x')
+    if sx and req.get('fit_support', True) is not False:       # a product must not be wider at its base than what supports it
+        import ground
+        rows, has = ground.bottom_contour(np.array(cut.getchannel('A'))); cols = np.nonzero(has)[0]
+        if len(cols):
+            b = rows[has].max(); touch = cols[rows[cols] >= b - max(2, int(0.025 * cut.height))]
+            base_w = (touch.max() - touch.min()) * scale; sup_w = (float(sx[1]) - float(sx[0])) * W
+            if base_w > 0.92 * sup_w > 0: fit = round(0.92 * sup_w / base_w, 3); scale = scale * fit
     fg = cut.resize((max(1, round(cut.width * scale)), max(1, round(cut.height * scale))), Image.LANCZOS) if scale != 1.0 else cut   # the single resample; this is the locked foreground
     if req.get('background'):
         bg, _ = dec(req['background']); bg = bg.convert('RGB').resize((W, H), Image.LANCZOS); bg_src = 'provided'
@@ -88,16 +96,19 @@ def composite(req):
     x = min(max(int(W * cx - fg.width / 2), 0), W - fg.width)
     fa = np.array(fg.getchannel('A'))
     if req.get('ground_y') is not None:                                       # art direction gives the surface line; the product base sits on it
-        from maskfix import base_extent
-        ext = base_extent(fa); base = ext[2] if ext else fg.height - 1
+        import ground
+        rws, hs = ground.bottom_contour(fa); base = int(rws[hs].max()) if hs.any() else fg.height - 1   # same contour the shadow uses
         y = int(H * min(max(float(req['ground_y']), 0.0), 1.0) - base)
     else:
         cy = min(max(float(req.get('cy', 0.5)), 0.0), 1.0); y = int(H * cy - fg.height / 2)
     y = min(max(y, 0), H - fg.height)
+    import ground
+    sopt = req.get('shadow') or {}
+    if sopt.get('enabled', True) is not False:
+        nb, shadow_info = ground.render(np.array(bg.convert('RGB')), fa, x, y, sopt)   # shadows go on the background only
+        bg = Image.fromarray(nb)
+    else: shadow_info = None
     canvas = bg.convert('RGBA')
-    shadow, shadow_info = contact_shadow(W, H, fa, x, y, req.get('shadow') or {})
-    if shadow_info is not None and (req.get('shadow') or {}).get('enabled', True) is not False:
-        canvas = Image.composite(Image.new('RGBA', (W, H), (18, 8, 4, 255)), canvas, shadow)
     canvas.alpha_composite(fg, (x, y))
     out = canvas.convert('RGB')
     # QA computed from pixels: inside the matte core (alpha==255, eroded 3px) output must equal the locked foreground
@@ -106,12 +117,17 @@ def composite(req):
     px = int(m.sum()); diff = int((np.abs(o.astype(int) - f.astype(int)).max(axis=2)[m] > 0).sum()) if px else -1
     image, out_sha = enc(out)
     review = list(mask_stats['review_reasons'])
+    if shadow_info and shadow_info.get('overhang_fraction') and shadow_info['overhang_fraction'] > 0.15: review.append('the product overhangs its support by %d%% of its width' % round(shadow_info['overhang_fraction'] * 100))
+    if shadow_info and not shadow_info.get('contact_visible'): review.append('the contact shadow is too faint on this surface (%.0f%% darker)' % (shadow_info['contact_darkening'] * 100))
+    if shadow_info and shadow_info.get('too_dark'): review.append('the contact shadow is unnaturally black')
     if seg.get('status') == 'disagree_needs_review': review.append('the two cutout models disagree (IoU %.2f); check the cutout edges' % seg['agreement_iou'])
     fidelity = 'pass' if diff == 0 and px > 0 else ('fail' if px > 0 else 'no_protected_pixels')
     report = {'matte_model': MODEL, 'segmentation': seg, 'background': bg_src, 'reference_sha256': ref_sha, 'output_sha256': out_sha,
-              'foreground': {'x': x, 'y': y, 'w': fg.width, 'h': fg.height, 'resampled_once': scale != 1.0, 'scale': round(scale, 4)},
+              'foreground': {'x': x, 'y': y, 'w': fg.width, 'h': fg.height, 'resampled_once': bool(scale != 1.0), 'scale': float(round(scale, 4))},
               'mask': {**mask_stats, 'sha256': mask_sha},
+              'fit_to_support': fit,
               'shadow': shadow_info,
+              'product_lighting': ground.product_lighting(np.array(ref), np.array(alpha)),
               'protected_pixels': px, 'protected_pixels_changed': diff,
               'protected_pixel_equality': fidelity,
               'review_required': review, 'approved': False,

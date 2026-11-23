@@ -60,10 +60,21 @@
     return L;
   }
   const strip = (L) => { const c = JSON.parse(JSON.stringify(L)); if (c.logo) delete c.logo.src; return c; };   // the logo is a brand asset, not part of the doc
+  // Shadow/grounding parameters come from the scene as measured (light direction, softness, camera, support extent);
+  // the brief supplies defaults when the measurement is missing or unsure.
   const shadowFor = (B, loc) => {
-    const s = { ...B.shadow }; if (!loc) return s;
-    s.angle = loc.light_from === 'right' ? -Math.abs(B.shadow.angle || 25) : loc.light_from === 'left' ? Math.abs(B.shadow.angle || 25) : 0;
-    s.softness = Math.min(0.9, Math.max(0.15, 1 - loc.light_hardness)); return s;
+    const s = { ...B.shadow }; if (!loc || loc.confidence < 0.4) return s;
+    s.light_from = loc.light_from; s.light_hardness = loc.light_hardness; s.camera = loc.camera || s.camera;
+    if (loc.width) s.support_x = [Math.max(0, loc.cx - loc.width / 2), Math.min(1, loc.cx + loc.width / 2)];
+    return s;
+  };
+  // Scene geometry vs the brief's compatibility spec: an incompatible scene is reported for regeneration, not forced.
+  const geometryCheck = (B, loc) => {
+    const issues = []; if (!loc) return { ok: false, issues: ['scene could not be measured'] };
+    if (B.spec && B.spec.camera === 'eye_level' && /overhead|high/.test(loc.camera || '')) issues.push('scene camera is ' + loc.camera + ' but the product photo is eye-level: the upright pouch cannot sit convincingly');
+    if (loc.width && loc.width < 0.18) issues.push('support is only ' + Math.round(loc.width * 100) + '% of the frame wide; too narrow for the pouch');
+    if (loc.light_hardness > 0.7) issues.push('scene light is hard (' + loc.light_hardness + ') while the product is softly front-lit: lighting will not match');
+    return { ok: !issues.length, issues, needs_new_background: issues.some((i) => /camera|narrow/.test(i)) };
   };
 
   // Free prototype backdrops that match each direction's tone (light hero, dark lifestyle, colour-blocked editorial),
@@ -96,6 +107,8 @@
     if (opts && opts.reuseScene) {   // refine placement/shadow/typography on the saved scene: no image-generation call
       const sc = (await C.ops.get('obImage', { id: x.id, kind: 'scene', site: ctx.brand.site, brand: ctx.brand.name })).image;
       if (!sc) throw new Error(B.name + ': no saved scene to reuse; generate it first.');
+      const prev = (await C.ops.get('obImage', { id: x.id, site: ctx.brand.site, brand: ctx.brand.name })).image;   // keep the version being replaced for before/after
+      if (prev) await C.ops.post('obEditCreative', { context: ctx, id: x.id, asset: 'before', data: prev, design: { before: { layout: d.layout, qa_overall: d.qa && d.qa.critique && d.qa.critique.overall, at: Date.now() } } });
       g = { image: sc, model: x.imageMeta && x.imageMeta.model, usd: 0, cost_known: true, generation_id: x.imageMeta && x.imageMeta.generation_id, attempts: [], reused: true };
     } else {
       rid = (d.scene_request && d.scene_request.status !== 'done') ? d.scene_request.id : x.id + '-' + Date.now().toString(36);
@@ -106,18 +119,19 @@
     msg(B.name + ': reading the scene to place the product…');
     let loc = null; try { loc = await C.api('plugins/images/actions/locate', { image: g.image, job: x.id, hint: B.camera + '. ' + B.lighting }); } catch (e) { loc = null; }
     const P = { ...B.product }; if (loc && loc.confidence >= 0.4) { P.ground_y = Math.min(Math.max(loc.surface_y, B.product.ground_y - 0.12), B.product.ground_y + 0.12); P.cx = Math.min(Math.max(loc.cx, B.product.cx - 0.15), B.product.cx + 0.15); }
-    const shadow = shadowFor(B, loc);
+    const mv = x.design && x.design.manual_placement; if (mv && opts && opts.reuseScene) Object.assign(P, mv);   // a person's correction wins on re-placement
+    const shadow = shadowFor(B, loc), geometry = geometryCheck(B, loc);
     msg(B.name + ': compositing your original product with a grounded shadow…');
     const mask = (await C.ops.get('obImage', { id: x.id, kind: 'mask', site: ctx.brand.site, brand: ctx.brand.name })).image;
     const cmp = await compose({ reference: A.ref, mask: mask || undefined, background: await sceneForCompositing(g.image), width: W, height: H, ...P, shadow }, C);
     const f = cmp.report.foreground, L = layoutFor(x, A, { x: f.x, y: f.y, w: f.w, h: f.h });
     const cv = await CE.compose(cmp.image, L, '4:5', A.font), png = cv.toDataURL('image/png');
     msg(B.name + ': visual review…');
-    let crit = null; try { crit = await C.api('plugins/images/actions/critique', { image: cv.toDataURL('image/jpeg', 0.9), brief: B.name + ': ' + B.objective + ' Camera ' + B.camera + '. Light ' + B.lighting + '.', job: x.id }); } catch (e) { crit = { error: e.message }; }
+    let crit = null; try { crit = await C.api('plugins/images/actions/critique', { image: cv.toDataURL('image/jpeg', 0.9), brief: B.name + ': ' + B.objective + ' Camera ' + B.camera + '. Light ' + B.lighting + '. Compositing parameters you can name: product position (cx, ground_y), scale, shadow strength/softness/direction, typography; or say the background must be regenerated.', job: x.id }); } catch (e) { crit = { error: e.message }; }
     const qa = {
       mask_completeness: cmp.report.mask.status === 'ok' ? 'pass' : 'review', mask: cmp.report.mask,
       protected_pixels: cmp.report.protected_pixel_equality, protected_pixels_changed: cmp.report.protected_pixels_changed,
-      grounding: cmp.report.shadow ? 'shadow_drawn' : 'none', placement_source: loc && loc.confidence >= 0.4 ? 'vision_located' : 'brief_default', placement: loc,
+      grounding: cmp.report.shadow ? (cmp.report.shadow.contact_visible ? 'shadow_drawn' : 'shadow_too_faint') : 'none', shadow: cmp.report.shadow, geometry, fit_to_support: cmp.report.fit_to_support, placement_source: loc && loc.confidence >= 0.4 ? 'vision_located' : 'brief_default', placement: loc,
       text: cv.qa.issues.length ? 'review' : 'pass', text_issues: cv.qa.issues, review_required: cmp.report.review_required, critique: crit, approved: false,
     };
     if (!g.reused) await C.ops.post('obEditCreative', { context: ctx, id: x.id, asset: 'scene', data: g.image });
@@ -140,5 +154,10 @@
     if (!r.image) return null; const L = layoutFor(x, A, (x.design && x.design.layout && x.design.layout.productBox) || null);
     return { base: r.image, layout: L, font: A.font, canvas: await CE.compose(r.image, L, '4:5', A.font) };
   }
-  window.AdPipe = { prototype, final, assets, layoutFor, brand, render, strip };
+  async function renderBefore({ C, S, ctx, x }) {
+    const A = await brand({ C, S }); const r = await C.ops.get('obImage', { id: x.id, kind: 'before', site: ctx.brand.site, brand: ctx.brand.name });
+    if (!r.image) return null; const L = layoutFor(x, A, (x.design && x.design.before && x.design.before.layout && x.design.before.layout.productBox) || null);
+    return CE.compose(r.image, L, '4:5', A.font);
+  }
+  window.AdPipe = { prototype, final, assets, layoutFor, brand, render, renderBefore, strip };
 })();
