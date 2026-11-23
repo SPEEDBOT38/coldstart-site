@@ -7,6 +7,10 @@
 (function () {
   const CE = window.CreativeEditor;
   const W = 1080, H = 1350;
+  // Vercel functions accept ≤ 4.5 MB per request. The product is drawn at ≤ ~700 px tall, so a 1400 px lossless reference is
+  // plenty; the generated scene is not protected, so it travels as a high-quality JPEG.
+  const REF_MAX = 1400;
+  async function sceneForCompositing(src) { const i = await img(src); const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; c.getContext('2d').drawImage(i, 0, 0); return c.toDataURL('image/jpeg', 0.95); }
 
   let tok = null;
   async function token(C) { if (tok && tok.until > Date.now() + 30000) return tok.v; const r = await C.api('plugins/images/actions/composeToken', {}); tok = { v: r.token, until: Date.now() + r.expires_in * 1000 }; return tok.v; }
@@ -41,8 +45,8 @@
     // Full-resolution original: drop CDN resize parameters (Shopify &width=…), then load it directly when the host allows CORS
     // (most product CDNs do); fall back to the same-origin proxy. Either way the pixels are the store's own photo.
     let src = flagship.image; try { const u = new URL(src); ['width', 'height', 'crop'].forEach((k) => u.searchParams.delete(k)); src = u.href; } catch (e) { /* keep */ }
-    let ref = null; try { ref = await limitPng(await viaCanvas(src), 2048); } catch (e) { ref = null; }
-    if (!ref) ref = await limitPng((await C.api('plugins/images/actions/photo', { url: src })).image, 2048);
+    let ref = null; try { ref = await limitPng(await viaCanvas(src), REF_MAX); } catch (e) { ref = null; }
+    if (!ref) ref = await limitPng((await C.api('plugins/images/actions/photo', { url: src })).image, REF_MAX);
     let logo = null, logoMono = false;
     if (S.brand && S.brand.logo) { try { logo = /^data:/.test(S.brand.logo) ? S.brand.logo : (await C.api('plugins/images/actions/photo', { url: S.brand.logo })).image; logoMono = await monochrome(logo); } catch (e) { logo = null; } }
     const font = await loadFont(S.brand && S.brand.fonts && S.brand.fonts[0]);
@@ -98,7 +102,7 @@
     const shadow = shadowFor(B, loc);
     msg(B.name + ': compositing your original product with a grounded shadow…');
     const mask = (await C.ops.get('obImage', { id: x.id, kind: 'mask', site: ctx.brand.site, brand: ctx.brand.name })).image;
-    const cmp = await compose({ reference: A.ref, mask: mask || undefined, background: g.image, width: W, height: H, ...P, shadow }, C);
+    const cmp = await compose({ reference: A.ref, mask: mask || undefined, background: await sceneForCompositing(g.image), width: W, height: H, ...P, shadow }, C);
     const f = cmp.report.foreground, L = layoutFor(x, A, { x: f.x, y: f.y, w: f.w, h: f.h });
     const cv = await CE.compose(cmp.image, L, '4:5', A.font), png = cv.toDataURL('image/png');
     msg(B.name + ': visual review…');

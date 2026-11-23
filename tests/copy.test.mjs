@@ -28,3 +28,17 @@ test('fallback drafts contain no placeholder language', async () => {
   const rec = await initCreatives(store, { brand: { name: 'Mello', line: facts.line, site: 'mellooo.co.in' }, product: { name: 'Almond dragees', price: 549, currency: 'INR' }, audience: facts.audience, aiCopy: false });
   for (const x of rec.items) for (const f of ['headline', 'body', 'cta']) assert.ok(!/approve competitors|edit with|state your|…/i.test(x[f]), x[f]);
 });
+
+test('approval is blocked by failed checks and only overridable for reviewer opinions', async () => {
+  const { editCreative } = await import('../lib/onboard/intel.js');
+  const kv = new Map(); const store = { get: async (k) => kv.get(k) ?? null, set: async (k, v) => kv.set(k, v), audit: () => {} };
+  const ctx = { brand: { name: 'Mello', line: 'x', site: 'mellooo.co.in' }, product: { name: 'Almond dragees' }, aiCopy: false };
+  await initCreatives(store, ctx);
+  const q = (o) => ({ protected_pixels: 'pass', mask_completeness: 'pass', text_issues: [], critique: { blocking_issues: [] }, ...o });
+  await editCreative(store, { context: ctx, id: 'cr_spotlight', design: { qa: q({ protected_pixels: 'fail' }) } });
+  await assert.rejects(editCreative(store, { context: ctx, id: 'cr_spotlight', approve: true, override: 'I like it a lot' }), /pixels changed/);
+  await editCreative(store, { context: ctx, id: 'cr_spotlight', design: { qa: q({ critique: { blocking_issues: ['floats'] } }) } });
+  await assert.rejects(editCreative(store, { context: ctx, id: 'cr_spotlight', approve: true }), /blocking/);
+  const r = await editCreative(store, { context: ctx, id: 'cr_spotlight', approve: true, override: 'shadow checked by eye, acceptable' });
+  const x = r.items.find((y) => y.id === 'cr_spotlight'); assert.equal(x.status, 'approved'); assert.match(x.approvalOverride, /shadow/); assert.equal(x.override, undefined);
+});
