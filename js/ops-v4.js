@@ -26,12 +26,13 @@
   /* ---------- header ---------- */
   let popEl = null;
   function pop(anchor, html) {
-    closePop(); popEl = document.createElement('div'); popEl.className = 'pop'; popEl.innerHTML = html; document.body.appendChild(popEl);
+    closePop(); popAnchor = anchor; popEl = document.createElement('div'); popEl.setAttribute('role', 'menu'); popEl.className = 'pop'; popEl.innerHTML = html; document.body.appendChild(popEl);
     const r = anchor.getBoundingClientRect(); popEl.style.top = r.bottom + 6 + 'px'; popEl.style.right = Math.max(8, innerWidth - r.right) + 'px';
     setTimeout(() => document.addEventListener('click', outside), 0); return popEl;
   }
   const outside = (e) => { if (popEl && !popEl.contains(e.target)) closePop(); };
-  function closePop() { if (popEl) { popEl.remove(); popEl = null; } document.removeEventListener('click', outside); }
+  let popAnchor = null;
+  function closePop() { if (popEl) { popEl.remove(); popEl = null; if (popAnchor && document.contains(popAnchor)) popAnchor.focus(); popAnchor = null; } document.removeEventListener('click', outside); }
 
   function refresh() {
     const open = (S().inbox || []).filter((i) => !(i.snoozeUntil && i.snoozeUntil > Date.now())).length;
@@ -93,7 +94,7 @@
       <button class="btn sm ghost" id="bulk" type="button" ${sel.size ? '' : 'disabled'}>Bulk approve (${sel.size})</button><a class="link" href="#/settings/audit">View history</a></div>
     <section class="panel">${items.length ? items.map((i) => `<div class="inbox-row" style="grid-template-columns:auto auto 1fr auto"><input type="checkbox" data-sel="${esc(i.id)}" aria-label="Select" ${sel.has(i.id) ? 'checked' : ''}><i class="dot ${i.kind === 'approval' ? 'y' : ''}"></i>
       <div><strong>${esc(i.title)}</strong><small>${esc(i.sub)}</small><div class="tags" style="margin-top:6px"><span class="chip dash">${TYPE[i.kind] || i.kind}</span><span class="chip ${i.kind === 'approval' ? 'warn' : 'dash'}">${i.kind === 'approval' ? 'High impact: review individually' : 'Low risk'}</span>${i.snoozeUntil > now ? '<span class="chip">Snoozed</span>' : ''}</div>${i.note ? `<small class="mono">Changes requested: ${esc(i.note)}</small>` : ''}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><a class="btn sm" href="${esc(i.to)}">Review</a>${i.kind === 'approval' ? '' : `<button class="btn sm ghost" data-ok="${esc(i.id)}" type="button">Approve</button>`}<button class="btn sm ghost" data-chg="${esc(i.id)}" type="button">Request changes</button><button class="btn sm ghost" data-no="${esc(i.id)}" type="button">Reject</button><button class="btn sm ghost" data-snz="${esc(i.id)}" type="button">Snooze</button></div></div>`).join('') : '<div class="empty"><strong>Inbox is clear.</strong><p>Approvals, creative checks and confirmations land here so you never have to hunt for them.</p></div>'}</section>`;
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><a class="btn sm" href="${esc(i.to)}">Review</a>${i.kind === 'approval' ? '' : `<button class="btn sm ghost" data-ok="${esc(i.id)}" type="button">Approve</button>`}<details class="more"><summary class="btn sm ghost">More</summary><div class="more-m"><button class="btn sm ghost" data-chg="${esc(i.id)}" type="button">Request changes</button><button class="btn sm ghost" data-no="${esc(i.id)}" type="button">Reject</button><button class="btn sm ghost" data-snz="${esc(i.id)}" type="button">Snooze 24 h</button></div></details></div></div>`).join('') : '<div class="empty"><strong>Inbox is clear.</strong><p>Approvals, creative checks and confirmations land here so you never have to hunt for them.</p></div>'}</section>`;
     $('#f-type').onchange = (e) => { fType = e.target.value; inbox(view); }; $('#f-status').onchange = (e) => { fStatus = e.target.value; inbox(view); };
     const act = (id, fn, msg, type) => { const it = S().inbox.find((x) => x.id === id); if (!it) return; fn(it); C.log('inbox', msg + ': ' + it.title, { item: id, kind: it.kind, decision: type }); C.save(); sel.delete(id); route(); };
     view.querySelectorAll('[data-sel]').forEach((c) => c.onchange = () => { c.checked ? sel.add(c.dataset.sel) : sel.delete(c.dataset.sel); inbox(view); });

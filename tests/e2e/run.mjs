@@ -237,7 +237,7 @@ async function suite(label, viewport) {
   await T(tag('inbox: Request changes uses a dialog (no prompt()), validates input'), async () => {
     let prompted = false; page.on('dialog', (d) => { prompted = true; d.dismiss(); });
     await page.goto(BASE + '/app-v4.html#/inbox'); await page.waitForSelector('.inbox-row, .empty');
-    if (await page.locator('[data-chg]').count()) { await page.click('[data-chg]'); await page.waitForSelector('#rc-n'); await page.click('#rc-s'); ok(inc(await page.locator('#rc-e').innerText(), 'Say what'), 'empty request refused'); await page.fill('#rc-n', 'Lower the cap'); await page.click('#rc-s'); await page.waitForSelector('text=Changes requested'); }
+    if (await page.locator('[data-chg]').count()) { await page.click('details.more summary'); await page.click('[data-chg]'); await page.waitForSelector('#rc-n'); await page.click('#rc-s'); ok(inc(await page.locator('#rc-e').innerText(), 'Say what'), 'empty request refused'); await page.fill('#rc-n', 'Lower the cap'); await page.click('#rc-s'); await page.waitForSelector('text=Changes requested'); }
     eq(prompted, false, 'no native prompt dialog');
   });
 

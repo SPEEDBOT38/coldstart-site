@@ -68,7 +68,7 @@
       S.input.desc = S.input.desc || (S.brand && S.brand.line) || '';
     } catch (e) {
       clearInterval(scanTimer); scanning = false;
-      lastError = 'I couldn’t read that site (' + e.message + ').';
+      lastError = 'Couldn’t analyze this website right now. Try again, or describe your business to continue.'; console.warn('scan failed', e && e.message);
       showDesc = true; S.scan = null; return render();
     }
     clearInterval(scanTimer);

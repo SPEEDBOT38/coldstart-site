@@ -132,10 +132,8 @@
     };
   }
 
-  function seedInbox() {
+  function seedInbox() {   // only real decisions: no seeded busywork
     const inbox = [];
-    (S.campaigns || []).forEach((c) => inbox.push({ id: 'i-launch-' + c.id, kind: 'approval', title: 'Review the first campaign: ' + c.name, sub: 'Nothing goes live until you approve it.', to: '#/campaigns/' + c.id }));
-    (S.products || []).length && inbox.push({ id: 'i-brand', kind: 'confirm', title: 'Check your Brand DNA once more', sub: 'Colours, voice and “avoid” words steer every draft.', to: '#/settings' });
     return inbox;
   }
 
