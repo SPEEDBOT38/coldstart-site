@@ -57,7 +57,7 @@
     const b = S.brand || {}, n = next(), c = camp(), inbox = (S.inbox || []).filter((i) => !(i.snoozeUntil && i.snoozeUntil > Date.now()));
     const first = inbox.find((i) => i.kind === 'approval') || inbox[0];
     const hour = new Date().getHours(), hi = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    const fl = S.flagship || {};
+    const fl = flagshipWithPhoto();
     const lead = !fl.name ? { eyebrow: 'Setup', title: 'Choose the product to lead with', sub: 'Nothing can be created or planned until one product or offer is confirmed.', href: 'onboarding-v4.html', cta: 'Choose a product' }
       : !(fl.image || (S.studio && (S.studio.assets || []).length) || (S.studio && S.studio.skus && S.studio.skus.length)) ? { eyebrow: 'Setup', title: 'Add a real photo of ' + fl.name, sub: (!fl.url ? 'The product link and photo are missing.' : 'The product photo is missing.') + ' Creatives are built from your own product photo, so this comes first.', href: '#/campaigns/library', cta: 'Complete product setup' }
       : first ? { eyebrow: 'Needs your decision', title: first.title, sub: first.sub, href: '#/inbox', cta: 'Review next action' }
@@ -85,6 +85,14 @@
     view.querySelectorAll('[data-why]').forEach((x) => x.addEventListener('click', () => drawer(x.dataset.why)));
     homeLive();
   }
+  /* The confirmed flagship, with the photo the scan found for that product if none was picked explicitly. */
+  function flagshipWithPhoto() {
+    const fl = Object.assign({}, S.flagship || {}); if (fl.image || !fl.name) return fl;
+    const n = fl.name.toLowerCase(), p = (S.products || []).find((x) => (x.name || '').toLowerCase() === n) || (S.products || []).find((x) => (x.name || '').toLowerCase().includes(n) || n.includes((x.name || '').toLowerCase()));
+    const img = p && (p.image || (p.images || [])[0] || (p.enrich && p.enrich.candidates && p.enrich.candidates[0] && p.enrich.candidates[0].url));
+    if (img) { fl.image = img; if (S.flagship) { S.flagship.image = img; C.save(); } }
+    return fl;
+  }
   const obContext = () => ({ brand: { name: (S.brand && S.brand.name) || 'Your brand', line: (S.brand && S.brand.line) || '', site: S.input.site || '' }, product: S.flagship && S.flagship.name ? { name: S.flagship.name, price: S.flagship.price || null, currency: S.flagship.currency || null } : undefined, audience: ((S.icps || []).find((i) => i.on !== false) || {}).who || '', country: (S.bounds && S.bounds.country) || '' });
   const SCENES = {
     spotlight: 'Premium studio product photograph. The exact product from the reference image as the hero, centred, on a seamless backdrop in the brand colours, soft key light, subtle reflection, generous empty space in the top third for a headline.',
@@ -95,7 +103,7 @@
   async function homeIntel() {
     const cr = $('#home-cr'), mi = $('#home-mi'), ctx = obContext(); let snap = {};
     try { snap = await C.ops.get('obIntel', { site: ctx.brand.site, brand: ctx.brand.name, country: ctx.country }); } catch (e) { if (cr) cr.innerHTML = `<div class="empty sm">Couldn’t load drafts: ${esc(e.message)}</div>`; return; }
-    const col = (S.brand && S.brand.colors) || [], fl = S.flagship || {};
+    const col = (S.brand && S.brand.colors) || [], fl = flagshipWithPhoto();
     const vars = `--b1:${esc(col[4] || '#F5F5F2')};--b2:${esc(col[3] || col[0] || '#111')};--b3:${esc(col[1] || col[0] || '#ddd')}`;
     const items = (snap.creatives && snap.creatives.items) || [], done = items.filter((x) => x.imageState === 'rendered').length;
     if (cr) {
@@ -126,7 +134,7 @@
   }
   async function renderAds(list, ctx) {
     if (rendering || !list.length) return; rendering = true; homeIntel();
-    const msg = () => $('#cr-msg'), fl = S.flagship || {};
+    const msg = () => $('#cr-msg'), fl = flagshipWithPhoto();
     try {
       const ref = await shrink((await C.api('plugins/images/actions/photo', { url: fl.image })).image, 1024);
       for (const x of list) {
