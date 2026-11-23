@@ -119,16 +119,32 @@
     msg(B.name + ': reading the scene to place the product…');
     let loc = null; try { loc = await C.api('plugins/images/actions/locate', { image: g.image, job: x.id, hint: B.camera + '. ' + B.lighting }); } catch (e) { loc = null; }
     const P = { ...B.product }; if (loc && loc.confidence >= 0.4) { P.ground_y = Math.min(Math.max(loc.surface_y, B.product.ground_y - 0.12), B.product.ground_y + 0.12); P.cx = Math.min(Math.max(loc.cx, B.product.cx - 0.15), B.product.cx + 0.15); }
+    if (B.spec && B.spec.placement) {   // keep the product inside the brief's placement polygon (scene measurement can drift to a back edge)
+      const xs = B.spec.placement.map((p) => p[0]), yy = B.spec.placement.map((p) => p[1]);
+      P.cx = Math.min(Math.max(P.cx, Math.min(...xs)), Math.max(...xs)); P.ground_y = Math.min(Math.max(P.ground_y, Math.min(...yy)), Math.max(...yy));
+    }
     const mv = x.design && x.design.manual_placement; if (mv && opts && opts.reuseScene) Object.assign(P, mv);   // a person's correction wins on re-placement
     const shadow = shadowFor(B, loc), geometry = geometryCheck(B, loc);
     msg(B.name + ': compositing your original product with a grounded shadow…');
     const mask = (await C.ops.get('obImage', { id: x.id, kind: 'mask', site: ctx.brand.site, brand: ctx.brand.name })).image;
-    const cmp = await compose({ reference: A.ref, mask: mask || undefined, background: await sceneForCompositing(g.image), width: W, height: H, ...P, shadow }, C);
-    const f = cmp.report.foreground, L = layoutFor(x, A, { x: f.x, y: f.y, w: f.w, h: f.h });
-    const cv = await CE.compose(cmp.image, L, '4:5', A.font), png = cv.toDataURL('image/png');
+    const sceneJ = await sceneForCompositing(g.image);
+    let cmp = await compose({ reference: A.ref, mask: mask || undefined, background: sceneJ, width: W, height: H, ...P, shadow }, C);
+    let f = cmp.report.foreground, L = layoutFor(x, A, { x: f.x, y: f.y, w: f.w, h: f.h });
+    let cv = await CE.compose(cmp.image, L, '4:5', A.font), png = cv.toDataURL('image/png');
     msg(B.name + ': visual review…');
     let crit = null; try { crit = await C.api('plugins/images/actions/critique', { image: cv.toDataURL('image/jpeg', 0.9), brief: B.name + ': ' + B.objective + ' Camera ' + B.camera + '. Light ' + B.lighting + '. Compositing parameters you can name: product position (cx, ground_y), scale, shadow strength/softness/direction, typography; or say the background must be regenerated.', job: x.id }); } catch (e) { crit = { error: e.message }; }
-    const qa = {
+    const refinements = [];
+    const wantsShadow = (c) => c && !c.error && (c.findings || []).some((fd) => /shadow/i.test(fd.parameter || '') && !fd.needs_new_background);
+    if (wantsShadow(crit)) {   // at most ONE automatic refinement, then a person decides
+      const s2 = { ...shadow, strength: Math.min(1.5, (shadow.strength || 1) * 1.35), length: (shadow.length || (shadow.light_from === 'front' ? 0.35 : 0.6)) * 1.25 };
+      msg(B.name + ': strengthening the grounding once (reviewer finding)…');
+      const c2 = await compose({ reference: A.ref, mask: mask || undefined, background: sceneJ, width: W, height: H, ...P, shadow: s2 }, C);
+      const f2 = c2.report.foreground, L2 = layoutFor(x, A, { x: f2.x, y: f2.y, w: f2.w, h: f2.h }); const cv2 = await CE.compose(c2.image, L2, '4:5', A.font);
+      let cr2 = null; try { cr2 = await C.api('plugins/images/actions/critique', { image: cv2.toDataURL('image/jpeg', 0.9), brief: B.name + ': ' + B.objective, job: x.id }); } catch (e) { cr2 = { error: e.message }; }
+      refinements.push({ change: 'shadow strength ×1.35, cast length ×1.25', before_overall: crit.overall, after_overall: cr2 && cr2.overall, kept: !!(cr2 && !cr2.error && cr2.overall >= crit.overall) });
+      if (cr2 && !cr2.error && cr2.overall >= crit.overall) { cmp = c2; f = f2; L = L2; cv = cv2; png = cv2.toDataURL('image/png'); crit = cr2; Object.assign(shadow, s2); }
+    }
+    const qa = { refinements,
       mask_completeness: cmp.report.mask.status === 'ok' ? 'pass' : 'review', mask: cmp.report.mask,
       protected_pixels: cmp.report.protected_pixel_equality, protected_pixels_changed: cmp.report.protected_pixels_changed,
       grounding: cmp.report.shadow ? (cmp.report.shadow.contact_visible ? 'shadow_drawn' : 'shadow_too_faint') : 'none', shadow: cmp.report.shadow, geometry, fit_to_support: cmp.report.fit_to_support, placement_source: loc && loc.confidence >= 0.4 ? 'vision_located' : 'brief_default', placement: loc,

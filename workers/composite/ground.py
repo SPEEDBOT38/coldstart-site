@@ -58,8 +58,8 @@ def render(bg, alpha, x, y, opts=None):
     Ls = float(luminance(band).mean()) if band.size else 128.0
     texture = float(luminance(band).std()) if band.size else 0.0
     dark_surface = Ls < 80
-    contact_max = np.clip(0.55 + 0.30 * (1 - Ls / 255.0), 0.5, 0.85) * strength   # relative darkening at the contact line
-    cast_max = np.clip((0.18 + 0.32 * hard) * (1.25 if dark_surface else 1.0), 0.12, 0.55) * strength
+    contact_max = np.clip(0.62 + 0.28 * (1 - Ls / 255.0), 0.55, 0.9) * strength   # relative darkening at the contact line
+    cast_max = np.clip((0.24 + 0.32 * hard) * (1.25 if dark_surface else 1.0), 0.12, 0.55) * strength
 
     S = np.zeros((H, W), np.float32)
     # --- contact shadow: per-column exponential decay below the real contour, weighted by how close it is to the support
